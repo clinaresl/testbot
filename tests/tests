@@ -1,0 +1,53 @@
+# Test specification file
+#
+# ----------------------------------------------------------------------
+# Every line of this format is one of the following:
+#
+#    Comment: comments are preceded by #
+#    Specification: start with '@' and have the format
+#                   directive <type>
+#    Data: a unique integer identifier followed by a serie of values
+#          of the types given in the Specification line
+#
+# A directive is identified because the first character is a dash '-'
+#
+# If a data line appears before the first specification line an error
+# is issued. Fields in the data lines should be separated only by
+# spaces and/or tabs. If a data line contains more items than its
+# corresponding specification line, they will be ignored. If a data
+# line contains less items than its corresponding specification line,
+# an error is issued.
+#
+# Blank lines (spaces and/or tabs terminated with a newline character)
+# are allowed as well
+#
+# Lines are numbered *after removing all comments and blank lines*
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# Specification lines recognize the following types:
+#
+# S - strings. If they contain whitespace characters then they should
+# be either single or doubled quoted.
+#
+# Empty strings can be easily specified with either '' or ""
+#
+# Additionally, it recognizes the special keyword void which means
+# that the corresponding directive has no arguments
+# ----------------------------------------------------------------------
+
+enumerate targetvalue = 10 12 14
+
+@ --no-validate --init S --target-value S
+001 "001 002 005 003 000 004 006 007 008" 240$targetvalue
+002 "001 004 000 003 005 002 006 007 008" 240$targetvalue
+005 "001 004 002 003 007 005 000 006 008" 240$targetvalue
+
+# @ S S S S
+# 001 1 2 10 4
+
+# @ S S S S S S
+# 002 2 2 10 4 10 5
+
+# @ S S S S S S S S
+# 003 3 2 10 4 10 6 10 14
