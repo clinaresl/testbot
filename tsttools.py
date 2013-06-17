@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <Saturday, 15 June 2013 23:20:01 Carlos Linares Lopez (clinares)>
+# Last update <Monday, 17 June 2013 17:34:34 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -306,7 +306,9 @@ class TstCase(object):
 
     def __init__ (self, index, args):
         """
-        initializes the definition of this test case
+        initializes the definition of this test case. 'index' is just a string
+        while args shall consist of a list of strings which is interpreted in
+        the same order from left to right
         """
 
         # store the index and definition of the test case
