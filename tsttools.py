@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <Thursday, 20 June 2013 19:27:58 Carlos Linares Lopez (clinares)>
+# Last update <Friday, 21 June 2013 15:22:30 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -39,7 +39,7 @@ from string import Template
 
 # comment lines and blank lines
 COMMENTREGEXP = "[ \t]*#.*"
-BLANKREGEXP = "[ \t]*\n$"
+BLANKREGEXP = "[ \t]*$"
 
 # enumerates: enumerate sentence, and values of enumerates
 ENUMREGEXP = "enumerate[ \t]*(?P<name>\S+)[ \t]*="
@@ -242,13 +242,13 @@ def expand(specline, dataline, table, lineno, filename):
 # -----------------------------------------------------------------------------
 # TstIter
 #
-# returns an iterator of all the cases found in the given TstFile, even if it is
+# returns an iterator of all the cases found in the given TstSpec, even if it is
 # empty
 # -----------------------------------------------------------------------------
 class TstIter(object):
 
     """
-    returns an iterator of all the cases found in the given TstFile, even if it
+    returns an iterator of all the cases found in the given TstSpec, even if it
     is empty
     """
 
@@ -434,25 +434,25 @@ class TstCase(object):
 
 
 # -----------------------------------------------------------------------------
-# TstFile
+# TstSpec
 #
 # this class provides services for accessing and interpreting the
-# contents of test files
+# contents of test specifications
 # -----------------------------------------------------------------------------
-class TstFile(object):
+class TstSpec(object):
 
     """
     this class provides services for accessing and interpreting the
-    contents of test files
+    contents of test specifications
     """
 
-    def __init__ (self, tstname):
+    def __init__ (self, spec):
         """
-        opens a test file and decodes its contents
+        decodes the contents of a test specification
         """
 
-        # store the name of the database
-        self._tstname = tstname
+        # store the test specification after splitting it by lines
+        self._tstspec = spec.split ('\n')
 
         # initialize the 'symbols table'
         self._table = defaultdict (list)
@@ -461,83 +461,77 @@ class TstFile(object):
         self._tstdefs = []
 
         # decode its contents
-        self._decode (self._tstname)
+        self._decode (self._tstspec)
 
 
-    def _decode (self, tstname):
+    def _decode (self, tstspec):
         """
-        decodes the contents of the given test file
+        decodes the contents of the given test specification
         """
 
         # initialization
         lineno = 1                      # line number
         specline = []                   # no specification line has been found yet
 
-        # open the test specification file and process each line
-        # separately
-        with open (tstname) as stream:
+        # process separately each line of the test specification
 
-            # for every line not being a comment or blank line
-            for iline in [jline for jline in stream.readlines () 
-                          if (not re.match (COMMENTREGEXP, jline) and 
-                              not re.match (BLANKREGEXP, jline))]:
+        # for every line not being a comment or blank line
+        for iline in [jline for jline in self._tstspec
+                      if (not re.match (COMMENTREGEXP, jline) and 
+                          not re.match (BLANKREGEXP, jline))]:
 
-                iline = iline.lstrip ()         # remove leading white spaces
+            iline = iline.lstrip ()         # remove leading white spaces
 
-                # if this is a spec line, then process its contents
-                if (iline [0] == '@'):
+            # if this is a spec line, then process its contents
+            if (iline [0] == '@'):
 
-                    # get the specification line ---the filter just
-                    # removes the empty strings that might appear. The
-                    # matching starts at position 2 since after ':'
-                    # there should be a blank
-                    specline = filter (lambda x:x,
-                                       re.split (SPECSEPREGEXP, iline[2:]))
-                    lineno += 1
-                    continue
+                # get the specification line ---the filter just
+                # removes the empty strings that might appear. The
+                # matching starts at position 2 since after ':'
+                # there should be a blank
+                specline = filter (lambda x:x,
+                                   re.split (SPECSEPREGEXP, iline[2:]))
+                lineno += 1
+                continue
 
-                # is it an enumerate?
-                m = re.match (ENUMREGEXP, iline)
-                if (m):
-                    self._table [m.group ('name')] = parse_enum (iline[m.end ():].lstrip ())
+            # is it an enumerate?
+            m = re.match (ENUMREGEXP, iline)
+            if (m):
+                self._table [m.group ('name')] = parse_enum (iline[m.end ():].lstrip ())
 
-                    lineno += 1
-                    continue
+                lineno += 1
+                continue
 
-                # is it a range?
-                m = re.match (RANGEREGEXP, iline)
-                if (m):
-                    self._table [m.group ('name')] = parse_range (iline[m.end ():].lstrip (),
-                                                                  lineno, self._tstname)
+            # is it a range?
+            m = re.match (RANGEREGEXP, iline)
+            if (m):
+                self._table [m.group ('name')] = parse_range (iline[m.end ():].lstrip (),
+                                                              lineno, self._tstspec)
 
-                    lineno += 1
-                    continue
+                lineno += 1
+                continue
 
-                # otherwise, this is treated as a data line - note that data
-                # lines can be specified even without spec lines (this is useful
-                # when a solver is invoked without arguments)
+            # otherwise, this is treated as a data line - note that data
+            # lines can be specified even without spec lines (this is useful
+            # when a solver is invoked without arguments)
 
-                # find the index number first
-                m = re.match (IDXREGEXP, iline)
+            # find the index number first
+            m = re.match (IDXREGEXP, iline)
 
-                # if no index is found, raise a syntax error
-                if (not m):
-                    raise SyntaxError ("Index not found in line %i file %s: %s" %
-                                       (lineno, self._tstname, iline))
+            # if no index is found, raise a syntax error
+            if (not m):
+                raise SyntaxError ("Index not found in line %i file %s: %s" %
+                                   (lineno, self._tstspec, iline))
 
-                index = m.group ('index')
+            index = m.group ('index')
 
-                # expand the current specification line with the contents of
-                # this data line
-                self._tstdefs += [TstCase (index, icase)
-                                  for icase in expand (specline, iline[m.end ():].lstrip (),
-                                                       self._table, lineno, self._tstname)]
+            # expand the current specification line with the contents of
+            # this data line
+            self._tstdefs += [TstCase (index, icase)
+                              for icase in expand (specline, iline[m.end ():].lstrip (),
+                                                   self._table, lineno, self._tstspec)]
 
-                print [(index, icase)
-                       for icase in expand (specline, iline[m.end ():].lstrip (),
-                                            self._table, lineno, self._tstname)]
-
-                lineno += 1                             # and move forward
+            lineno += 1                             # and move forward
 
 
     def __len__ (self):
@@ -573,6 +567,34 @@ class TstFile(object):
 
         return [(icase.get_id (), reduce (lambda x,y:x+' '+y, icase.get_args ())) 
                 for icase in self._tstdefs]
+
+
+# -----------------------------------------------------------------------------
+# TstFile
+#
+# this class provides services for accessing and interpreting the
+# contents of test specification files
+# -----------------------------------------------------------------------------
+class TstFile(TstSpec):
+
+    """
+    this class provides services for accessing and interpreting the
+    contents of test specification files
+    """
+
+    def __init__ (self, filename):
+        """
+        decodes the contents of a test specification file
+        """
+
+        # store the test specification after splitting it by lines
+        with open (filename) as stream:
+
+            # simply invoke the constructor of the base class with the contents
+            # of the file
+            super (TstFile, self).__init__(spec=stream.read ())
+
+
 
 
 # Local Variables:

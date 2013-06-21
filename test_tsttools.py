@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Jun 14 17:03:21 2013 Carlos Linares Lopez>
-# Last update <Friday, 21 June 2013 14:22:40 Carlos Linares Lopez (clinares)>
+# Last update <Friday, 21 June 2013 15:27:34 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -122,6 +122,101 @@ class TestTstCase(testutils.ParametrizedTestCase):
             
         # compute the synthetic representation of this test case
         self._tstcase = tsttools.TstCase (self._caseid, self._caseargs)
+
+
+    def test_id (self):
+        """
+        verifies that the ids are correctly computed
+        """
+
+        # check the returned ids are indeed the first value in every
+        # tuple
+        self.assertEqual (self._tstcase.get_id (),
+                          self._caseid,
+                          "The ids were not properly computed")
+
+
+    def test_args (self):
+        """
+        verifies that the args are correctly computed
+        """
+
+        # check the returned args are indeed the second item in every
+        # tuple
+        
+        self.assertEqual (self._tstcase.get_args (),
+                          self._caseargs,
+                          "The args were not properly computed")
+
+
+    def test_value (self):
+        """
+        verifies that the values of every argument are properly
+        computed
+        """
+
+        # and the directives present in
+        # WARNING - the following service is not tested!
+        for idirective in self._tstcase.get_directives ():
+            
+            # compose a list with all the values of this directive as
+            # computed by get_values and compare them with the values stored
+            # in this test case
+            self.assertEqual ([ivalue for ivalue in self._tstcase.get_value (idirective)],
+                              self._values [idirective],
+                              "Values were not properly computed")
+
+
+    def test_values (self):
+        """
+        verifies that the values of every directive are properly
+        computed
+        """
+
+        def _sep (x):
+            """
+            returns a blank to separate x with an incoming item if it is not
+            null and '' otherwise
+            """
+
+            return ' ' if x else ''
+
+        # compute a dictionary with the values of all args as they should be
+        # returned by get_values ---take especial care of null args which are
+        # just represented with the null string; otherwise, the args are
+        # computed inserting the right separators even if one argument is null
+        values = dict ([(index, '' if not value else reduce (lambda x,y: x + _sep (x) + y, value))
+                        for index, value in self._values.iteritems ()])
+
+        # and now, run the test verifying that the values returned are
+        # exactly the expected ones
+        self.assertDictContainsSubset (self._tstcase.get_values (),
+                                       values,
+                                       "The values were not properly computed")
+
+    def tearDown (self): pass
+
+
+
+# -----------------------------------------------------------------------------
+# TestTstSpec
+#
+# tests that TstSpec is usable in precisely the same way it is intended
+# -----------------------------------------------------------------------------
+class TestTstSpec(testutils.ParametrizedTestCase):
+
+    """
+    tests that TstSpec is usable in precisely the same way it is intended
+    """
+
+    def setUp (self):
+        """
+        define a particular test case specification
+        """
+
+        # parameters
+
+        # initialization
 
 
     def test_id (self):
