@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <Monday, 17 June 2013 17:34:34 Carlos Linares Lopez (clinares)>
+# Last update <Thursday, 20 June 2013 19:27:58 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -310,6 +310,12 @@ class TstCase(object):
         while args shall consist of a list of strings which is interpreted in
         the same order from left to right
         """
+
+        # while it is absolutely legal to create a test case with no arguments
+        # (so that any object of length zero or just None can be given), this is
+        # internally represented as a list with the empty string
+        if (not args):
+            args = ['']
 
         # store the index and definition of the test case
         (self._index, self._args) = (index, args)
