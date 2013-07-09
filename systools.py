@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 09:26:14 2011 Carlos Linares Lopez>
-# Last update <Sunday, 09 June 2013 23:55:04 Carlos Linares Lopez (clinares)>
+# Last update <Friday, 05 July 2013 17:53:18 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: systools.py 306 2011-11-11 22:25:37Z clinares                        $
@@ -30,6 +30,8 @@ __revision__ = '$Revision: 306 $'
 import datetime         # date/time
 import os               # process handling
 import time             # time management
+
+import fdtools          # filesystem management
 
 
 # globals
@@ -86,6 +88,9 @@ class Process(object):
         cstime, num_threads and vsize. For a comprehensive description of this
         parameters see ``man /proc``
 
+        It also processes the entries in the /proc/<pid>/fd and stat its
+        contents in the form of instances of FileInfo
+
         :param pid: process identifier (PID)
         :type pid: int
         """
@@ -120,8 +125,13 @@ class Process(object):
         self.starttime = time.time () - float (uptime.split (' ')[0]) + \
             self.sttime/float(JIFFIES_PER_SECOND)
 
+        # compute the initial list of files used by this process
+        self.fd = list ()
+        self.update_fd ()
+
         # finally, initialize the end time of this process to an impossible
-        # value (so that consistency can be enforced later)
+        # value (so that consistency can be enforced later) and the list of fds
+        # to an empty list
         self.endtime=-1
 
 
@@ -158,6 +168,14 @@ class Process(object):
         return self.cmdline
 
 
+    def get_fd (self):
+        """
+        returns a list of FileInfo objects with the files used by this process
+        """
+
+        return self.fd
+
+
     def get_start_time (self):
         """
         returns the start time of this process
@@ -189,6 +207,24 @@ class Process(object):
         """
 
         return self.utime + self.stime + self.cutime + self.cstime
+
+    def update_fd (self):
+        """
+        updates information about all the files this process access
+        """
+
+        # first of all, check that the proc/%d/fd subdirectory is accessible
+        path = "/proc/%d/fd" % self.pid
+        if (os.access (path, os.F_OK) and
+            os.access (path, os.R_OK)):
+            
+            # check all files in the fd subdirectory
+            for ipath in os.listdir (path):
+
+                # and add those that are not present
+                fileInfo = fdtools.FileInfo ("/proc/%d/fd/%s" % (self.pid, ipath))
+                if (fileInfo not in self.fd):
+                    self.fd.append (fileInfo)
 
 
 # -----------------------------------------------------------------------------
@@ -379,6 +415,13 @@ class ProcessTimeline(object):
                            self.processes)
         for iproc in oldprocs:
             iproc.set_end_time (currtime)
+            
+            # also, add new files used by this process if that is the case
+            iproc.update_fd ()
+            
+            # and update the info (access/modification times and size)
+            for ifd in iproc.get_fd ():
+                ifd.update ()
 
         # second, add to this timeline all processes in the other process group
         # that are not contained in the current timeline
@@ -403,6 +446,12 @@ class ProcessTimeline(object):
         for iproc in [jproc for jproc in self.processes if jproc.get_end_time () < 0]:
             iproc.set_end_time (currtime)
 
+        # finally, update the information on the files used by every process
+        for iproc in self.processes:
+            iproc.update_fd ()
+            for ifd in iproc.get_fd ():
+                ifd.update ()
+
 
     def get_processes (self):
         """
@@ -415,6 +464,52 @@ class ProcessTimeline(object):
                  str (datetime.datetime.fromtimestamp (iproc.get_start_time ())),
                  str (datetime.datetime.fromtimestamp (iproc.get_end_time ()))] 
                 for iproc in self.processes]
+
+
+    def get_fd (self):
+        """
+        returns a list of lists containing each one data about file opened by
+        every process
+        """
+
+        return [[iproc.get_pid (),
+                 ifd.get_path (),
+                 ifd.get_uid (),
+                 ifd.get_gid ()]
+                 # ifd.get_size (),
+                for iproc in self.processes
+                for ifd in iproc.fd]
+
+
+    def get_times (self, attr):
+        """
+        returns a list of lists containing each one the times indicated by the
+        attribute for every file opened by every process. Legal choices are
+        ['atime', 'mtime', 'ctime']
+        """
+
+        return [[iproc.get_pid (),
+                 ifd.get_path (),
+                 str (datetime.datetime.fromtimestamp (int (itime )))]
+                for iproc in self.processes
+                for ifd in iproc.fd
+                for itime in ifd.get_time (attr)]
+
+
+    def get_size (self):
+        """
+        returns a list of lists containing each one the different sizes along
+        with the timestamp when the size was observed for all files used by
+        every process
+        """
+
+        return [[iproc.get_pid (),
+                 ifd.get_path (),
+                 str (datetime.datetime.fromtimestamp (int (itime))),
+                 isize]
+                for iproc in self.processes
+                for ifd in iproc.fd
+                for itime, isize in ifd.get_size ()]
 
 
 

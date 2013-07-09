@@ -7,7 +7,8 @@
 #    Specification: start with '@' and have the format
 #                   directive <type>
 #    Data: a unique integer identifier followed by a serie of values
-#          of the types given in the Specification line
+#          of the types given in the Specification line. If no values
+#          are provided, a blank line should be supplied instead
 #
 # A directive is identified because the first character is a dash '-'
 #
@@ -31,9 +32,6 @@
 # be either single or doubled quoted.
 #
 # Empty strings can be easily specified with either '' or ""
-#
-# Additionally, it recognizes the special keyword void which means
-# that the corresponding directive has no arguments
 # ----------------------------------------------------------------------
 
 enumerate targetvalue = 10 12 14
@@ -42,4 +40,3 @@ enumerate targetvalue = 10 12 14
 001 "001 002 005 003 000 004 006 007 008" 240$targetvalue
 002 "001 004 000 003 005 002 006 007 008" 240$targetvalue
 005 "001 004 002 003 007 005 000 006 008" 240$targetvalue
-

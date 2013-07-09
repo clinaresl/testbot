@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <Friday, 21 June 2013 15:22:30 Carlos Linares Lopez (clinares)>
+# Last update <Friday, 21 June 2013 15:49:41 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -252,7 +252,7 @@ class TstIter(object):
     is empty
     """
 
-    def __init__ (self, tstfile):
+    def __init__ (self, tstspec):
         """
         initialization
         """
@@ -260,8 +260,8 @@ class TstIter(object):
         # initialize the position of the first test case to return
         self._current = 0
 
-        # copy the test file
-        self._tstfile = tstfile
+        # copy the test specification
+        self._tstspec = tstspec
 
 
     def __iter__ (self):
@@ -277,13 +277,13 @@ class TstIter(object):
         returns the current test case
         """
 
-        if len (self._tstfile._tstdefs):
+        if len (self._tstspec._tstdefs):
 
-            if (self._current >= len (self._tstfile._tstdefs)):
+            if (self._current >= len (self._tstspec._tstdefs)):
                 raise StopIteration
             else:
                 self._current += 1
-                return self._tstfile._tstdefs [self._current - 1]
+                return self._tstspec._tstdefs [self._current - 1]
 
         # a particularly interesting case is whether this test case is
         # empty. Since solvers can be also invoked without any parameters this
