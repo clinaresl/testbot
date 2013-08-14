@@ -35,6 +35,18 @@ sys_vsize {
 # data tables to be processed after the completion of the
 # executable. They all have to start with the prefix 'data_'
 
+# heuristic value of the start state
+data_h {
+      id text :index;
+      value integer ?h;
+}
+
+# optimal cost of every problem
+data_optimal_cost {
+      id text :index;
+      cost integer ?'Solution length' Error;
+}
+
 # number of expansions of eIDA*
 data_expansions_eida {
       id text :index;
@@ -47,9 +59,29 @@ data_expansions_ida {
       value integer ?'expansions IDA' Warning;
 }
 
-# heuristic value of the start state
-data_h {
-      id text :index;
-      value integer ?h Warning;
-      solution text <"/home/clinares/lab/ipc2011-data/plansoln/plan.soln";
+# scatterplot of the number of expansions by both algorithms
+data_expansions {
+	id text :index;
+	eIDA integer ?'expansions eIDA' Warning;
+	IDA integer ?'expansions IDA' Warning;
+}
+
+# number of iterations of IDA*
+data_iterations_ida {
+	id text :index;
+	iterations integer ?'iterations IDA' Error;
+}
+
+# number of iterations of eIDA*
+data_iterations_eida {
+	id text :index;
+	iterations integer ?'iterations eIDA' Error;
+}
+
+# scatterplot of the number of iterations of both IDA* and eIDA*
+data_iterations {
+	id text :index;
+	init text @init;
+	eIDA integer ?'iterations eIDA' Error;
+	IDA integer ?'iterations IDA' Error;
 }

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Wednesday, 14 August 2013 10:55:53 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 12:01:52 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -355,25 +355,24 @@ def fetch (logdir):
 # -----------------------------------------------------------------------------
 # process_results
 #
-# process the contents of the results file indicated which resides in the given
-# directory and are relative to the instance qualified by the given index. The
-# statistics are stored in a dictionary indexed by the variable name and the
-# data consists of a list of tuples with the following information (problem
-# index, value)
+# it processes the given resultsfile which resides at the given directory and
+# updates the dictionary stats with the value of all variables found in all the
+# data tables in dbspec. This is done by updating the placeholders and then
+# invoking the 'poll' method in every data table
 # -----------------------------------------------------------------------------
-def process_results (directory, resultsfile, index, stats):
+def process_results (directory, resultsfile, dbspec, placeholders, stats):
     """
-    process the contents of the results file indicated which resides in the given
-    directory and are relative to the instance qualified by the given index. The
-    statistics are stored in a dictionary indexed by the variable name and the
-    data consists of a list of tuples with the following information (problem
-    index, value)
+    it processes the given resultsfile which resides at the given directory and
+    updates the dictionary stats with the value of all variables found in all
+    the data tables in dbspec. This is done by updating the placeholders and
+    then invoking the 'poll' method in every data table
     """
 
     # logger settings
     logger = logging.getLogger ("testbot::process_results")
 
-    # open the file
+    # populate the placeholders with the information retrieved from the
+    # resultsfile
     with open (os.path.join (directory, resultsfile), 'r') as stream:
 
         # now, for each line in the output file
@@ -385,8 +384,12 @@ def process_results (directory, resultsfile, index, stats):
             if (restat):
 
                 # add this variable to the dictionary
-                stats [restat.group ('varname').rstrip (" ")].append ((index, 
-                                                                       float (restat.group ('value'))))
+                placeholders [restat.group ('varname').rstrip (" ")] = restat.group ('value')
+
+    # now, compute the next row to write in all the data tables, if any
+    for itable in dbspec:
+        if itable.datap ():
+            stats [itable.get_name ()].append (itable.poll (placeholders))
 
 
 # -----------------------------------------------------------------------------
@@ -687,7 +690,7 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
         update_stats (index, timeline.get_processes (), 'sys_timeline', stats)
 
         # process the contents of the log files generated
-        process_results (os.getcwd (), output + ".log", index, stats)
+        process_results (os.getcwd (), output + ".log", dbspec, placeholders, stats)
 
         # once it has been processed move the .log and .err files to the results
         # directory
@@ -721,6 +724,39 @@ def wrapup (solver, tstfile, dbfile, configdir):
     # and also the file with the database specification to the config dir
     shutil.copy (dbfile,
                  os.path.join (configdir, os.path.basename (dbfile)))
+
+
+# -----------------------------------------------------------------------------
+# insert_data
+#
+# creates the table qualified by the instance of DBTable 'dbtable' in the given
+# databasename and writes the specified 'data' into it
+# -----------------------------------------------------------------------------
+def insert_data (databasename, dbtable, data):
+
+    """
+    creates the table qualified by the instance of DBTable 'dbtable' in the
+    given databasename and writes the specified 'data' into it
+    """
+
+    # logger settings
+    logger = logging.getLogger ("testbot::insert_data")
+
+    # compute the filename
+    dbfilename = databasename + '.db'
+    logger.debug (" Populating '%s' in '%s'" % (dbtable.get_name (), dbfilename), extra=LOGDICT)
+
+    # connect to the sql database
+    db = sqltools.dbtest (dbfilename)
+
+    # create the table
+    db.create_table (dbtable)
+
+    # and write data
+    db.insert_data (dbtable, data)
+
+    # close and exit
+    db.close ()
 
 
 # -----------------------------------------------------------------------------
@@ -914,80 +950,6 @@ def insert_version_data (progname, version, revision, date, databasename):
 
 
 # -----------------------------------------------------------------------------
-# insert_data
-#
-# saves the information given in the specified dictionary D into a sqlite3
-# database. The primary key of the dictionary is the name of a variable whose
-# value is a list of tuples with the following contents (problem id, value)
-# -----------------------------------------------------------------------------
-def insert_data (D, databasename):
-
-    """
-    saves the information given in the specified dictionary D into a sqlite3
-    database. The primary key of the dictionary is the name of a variable whose
-    value is a list of tuples with the following contents (problem id, value)
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_data")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.info (" Writing data into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # now, create the tables and populate them with data unless the name starts
-    # with '_sys'
-    for ivar in [jvar for jvar in D if jvar[0:4] != 'sys_']:
-
-        # create this data table
-        db.create_data_table (ivar)
-
-        # store all tuples in this table
-        db.insert_data (ivar, D[ivar])
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
-# insert_sys_data
-#
-# saves all the sys information given in the database
-# -----------------------------------------------------------------------------
-def insert_sys_data (D, databasename):
-
-    """
-    saves all the sys information given in the database
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_sys_data")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing sys data into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create all the sys tables
-    db.create_systime_table ()
-    db.create_sysvsize_table ()
-    db.create_sysprocs_table ()
-    db.create_systhreads_table ()
-
-    # and now, insert their contents into the database
-    for isys in ['time', 'vsize', 'procs', 'threads']:
-        db.insert_sysdata (isys, D['sys_' + isys])
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
 # Dispatcher
 #
 # this class creates a dispatcher for automating the experiments. Besides, it
@@ -1092,6 +1054,9 @@ class Dispatcher (object):
             wrapup (isolver, self._tstfile, self._dbfile, configdir)
 
             # finally, write down all the information to a sqlite3 db
+            databasename = os.path.join (self._directory, solvername, solvername)
+            logger.info (" Writing data into '%s.db'" % databasename, 
+                         extra=LOGDICT)
 
             # admin data
             insert_admin_params (isolver, self._tstfile, self._dbfile, 
@@ -1108,11 +1073,10 @@ class Dispatcher (object):
             insert_version_data (PROGRAM_NAME, __version__, __revision__[1:-1], __date__[1:-1],
                                  os.path.join (self._directory, solvername, solvername))
             
-            # user data
-            insert_data (istats, os.path.join (self._directory, solvername, solvername))
-
-            # sys data
-            insert_sys_data (istats, os.path.join (self._directory, solvername, solvername))
+            # user data and sys data
+            for itable in self._dbspec:
+                if itable.datap () or itable.sysp ():
+                    insert_data (databasename, itable, istats[itable.get_name ()])
 
 
     # execute the following body before exiting

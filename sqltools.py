@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <Monday, 12 August 2013 01:12:03 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 11:37:28 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -157,6 +157,37 @@ class dbtest(sqldb):
 
         # invoke the parent's constructor
         sqldb.__init__ (self, dbname)
+
+
+    def create_table (self, dbtable):
+        """
+        creates a table with the name and columns specified in dbtable (DBTable)
+        """
+
+        # create the sql command
+        cmdline = 'CREATE TABLE ' + dbtable.get_name () + '('
+        for icolumn in range (0, len (dbtable) - 1):
+            cmdline += dbtable._columns[icolumn].get_identifier () + ' '
+            cmdline += dbtable._columns[icolumn].get_type () + ','
+
+        cmdline += dbtable._columns[len (dbtable) - 1].get_identifier () + ' '
+        cmdline += dbtable._columns[len (dbtable) - 1].get_type () + ')'
+
+        # and now, create the table
+        self._cursor.execute (cmdline)
+        
+
+    def insert_data (self, dbtable, data):
+        """
+        it stores data in the table qualified by dbtable (DBTable)
+        """
+
+        if (len (data) > 0):
+
+            # populate the table with the given data
+            specline = "?, " * (len (data[0]) - 1)
+            cmdline = "INSERT INTO %s VALUES (%s)" % (dbtable.get_name (), specline + '?')
+            self._cursor.executemany (cmdline, data)
 
 
     def create_admin_params_table (self):
@@ -381,7 +412,7 @@ pid integer, cmdline string, start string, end string, elapsed_seconds real)''')
             self._cursor.execute (command)
         
 
-    def insert_data (self, table, data):
+    def _insert_data (self, table, data):
         """
         it creates the specified table in case it does not exist and stores data
         in it. 'data' consists of a list of tuples and it is mandatory that the

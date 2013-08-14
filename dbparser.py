@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <Wednesday, 14 August 2013 10:56:33 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 11:57:10 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -171,6 +171,14 @@ class DBTable:
         return DBTableIter (self)
 
 
+    def __len__ (self):
+        """
+        return the number of columns of this table
+        """
+
+        return len (self._columns)
+
+
     def __str__ (self):
         """
         output formatting
@@ -206,7 +214,7 @@ class DBTable:
         returns True if this is a data table
         """
 
-        return self._name[0:4] == 'data_'
+        return self._name[0:5] == 'data_'
 
 
     def execute_action (self, column):
@@ -365,36 +373,42 @@ class DBParser :
         r"""\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?'"""
         return t
 
-    # system variables: any variable preceded by a colon
+    # system variables: any variable preceded by a colon. They stand for
+    # variables computed at every cycle
     def t_SYSVAR (self, t):
         r":[a-zA-Z_][a-zA-Z_0-9]*"
         t.value = t.value[1:]
         return t
 
-    # data variables: strings (either single|double quoted that might
-    # contain blank characters or just ordinary variables without any
-    # blank characters
+    # data variables: strings (either single|double quoted that might contain
+    # blank characters or just ordinary variables without any blank
+    # characters). They stand for information processed from the standard output
+    # once the execution is over
     def t_DATAVAR (self, t):
         r"""\?([a-zA-Z_][a-zA-Z_0-9]*|'[^']+'|\"[^\"]+\")"""
-        t.value = t.value[1:]
+        if t.value[1]=='"' or t.value[1]=="'": t.value = t.value [2:-1]
+        else: t.value = t.value[1:]
         return t
 
-    # file variables: strings (either single|double quoted that might
-    # contain blank characters or just ordinary variables without any
-    # blank characters preceded by <
+    # file variables: strings (either single|double quoted that might contain
+    # blank characters or just ordinary variables without any blank characters)
+    # preceded by <. They stand for files whose content is copied once the
+    # execution is over
     def t_FILEVAR (self, t):
         r"""\<([0-9a-zA-Z_/\.]+|\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?')"""
-        t.value = t.value[1:]
+        if t.value[1]=='"' or t.value[1]=="'": t.value = t.value [2:-1]
+        else: t.value = t.value[1:]
         return t
 
     # directive variables: the value of any directive passed to the
-    # executable
+    # executable. They stand for the value of directives given to the solver
     def t_DIRVAR (self, t):
         r"@[a-zA-Z_][a-zA-Z_0-9\-]*"
         t.value = t.value[1:]
         return t
 
-    # param: any number preceded by the dollar sign
+    # param: any number preceded by the dollar sign. They stand for the
+    # particular parameter passed to the solver
     def t_PARAM (self, t):
         r"\$\d+"
         t.value = int (t.value[1:])
