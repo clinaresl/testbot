@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <Wednesday, 24 July 2013 09:25:52 Carlos Linares Lopez (clinares)>
+# Last update <Tuesday, 06 August 2013 23:41:27 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -257,62 +257,6 @@ class dbtest(sqldb):
             self._cursor.execute ('''CREATE TABLE sys_timeline
                                      (id text, 
 pid integer, cmdline string, start string, end string)''')
-        
-
-    def create_sysfd_table (self):
-        """
-        creates the sysfd table for storing information about files
-        """
-
-        # sysfd
-        if (not self.find ('sys_fd')):
-            self._cursor.execute ('''CREATE TABLE sys_fd
-                                     (id text, pid integer, path string, uid string, gid string)''')
-        
-
-    def create_sysfd_atime_table (self):
-        """
-        creates the sysfd_atime table for storing the atime of every file
-        """
-
-        # sysfd_atime
-        if (not self.find ('sys_fd_atime')):
-            self._cursor.execute ('''CREATE TABLE sys_fd_atime
-                                     (id text, pid integer, path string, atime string)''')
-        
-
-    def create_sysfd_mtime_table (self):
-        """
-        creates the sysfd_mtime table for storing the mtime of every file
-        """
-
-        # sysfd_mtime
-        if (not self.find ('sys_fd_mtime')):
-            self._cursor.execute ('''CREATE TABLE sys_fd_mtime
-                                     (id text, pid integer, path string, mtime string)''')
-        
-
-    def create_sysfd_ctime_table (self):
-        """
-        creates the sysfd_ctime table for storing the ctime of every file
-        """
-
-        # sysfd_ctime
-        if (not self.find ('sys_fd_ctime')):
-            self._cursor.execute ('''CREATE TABLE sys_fd_ctime
-                                     (id text, pid integer, path string, ctime string)''')
-        
-
-    def create_sysfd_size_table (self):
-        """
-        creates the sysfd_size table for recording how the size of a file
-        evolves over time
-        """
-
-        # sysfd_ctime
-        if (not self.find ('sys_fd_size')):
-            self._cursor.execute ('''CREATE TABLE sys_fd_size
-                                     (id text, pid integer, path string, time string, size integer)''')
         
 
     def insert_sysdata (self, acronym, values):

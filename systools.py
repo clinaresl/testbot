@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 09:26:14 2011 Carlos Linares Lopez>
-# Last update <Tuesday, 23 July 2013 22:09:59 Carlos Linares Lopez (clinares)>
+# Last update <Tuesday, 06 August 2013 23:48:13 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: systools.py 306 2011-11-11 22:25:37Z clinares                        $
@@ -30,8 +30,6 @@ __revision__ = '$Revision: 306 $'
 import datetime         # date/time
 import os               # process handling
 import time             # time management
-
-import fdtools          # filesystem management
 
 from collections import defaultdict
 
@@ -77,11 +75,13 @@ def read_processes (pgrp):
 
     # now, compute the list of pgrps to watch until a fixpoint is reached
     sentinel = True
-    while (sentinel):
+    while sentinel:
 
         sentinel = False
 
-        # and now update the list of pgrps to watch
+        # and now update the list of pgrps to watch to be those process who
+        # either share a process group id under observation or whose parent
+        # shared a process group id under observation
         for iprocess in processes:
             if ((iprocess.pgrp not in pgrps or
                  iprocess.pid not in pgrps[iprocess.pgrp]) and
@@ -92,8 +92,10 @@ def read_processes (pgrp):
                 pgrps[iprocess.pgrp].add (iprocess.pid)
 
     # finally, filter the original list of processes and retain only those whose
-    # pgrp has been selected
-    return filter (lambda iprocess:iprocess.pgrp in pgrps, processes)
+    # pgrp has been selected. Take care to remove the process whose pid=pgrp
+    # since that the testbot itself
+    return filter (lambda iprocess:iprocess.pgrp in pgrps and iprocess.pid != pgrp, 
+                   processes)
 
 
 # -----------------------------------------------------------------------------
@@ -136,7 +138,7 @@ class Process(object):
         stat = open("/proc/%d/stat" % pid).read()
         cmdline = open("/proc/%d/cmdline" % pid).read()
 
-        # Don't use stat.split(): the command can contain spaces.
+        # Don't use stat.split(): the command can contain spaces
         # Be careful which "()" to match: the command name can contain
         # parentheses.
         prefix, lparen, rest = partition(stat, "(")
@@ -162,10 +164,6 @@ class Process(object):
         uptime=open ("/proc/uptime").read ()
         self.starttime = time.time () - float (uptime.split (' ')[0]) + \
             self.sttime/float(JIFFIES_PER_SECOND)
-
-        # compute the initial list of files used by this process
-        self.fd = list ()
-        self.update_fd ()
 
         # finally, initialize the end time of this process to an impossible
         # value (so that consistency can be enforced later) and the list of fds
@@ -215,14 +213,6 @@ class Process(object):
         return self.cmdline
 
 
-    def get_fd (self):
-        """
-        returns a list of FileInfo objects with the files used by this process
-        """
-
-        return self.fd
-
-
     def get_start_time (self):
         """
         returns the start time of this process
@@ -255,51 +245,28 @@ class Process(object):
 
         return self.utime + self.stime + self.cutime + self.cstime
 
-    def update_fd (self):
-        """
-        updates information about all the files this process access
-        """
-
-        # first of all, check that the proc/%d/fd subdirectory is accessible
-        path = "/proc/%d/fd" % self.pid
-        if (os.access (path, os.F_OK) and
-            os.access (path, os.R_OK)):
-            
-            # check all files in the fd subdirectory
-            for ipath in os.listdir (path):
-
-                # and add those that are not present
-                if os.path.exists ("/proc/%d/fd/%s" % (self.pid, ipath)):
-                    fileInfo = fdtools.FileInfo ("/proc/%d/fd/%s" % (self.pid, ipath))
-
-                    # in case this is a valid FileInfo instance which has not
-                    # been seen before
-                    if (fileInfo.get_stat () and
-                        fileInfo not in self.fd):
-
-                        # then add it to the list of fds of this process
-                        self.fd.append (fileInfo)
-
 
 # -----------------------------------------------------------------------------
 # ProcessGroup
 #
-# Monitor all process that share the same group process id. It provides services
-# to acces some statistics such as the memory used, the total CPU time, or the
-# total number of threads launched by all processes.
+# Monitor all process that share a particular process group and all their
+# children.  It provides services to acces some statistics such as the memory
+# used, the total CPU time, or the total number of threads launched by all
+# processes.
 # -----------------------------------------------------------------------------
 class ProcessGroup(object):
     """
-    Monitor all process that share the same group process id. It provides
-    services to acces some statistics such as the memory used, the total CPU
-    time, or the total number of threads launched by all processes.
+    Monitor all process that share a particular process group and all their
+    children.  It provides services to acces some statistics such as the memory
+    used, the total CPU time, or the total number of threads launched by all
+    processes.
     """
 
     def __init__(self, pgrp):
         """
         seeks and stores internally a list of all processes that match the given
-        group id. Since it uses the :file:`/proc` filesystem, the systools are
-        solely restricted to GNU/Linux OSs
+        group id and all their children. Since it uses the :file:`/proc`
+        filesystem, the systools are solely restricted to GNU/Linux OSs
 
         :param pgrp: group id
         :type pgrp: int
@@ -310,14 +277,18 @@ class ProcessGroup(object):
         if (self._jiffies_per_second != 100):
             raise ValueError
 
-        # initialize the list of processes with this group process id
+        # initialize the list of processes with all the processes sharing this
+        # process group id or children of them (even if they have a different
+        # process group)
         self.processes = read_processes (pgrp)
-        # self.processes = [process for process in read_processes()
-        #                   if process.pgrp == pgrp]
 
-        print "-" * 80
-        for iprocess in self.processes:
-            print " \t ", iprocess
+
+    def __len__ (self):
+        """
+        return the number of processes in this group
+        """
+
+        return len (self.processes)
 
 
     def get_processes (self):
@@ -390,6 +361,7 @@ class ProcessGroup(object):
         total_bytes = sum([p.vsize for p in self.processes])
         return total_bytes / float(2 ** 20)
 
+
     def total_processes (self):
         """
         return the total number of processes in this group.
@@ -432,26 +404,28 @@ class ProcessGroup(object):
         return sum ([p.numthreads for p in self.processes])
 
 
-
 # -----------------------------------------------------------------------------
 # ProcessTimeline
 #
 # contains a timeline with the start-end time of all processes that were
-# executed with a particular process group id
+# executed with a particular process group id or that were children of them
+# (even if they have a different process group)
 # -----------------------------------------------------------------------------
 class ProcessTimeline(object):
     """
     contains a timeline with the start-end time of all processes that were
-    executed with a particular process group id
+    executed with a particular process group id or that were children of them
+    (even if they have a different process group)
     """
 
     def __init__(self):
         """
-        initializes the list of processes with a given process group id to null
+        initializes the list of processes to null
         """
 
+        # initialize the list of processes
         self.processes = []
-        
+
 
     def __iadd__ (self, other):
         """
@@ -464,10 +438,6 @@ class ProcessTimeline(object):
         # that the services of this class are invoked
         currtime = time.time ()
         
-        # print
-        # print " Current processes: ", [p.pid for p in self.processes]
-        # print " New processes    : ", [p.pid for p in other.processes]
-
         # for all processes currently in the timeline that are not in the other
         # process group and whose end time is not set, specify their end time
         oldprocs = filter (lambda x:x not in other.get_processes () and x.get_end_time () < 0,
@@ -475,25 +445,36 @@ class ProcessTimeline(object):
         for iproc in oldprocs:
             iproc.set_end_time (currtime)
             
-            # also, add new files used by this process if that is the case
-            iproc.update_fd ()
-            
-            # and update the info (access/modification times and size)
-            for ifd in iproc.get_fd ():
-                ifd.update ()
+        # second, add to this timeline all processes in the other process group:
+        # those appearing in both places are inserted in this timeline in order
+        # to record the latest instance so that they are removed first in the
+        # next for loop
+        for iproc in other.get_processes ():
+            if iproc in self.processes:
+                self.processes.remove (iproc)
 
-        # second, add to this timeline all processes in the other process group
-        # that are not contained in the current timeline
+        # also, those not appearing in this timeline enter this for the first
+        # time;
         self.processes += filter (lambda x:x not in self.processes,
                                   other.get_processes ())
 
         return self
 
 
+    def __len__ (self):
+        """
+        return the number of processes in this timeline
+        """
+
+        return len (self.processes)
+
+
     def terminate (self):
         """
         close the current timeline by setting the current time as the end time
-        of all its processes with unknown end time
+        of all its processes with unknown end time and kill all the process that
+        are alive. A better estimate of the end time can be obtained by looking
+        in the final report at the cputime consumed by every process
         """
 
         # first, take the curren time - this is just an estimation of the end
@@ -505,11 +486,39 @@ class ProcessTimeline(object):
         for iproc in [jproc for jproc in self.processes if jproc.get_end_time () < 0]:
             iproc.set_end_time (currtime)
 
-        # finally, update the information on the files used by every process
-        for iproc in self.processes:
-            iproc.update_fd ()
-            for ifd in iproc.get_fd ():
-                ifd.update ()
+
+    def total_time(self):
+        """
+        cumulated CPU time for all processes in this timeline
+        """
+        
+        total_jiffies = sum([p.total_time() for p in self.processes])
+        return total_jiffies / float(JIFFIES_PER_SECOND)
+                
+                
+    def total_vsize(self):
+        """
+        cumulated virtual memory for all processes in this timeline, in MB
+        """
+        
+        total_bytes = sum([p.vsize for p in self.processes])
+        return total_bytes / float(2 ** 20)
+
+
+    def total_processes (self):
+        """
+        return the total number of processes in this timeline
+        """
+
+        return len (self.processes)
+
+
+    def total_threads (self):
+        """
+        return the total number of threads in this timeline
+        """
+
+        return sum ([p.numthreads for p in self.processes])
 
 
     def get_processes (self):
@@ -523,52 +532,6 @@ class ProcessTimeline(object):
                  str (datetime.datetime.fromtimestamp (iproc.get_start_time ())),
                  str (datetime.datetime.fromtimestamp (iproc.get_end_time ()))] 
                 for iproc in self.processes]
-
-
-    def get_fd (self):
-        """
-        returns a list of lists containing each one data about file opened by
-        every process
-        """
-
-        return [[iproc.get_pid (),
-                 ifd.get_path (),
-                 ifd.get_uid (),
-                 ifd.get_gid ()]
-                 # ifd.get_size (),
-                for iproc in self.processes
-                for ifd in iproc.fd]
-
-
-    def get_times (self, attr):
-        """
-        returns a list of lists containing each one the times indicated by the
-        attribute for every file opened by every process. Legal choices are
-        ['atime', 'mtime', 'ctime']
-        """
-
-        return [[iproc.get_pid (),
-                 ifd.get_path (),
-                 str (datetime.datetime.fromtimestamp (int (itime )))]
-                for iproc in self.processes
-                for ifd in iproc.fd
-                for itime in ifd.get_time (attr)]
-
-
-    def get_size (self):
-        """
-        returns a list of lists containing each one the different sizes along
-        with the timestamp when the size was observed for all files used by
-        every process
-        """
-
-        return [[iproc.get_pid (),
-                 ifd.get_path (),
-                 str (datetime.datetime.fromtimestamp (int (itime))),
-                 isize]
-                for iproc in self.processes
-                for ifd in iproc.fd
-                for itime, isize in ifd.get_size ()]
 
 
 

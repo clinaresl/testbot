@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Friday, 02 August 2013 18:24:31 Carlos Linares Lopez (clinares)>
+# Last update <Tuesday, 06 August 2013 23:42:19 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -66,9 +66,7 @@ LOGDICT = {'node': socket.gethostname (),       # extra data to be passed
 
 OUTPUT = "output-"           # prefix of the output filenames
 
-CASEREGEXP = "(?P<index>[0-9]+) (?P<permutation>[0-9 ]+)"
 STATREGEXP = " >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
-VALIDATIONREGEXP = " solution \[(?P<status>(valid|invalid|not validated))\]"
 
 # -----------------------------------------------------------------------------
 
@@ -346,23 +344,6 @@ def fetch (logdir):
 
 
 # -----------------------------------------------------------------------------
-# set_limit
-#
-# sets 'amount' as the maximum allowed capacity of the resource 'kind'
-# -----------------------------------------------------------------------------
-def set_limit(kind, amount):
-    """
-    sets 'amount' as the maximum allowed capacity of the resource 'kind'
-    """
-
-    try:
-        resource.setrlimit(kind, (amount, amount))
-    except OSError, e:
-        logger = logging.getLogger('testbot::set_limit')
-        logger.critical (" %s in 'set_limit'\n" % e, extra=LOGDICT)
-
-
-# -----------------------------------------------------------------------------
 # kill_pgrp
 #
 # sends the signal sig to the process group pgrp
@@ -572,15 +553,7 @@ def run (solver, resultsdir, index, spec, T, output, stats,
     computational resources 'timeout' and 'memory'
     """
 
-    def setlimits ():
-        """
-        set hard limits on cpu time, memory and size of the core file (if any is
-        about to be created)
-        """
-
-        set_limit(resource.RLIMIT_CPU, timeout)
-        set_limit(resource.RLIMIT_AS, memory)
-        set_limit(resource.RLIMIT_CORE, 0)
+    memory = 10
 
     def update_stats (index, data, key, stats):
         """
@@ -610,6 +583,8 @@ def run (solver, resultsdir, index, spec, T, output, stats,
     # child along with all its processes are killed
     with runtimer:
 
+        # redirect the log and standard output to different files so that the
+        # whole output is recorded
         (fdlog, fderr) = (os.open (os.path.join (os.getcwd (), output + ".log"),
                                    os.O_CREAT | os.O_TRUNC | os.O_WRONLY,
                                    0666),
@@ -617,15 +592,16 @@ def run (solver, resultsdir, index, spec, T, output, stats,
                                    os.O_CREAT | os.O_TRUNC | os.O_WRONLY,
                                    0666))
 
+        # create the child and record its process identifier
         child = subprocess.Popen ([solver] + spec, 
                                   stdout = fdlog,
-                                  stderr = fderr,
-                                  preexec_fn=setlimits)
+                                  stderr = fderr)
         child_pid = child.pid
 
         # initialization
         max_mem   = 0                           # max mem ever used
         real_time = 0                           # real time (in seconds)
+        term_attempted = False                  # no SIGTERM yet
         time0 = datetime.datetime.now ()        # current time   
 
         timeline = systools.ProcessTimeline ()  # create a process timeline
@@ -635,19 +611,20 @@ def run (solver, resultsdir, index, spec, T, output, stats,
             time.sleep(check)
 
             # get info of all the processes executed with the process group id
-            # of the child and add them to the timeline
+            # of the child and its children and add them to the timeline
             group = systools.ProcessGroup(os.getpgid (child_pid))
             timeline += group
 
-            # now, compute the wall-clock time
+            # compute the wall-clock time
             time1 = datetime.datetime.now ()    # time after sleeping
             real_time = (time1-time0).total_seconds ()  # compute wall clock time accurately
 
-            # get some stats such as total time, memory, ...
-            total_time = group.total_time()
-            total_vsize = group.total_vsize()
-            num_processes = group.total_processes ()
-            num_threads = group.total_threads ()
+            # get some stats such as total cpu time, memory, ...
+            # total_time = group.total_time()
+            total_time = timeline.total_time()
+            total_vsize = timeline.total_vsize()
+            num_processes = timeline.total_processes ()
+            num_threads = timeline.total_threads ()
 
             # Generate the children information before the waitpid call to avoid a
             # race condition. This way, we know that the child_pid is a descendant.
@@ -666,12 +643,13 @@ def run (solver, resultsdir, index, spec, T, output, stats,
             max_mem = max (max_mem, total_vsize)
 
             # decide whether to kill the group or not
-            try_term = (total_time >= timeout or
-                        real_time >= 1.5 * timeout)
-            try_kill = (total_time >= timeout + KILL_DELAY or
-                        real_time >= 1.5 * timeout + KILL_DELAY)
+            try_term = (total_time > timeout or
+                        real_time >= 1.5 * timeout or
+                        max_mem > memory)
+            try_kill = (total_time > timeout + KILL_DELAY or
+                        real_time >= 1.5 * timeout + KILL_DELAY or
+                        max_mem > memory)
             
-            term_attempted = False
             if try_term and not term_attempted:
                 logger.debug (""" aborting children with SIGTERM ...
  children found: %s""" % group.pids (), extra=LOGDICT)
@@ -684,21 +662,11 @@ def run (solver, resultsdir, index, spec, T, output, stats,
                 kill_pgrp(child_pid, signal.SIGKILL)
                 timeline.terminate ()
 
-        # Even if we got here, there may be orphaned children or something we may
-        # have missed due to a race condition. Check for that and kill
-        group = systools.ProcessGroup(child_pid)
-        if group:
-
-            # If we have reason to suspect someone still lives, first try to kill
-            # them nicely and wait a bit.
-            kill_pgrp(child_pid, signal.SIGTERM)
-            timeline.terminate ()
-            time.sleep(1)
-
-        # Either way, kill properly for good measure. Note that it's not clear if
-        # checking the ProcessGroup for emptiness is reliable, because reading the
-        # process table may not be atomic, so for this last blow, we don't do an
-        # emptiness test
+        # Even if we got here, there may be orphaned children or something we
+        # may have missed due to a race condition. Check for that and kill
+        # properly for good measure. 
+        logger.debug (""" aborting children with SIGKILL for the last time ...
+ children found: %s""" % group.pids (), extra=LOGDICT)
         kill_pgrp(child_pid, signal.SIGKILL)
         timeline.terminate ()
 
@@ -706,16 +674,6 @@ def run (solver, resultsdir, index, spec, T, output, stats,
         # underscore. It means that this should not be treated as ordinary data
         # and it is considered to be system data instead
         update_stats (index, timeline.get_processes (), '_systimeline', stats)
-
-        # likewise, retrieve information about all files opened by every process
-        update_stats (index, timeline.get_fd (), '_sysfd', stats)
-        update_stats (index, timeline.get_times ('atime'), '_sysfd_atime', stats)
-        update_stats (index, timeline.get_times ('mtime'), '_sysfd_mtime', stats)
-        update_stats (index, timeline.get_times ('ctime'), '_sysfd_ctime', stats)
-
-        # and finally, record also information about how the size of the files
-        # generated by the processes of this timeline have evolved over time
-        update_stats (index, timeline.get_size (), '_sysfd_size', stats)
 
         # process the contents of the log files generated in the directory where
         # the solver resides
@@ -812,15 +770,9 @@ def insert_sys_data (D, databasename):
     db.create_sysprocs_table ()
     db.create_systhreads_table ()
     db.create_systimeline_table ()
-    db.create_sysfd_table ()
-    db.create_sysfd_atime_table ()
-    db.create_sysfd_mtime_table ()
-    db.create_sysfd_ctime_table ()
-    db.create_sysfd_size_table ()
 
     # and now, insert their contents into the database
-    for isys in ['time', 'vsize', 'procs', 'threads', 'timeline', 
-                 'fd', 'fd_atime', 'fd_mtime', 'fd_ctime', 'fd_size']:
+    for isys in ['time', 'vsize', 'procs', 'threads', 'timeline']:
         db.insert_sysdata (isys, D['_sys' + isys])
 
     # close and exit

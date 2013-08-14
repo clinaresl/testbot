@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <Sunday, 04 August 2013 23:39:53 Carlos Linares Lopez (clinares)>
+# Last update <Sunday, 04 August 2013 23:56:03 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -34,6 +34,8 @@ from collections import defaultdict
 import tbparser         # testbot parser utilities (lex and yacc)
 
 
+# functions
+# -----------------------------------------------------------------------------
 def partition (string, sep="""\"[^\"]+\"|'[^']+'"""):
     """
     partition the given string according to the given separator (which might be
@@ -318,7 +320,8 @@ class TstSpec(object):
 
         # create a TstCase with the information stored in every tuple
         # ---implemented in a different line to avoid getting a very confusing
-        # one
+        # one. The function partition is invoked to split the string into a list
+        # where groups (embraced by single|double quotes) are preserved
         self._tstdefs = [TstCase (identifier, partition (cmdline))      # TstCase
                          for identifier, cmdline in self._tstdefs]
 
