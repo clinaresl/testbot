@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Monday, 12 August 2013 00:18:48 Carlos Linares Lopez (clinares)>
+# Last update <Monday, 12 August 2013 01:10:03 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -64,8 +64,6 @@ KILL_DELAY = 5               # how long we wait between SIGTERM and SIGKILL
 
 LOGDICT = {'node': socket.gethostname (),       # extra data to be passed
            'user': getpass.getuser ()}          # to loggers
-
-OUTPUT = "output-"           # prefix of the output filenames
 
 STATREGEXP = " >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
 
@@ -706,62 +704,32 @@ def wrapup (solver, filename, configdir):
 
 
 # -----------------------------------------------------------------------------
-# insert_version_data
+# insert_admin_params
 #
-# saves the specified version data into the given database
+# saves the specified params into the given database
 # -----------------------------------------------------------------------------
-def insert_version_data (progname, version, revision, date, databasename):
+def insert_admin_params (solver, tests, dbname, 
+                         check, time, memory, databasename):
 
     """
-    saves the specified version data into the given database
+    saves the specified admin data into the given database
     """
 
     # logger settings
-    logger = logging.getLogger ("testbot::insert_version_data")
+    logger = logging.getLogger ("testbot::insert_admin_params")
 
     # compute the filename
     dbfilename = databasename + '.db'
-    logger.debug (" Writing version data into '%s'" % dbfilename, extra=LOGDICT)
+    logger.debug (" Writing params into '%s'" % dbfilename, extra=LOGDICT)
 
     # connect to the sql database
     db = sqltools.dbtest (dbfilename)
 
-    # create the version table
-    db.create_version_table ()
+    # create the admin table
+    db.create_admin_params_table ()
 
-    # now, store all the version data
-    db.insert_version_data (progname, version, revision, date)
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
-# insert_timeline_data
-#
-# saves the timeline computed in the execution into the given database
-# -----------------------------------------------------------------------------
-def insert_timeline_data (timeline, databasename):
-
-    """
-    saves the timeline computed in the execution into the given database
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_timeline_data")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing timeline into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create the version table
-    db.create_timeline_table ()
-
-    # now, store all the timeline
-    db.insert_timeline_data (timeline)
+    # now, store all the admin data
+    db.insert_admin_params (solver, tests, dbname, check, time, memory)
 
     # close and exit
     db.close ()
@@ -789,108 +757,10 @@ def insert_status_data (status, databasename):
     db = sqltools.dbtest (dbfilename)
 
     # create the version table
-    db.create_status_table ()
+    db.create_admin_status_table ()
 
     # now, store all the timeline
-    db.insert_status_data (status)
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
-# insert_sys_data
-#
-# saves all the sys information given in the database
-# -----------------------------------------------------------------------------
-def insert_sys_data (D, databasename):
-
-    """
-    saves all the sys information given in the database
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_sys_data")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing sys data into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create all the sys tables
-    db.create_systime_table ()
-    db.create_sysvsize_table ()
-    db.create_sysprocs_table ()
-    db.create_systhreads_table ()
-
-    # and now, insert their contents into the database
-    for isys in ['time', 'vsize', 'procs', 'threads']:
-        db.insert_sysdata (isys, D['_sys' + isys])
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
-# insert_admin_data
-#
-# saves the specified admin data into the given database
-# -----------------------------------------------------------------------------
-def insert_admin_data (filename, solver,
-                       check, time, memory, databasename):
-
-    """
-    saves the specified admin data into the given database
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_admin_data")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing admin data into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create the admin table
-    db.create_admin_table ()
-
-    # now, store all the admin data
-    db.insert_admin_data (filename, solver, check, time, memory)
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
-# insert_time_data
-#
-# saves the specified time data into the time table
-# -----------------------------------------------------------------------------
-def insert_time_data (starttime, endtime, databasename):
-
-    """
-    saves the specified time data into the time table
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_time_data")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing time data into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create the time table
-    db.create_time_table ()
-
-    # now, store all the admin data
-    db.insert_time_data (starttime, endtime)
+    db.insert_admin_status (status)
 
     # close and exit
     db.close ()
@@ -921,10 +791,103 @@ def insert_test_data (filename, databasename):
     db = sqltools.dbtest (dbfilename)
 
     # create the time table
-    db.create_test_table ()
+    db.create_admin_test_table ()
 
     # now, store all the test data
-    db.insert_test_data (cases)
+    db.insert_admin_test (cases)
+
+    # close and exit
+    db.close ()
+
+
+# -----------------------------------------------------------------------------
+# insert_time_data
+#
+# saves the specified time data into the time table
+# -----------------------------------------------------------------------------
+def insert_time_data (starttime, endtime, databasename):
+
+    """
+    saves the specified time data into the time table
+    """
+
+    # logger settings
+    logger = logging.getLogger ("testbot::insert_time_data")
+
+    # compute the filename
+    dbfilename = databasename + '.db'
+    logger.debug (" Writing time data into '%s'" % dbfilename, extra=LOGDICT)
+
+    # connect to the sql database
+    db = sqltools.dbtest (dbfilename)
+
+    # create the time table
+    db.create_admin_time_table ()
+
+    # now, store all the admin data
+    db.insert_admin_time (starttime, endtime)
+
+    # close and exit
+    db.close ()
+
+
+# -----------------------------------------------------------------------------
+# insert_timeline_data
+#
+# saves the timeline computed in the execution into the given database
+# -----------------------------------------------------------------------------
+def insert_timeline_data (timeline, databasename):
+
+    """
+    saves the timeline computed in the execution into the given database
+    """
+
+    # logger settings
+    logger = logging.getLogger ("testbot::insert_timeline_data")
+
+    # compute the filename
+    dbfilename = databasename + '.db'
+    logger.debug (" Writing timeline into '%s'" % dbfilename, extra=LOGDICT)
+
+    # connect to the sql database
+    db = sqltools.dbtest (dbfilename)
+
+    # create the version table
+    db.create_admin_timeline_table ()
+
+    # now, store all the timeline
+    db.insert_admin_timeline (timeline)
+
+    # close and exit
+    db.close ()
+
+
+# -----------------------------------------------------------------------------
+# insert_version_data
+#
+# saves the specified version data into the given database
+# -----------------------------------------------------------------------------
+def insert_version_data (progname, version, revision, date, databasename):
+
+    """
+    saves the specified version data into the given database
+    """
+
+    # logger settings
+    logger = logging.getLogger ("testbot::insert_version_data")
+
+    # compute the filename
+    dbfilename = databasename + '.db'
+    logger.debug (" Writing version data into '%s'" % dbfilename, extra=LOGDICT)
+
+    # connect to the sql database
+    db = sqltools.dbtest (dbfilename)
+
+    # create the version table
+    db.create_admin_version_table ()
+
+    # now, store all the version data
+    db.insert_admin_version (progname, version, revision, date)
 
     # close and exit
     db.close ()
@@ -964,6 +927,41 @@ def insert_data (D, databasename):
 
         # store all tuples in this table
         db.insert_data (ivar, D[ivar])
+
+    # close and exit
+    db.close ()
+
+
+# -----------------------------------------------------------------------------
+# insert_sys_data
+#
+# saves all the sys information given in the database
+# -----------------------------------------------------------------------------
+def insert_sys_data (D, databasename):
+
+    """
+    saves all the sys information given in the database
+    """
+
+    # logger settings
+    logger = logging.getLogger ("testbot::insert_sys_data")
+
+    # compute the filename
+    dbfilename = databasename + '.db'
+    logger.debug (" Writing sys data into '%s'" % dbfilename, extra=LOGDICT)
+
+    # connect to the sql database
+    db = sqltools.dbtest (dbfilename)
+
+    # create all the sys tables
+    db.create_systime_table ()
+    db.create_sysvsize_table ()
+    db.create_sysprocs_table ()
+    db.create_systhreads_table ()
+
+    # and now, insert their contents into the database
+    for isys in ['time', 'vsize', 'procs', 'threads']:
+        db.insert_sysdata (isys, D['_sys' + isys])
 
     # close and exit
     db.close ()
@@ -1070,21 +1068,27 @@ class Dispatcher (object):
             wrapup (isolver, self._filename, configdir)
 
             # finally, write down all the information to a sqlite3 db
-            insert_version_data (PROGRAM_NAME, __version__, __revision__[1:-1], __date__[1:-1],
-                                 os.path.join (self._directory, solvername, solvername))
-            insert_sys_data (istats, os.path.join (self._directory, solvername, solvername))
-            insert_admin_data (self._filename, isolver, 
+
+            # admin data
+            insert_admin_params (isolver, self._filename, self._dbspec, 
                                self._check, self._time, self._memory,
                                os.path.join (self._directory, solvername, solvername))
-            insert_timeline_data (istats['_systimeline'], 
-                                  os.path.join (self._directory, solvername, solvername))
             insert_status_data (istats['_sysstatus'], 
                                   os.path.join (self._directory, solvername, solvername))
-            insert_time_data (self._starttime, self._endtime,
-                              os.path.join (self._directory, solvername, solvername))
             insert_test_data (self._filename, 
                               os.path.join (self._directory, solvername, solvername))
+            insert_time_data (self._starttime, self._endtime,
+                              os.path.join (self._directory, solvername, solvername))
+            insert_timeline_data (istats['_systimeline'], 
+                                  os.path.join (self._directory, solvername, solvername))
+            insert_version_data (PROGRAM_NAME, __version__, __revision__[1:-1], __date__[1:-1],
+                                 os.path.join (self._directory, solvername, solvername))
+            
+            # user data
             insert_data (istats, os.path.join (self._directory, solvername, solvername))
+
+            # sys data
+            insert_sys_data (istats, os.path.join (self._directory, solvername, solvername))
 
 
     # execute the following body before exiting

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <Monday, 12 August 2013 00:15:39 Carlos Linares Lopez (clinares)>
+# Last update <Monday, 12 August 2013 01:12:03 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -159,90 +159,134 @@ class dbtest(sqldb):
         sqldb.__init__ (self, dbname)
 
 
-    def create_version_table (self):
+    def create_admin_params_table (self):
         """
-        creates the version table
+        creates the admin table
         """
 
-        # first, create the version table in case it does not exist
-        if (not self.find ('version')):
-            self._cursor.execute ('''CREATE TABLE version 
-                                     (progname text, version text, revision text, date text)''')
+        # first, create the admin table in case it does not exist
+        if (not self.find ('admin_params')):
+            self._cursor.execute ('''CREATE TABLE admin_params (solver text, tests text, db text, delay integer, time integer, memory integer)''')
         
 
-    def insert_version_data (self, progname, version, revision, date):
+    def insert_admin_params (self, solver, tests, db, check, time, memory):
         """
-        stores all the version data given in the parameters
-        """
-
-        # populate the version table
-        self._cursor.execute ("INSERT INTO version VALUES (?, ?, ?, ?)", 
-                              (progname, version, revision, date))
-
-        
-    def create_timeline_table (self):
-        """
-        creates the timeline table
+        stores all the admin data given in the parameters
         """
 
-        # first, create the timeline table in case it does not exist
-        if (not self.find ('timeline')):
-            self._cursor.execute ('''CREATE TABLE timeline
-                                     (id text, 
-pid integer, cmdline string, start string, end string)''')
-        
-
-    def insert_timeline_data (self, timeline):
-        """
-        stores the whole timeline given into the database
-        """
-
-        # populate the timeline table
-        specline = "?, " * (len (timeline [0]) - 1)
-        cmdline = "INSERT INTO timeline VALUES (%s)" % (specline + '?')
-        self._cursor.executemany (cmdline, timeline)
+        # populate the admin table
+        self._cursor.execute ("INSERT INTO admin_params VALUES (?, ?, ?, ?, ?, ?)", 
+                              (solver, tests, db, check, time, memory))
 
         
-    def create_status_table (self):
+    def create_admin_status_table (self):
         """
         creates the status table for storing the return code of every testcase
         """
 
         # systime
-        if (not self.find ('status')):
-            self._cursor.execute ('''CREATE TABLE status
+        if (not self.find ('admin_status')):
+            self._cursor.execute ('''CREATE TABLE admin_status
                                      (id text, status int)''')
 
 
-    def insert_status_data (self, status):
+    def insert_admin_status (self, status):
         """
         stores the status of every test case into the database
         """
 
         # populate the status table
         specline = "?, " * (len (status [0]) - 1)
-        cmdline = "INSERT INTO status VALUES (%s)" % (specline + '?')
+        cmdline = "INSERT INTO admin_status VALUES (%s)" % (specline + '?')
         self._cursor.executemany (cmdline, status)
 
         
-    def create_admin_table (self):
+    def create_admin_test_table (self):
         """
-        creates the admin table
+        creates the test table
         """
 
-        # first, create the admin table in case it does not exist
-        if (not self.find ('admin')):
-            self._cursor.execute ('''CREATE TABLE admin (filename text, solver text, delay integer, time integer, memory integer)''')
+        # first, create the test table in case it does not exist
+        if (not self.find ('admin_test')):
+            self._cursor.execute ('''CREATE TABLE admin_test 
+                                     (id text, args text)''')
         
 
-    def insert_admin_data (self, filename, solver, check, time, memory):
+    def insert_admin_test (self, cases):
         """
-        stores all the admin data given in the parameters
+        stores all the test data given in the parameters
         """
 
+        # populate the test table with all the given cases
+        if (cases):
+            self._cursor.executemany ("INSERT INTO admin_test VALUES (?, ?)", cases) 
+
+        
+    def create_admin_time_table (self):
+        """
+        creates the time table
+        """
+
+        # first, create the time table in case it does not exist
+        if (not self.find ('admin_time')):
+            self._cursor.execute ('''CREATE TABLE admin_time 
+                                     (starttime text, endtime text, elapsed_seconds real)''')
+        
+
+    def insert_admin_time (self, starttime, endtime):
+        """
+        stores all the time data given in the parameters
+        """
+
+        # compute the elapsedtime
+        delta = endtime-starttime
+
         # populate the admin table
-        self._cursor.execute ("INSERT INTO admin VALUES (?, ?, ?, ?, ?)", 
-                              (filename, solver, check, time, memory))
+        self._cursor.execute ("INSERT INTO admin_time VALUES (?, ?, ?)", (starttime, endtime,
+                                                                          delta.total_seconds ())) 
+
+    def create_admin_timeline_table (self):
+        """
+        creates the timeline table
+        """
+
+        # first, create the timeline table in case it does not exist
+        if (not self.find ('admin_timeline')):
+            self._cursor.execute ('''CREATE TABLE admin_timeline
+                                     (id text, 
+pid integer, cmdline string, start string, end string, elapsed_seconds real)''')
+        
+
+    def insert_admin_timeline (self, timeline):
+        """
+        stores the whole timeline given into the database
+        """
+
+        # populate the timeline table
+        specline = "?, " * (len (timeline [0]) - 1)
+        cmdline = "INSERT INTO admin_timeline VALUES (%s)" % (specline + '?')
+        self._cursor.executemany (cmdline, timeline)
+
+        
+    def create_admin_version_table (self):
+        """
+        creates the version table
+        """
+
+        # first, create the version table in case it does not exist
+        if (not self.find ('admin_version')):
+            self._cursor.execute ('''CREATE TABLE admin_version 
+                                     (progname text, version text, revision text, date text)''')
+        
+
+    def insert_admin_version (self, progname, version, revision, date):
+        """
+        stores all the version data given in the parameters
+        """
+
+        # populate the version table
+        self._cursor.execute ("INSERT INTO admin_version VALUES (?, ?, ?, ?)", 
+                              (progname, version, revision, date))
 
         
     def create_systime_table (self):
@@ -305,51 +349,6 @@ pid integer, cmdline string, start string, end string)''')
             self._cursor.executemany (cmdline, values)
         
 
-    def create_time_table (self):
-        """
-        creates the time table
-        """
-
-        # first, create the time table in case it does not exist
-        if (not self.find ('time')):
-            self._cursor.execute ('''CREATE TABLE time 
-                                     (starttime text, endtime text, elapsed_seconds real)''')
-        
-
-    def insert_time_data (self, starttime, endtime):
-        """
-        stores all the time data given in the parameters
-        """
-
-        # compute the elapsedtime
-        delta = endtime-starttime
-
-        # populate the admin table
-        self._cursor.execute ("INSERT INTO time VALUES (?, ?, ?)", (starttime, endtime,
-                                                                    delta.total_seconds ())) 
-
-        
-    def create_test_table (self):
-        """
-        creates the test table
-        """
-
-        # first, create the test table in case it does not exist
-        if (not self.find ('test')):
-            self._cursor.execute ('''CREATE TABLE test 
-                                     (id text, args text)''')
-        
-
-    def insert_test_data (self, cases):
-        """
-        stores all the test data given in the parameters
-        """
-
-        # populate the test table with all the given cases
-        if (cases):
-            self._cursor.executemany ("INSERT INTO test VALUES (?, ?)", cases) 
-
-        
     def select_metadata (self, metaname):
         """
         returns a list with tuples containing all rows of the specified name

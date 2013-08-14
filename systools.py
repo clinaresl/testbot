@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 09:26:14 2011 Carlos Linares Lopez>
-# Last update <Sunday, 11 August 2013 18:32:26 Carlos Linares Lopez (clinares)>
+# Last update <Monday, 12 August 2013 01:14:35 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: systools.py 306 2011-11-11 22:25:37Z clinares                        $
@@ -564,7 +564,8 @@ class ProcessTimeline(object):
         return [[iproc.get_pid (),
                  iproc.get_cmdline (),
                  str (datetime.datetime.fromtimestamp (iproc.get_start_time ())),
-                 str (datetime.datetime.fromtimestamp (iproc.get_end_time ()))] 
+                 str (datetime.datetime.fromtimestamp (iproc.get_end_time ())),
+                 iproc.get_end_time () - iproc.get_start_time ()] 
                 for iproc in self.processes]
 
 

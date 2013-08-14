@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <Sunday, 11 August 2013 18:30:56 Carlos Linares Lopez (clinares)>
+# Last update <Monday, 12 August 2013 00:44:31 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -145,6 +145,8 @@ class DBFile(DBSpec):
         decodes the contents of a database specification file
         """
 
+        self._filename = filename
+
         with open (filename) as stream:
 
             # simply invoke the constructor of the base class with the
@@ -152,6 +154,12 @@ class DBFile(DBSpec):
             super (DBFile, self).__init__(spec=stream.read ())
 
 
+    def get_filename (self):
+        """
+        returns the filename of the database specification
+        """
+
+        return self._filename
 
 
 
