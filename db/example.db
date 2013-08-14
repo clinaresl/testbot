@@ -85,3 +85,9 @@ data_iterations {
 	eIDA integer ?'iterations eIDA' Error;
 	IDA integer ?'iterations IDA' Error;
 }
+
+# files
+data_files {
+	id text :index;
+	solution text <'__init__.py' Warning;
+}

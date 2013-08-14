@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Wednesday, 14 August 2013 12:01:52 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 12:48:19 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -357,22 +357,24 @@ def fetch (logdir):
 #
 # it processes the given resultsfile which resides at the given directory and
 # updates the dictionary stats with the value of all variables found in all the
-# data tables in dbspec. This is done by updating the placeholders and then
+# data tables in dbspec (either appearing in the standard output file or the
+# contents of files). This is done by updating the placeholders and then
 # invoking the 'poll' method in every data table
 # -----------------------------------------------------------------------------
 def process_results (directory, resultsfile, dbspec, placeholders, stats):
     """
     it processes the given resultsfile which resides at the given directory and
     updates the dictionary stats with the value of all variables found in all
-    the data tables in dbspec. This is done by updating the placeholders and
-    then invoking the 'poll' method in every data table
+    the data tables in dbspec (either appearing in the standard output file or
+    the contents of files). This is done by updating the placeholders and then
+    invoking the 'poll' method in every data table
     """
 
     # logger settings
     logger = logging.getLogger ("testbot::process_results")
 
     # populate the placeholders with the information retrieved from the
-    # resultsfile
+    # resultsfile (i.e., from the standard output of the executable)
     with open (os.path.join (directory, resultsfile), 'r') as stream:
 
         # now, for each line in the output file
@@ -385,6 +387,13 @@ def process_results (directory, resultsfile, dbspec, placeholders, stats):
 
                 # add this variable to the dictionary
                 placeholders [restat.group ('varname').rstrip (" ")] = restat.group ('value')
+
+    # also, populate the placeholders with the contents of files if requested by
+    # any database table
+    for itable in [jtable for jtable in dbspec if jtable.datap ()]:
+        for icolumn in [jcolumn for jcolumn in itable if jcolumn.get_vartype () == 'FILEVAR']:
+            with open (icolumn.get_variable (), 'r') as stream:
+                placeholders [icolumn.get_variable ()] = stream.read ()
 
     # now, compute the next row to write in all the data tables, if any
     for itable in dbspec:

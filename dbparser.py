@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <Wednesday, 14 August 2013 11:57:10 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 12:31:15 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -395,7 +395,7 @@ class DBParser :
     # preceded by <. They stand for files whose content is copied once the
     # execution is over
     def t_FILEVAR (self, t):
-        r"""\<([0-9a-zA-Z_/\.]+|\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?')"""
+        r"""\<([0-9a-zA-Z_/\.~]+|\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?')"""
         if t.value[1]=='"' or t.value[1]=="'": t.value = t.value [2:-1]
         else: t.value = t.value[1:]
         return t
