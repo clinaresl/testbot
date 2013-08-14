@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Aug  2 09:16:49 2013 Carlos Linares Lopez>
-# Last update <Sunday, 11 August 2013 18:31:38 Carlos Linares Lopez (clinares)>
+# Last update <Monday, 12 August 2013 00:26:22 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -294,7 +294,9 @@ class TBParser :
     # -----------------------------------------------------------------------------
     # Error rule for syntax errors
     def p_error(self, p):
-        print "Syntax error in input!"
+        print "Syntax error while processing the tests specification file!"
+        print
+        exit ()
 
 
 # -----------------------------------------------------------------------------

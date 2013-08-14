@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <Sunday, 11 August 2013 18:32:14 Carlos Linares Lopez (clinares)>
+# Last update <Monday, 12 August 2013 00:15:39 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -175,9 +175,54 @@ class dbtest(sqldb):
         stores all the version data given in the parameters
         """
 
-        # populate the admin table
+        # populate the version table
         self._cursor.execute ("INSERT INTO version VALUES (?, ?, ?, ?)", 
                               (progname, version, revision, date))
+
+        
+    def create_timeline_table (self):
+        """
+        creates the timeline table
+        """
+
+        # first, create the timeline table in case it does not exist
+        if (not self.find ('timeline')):
+            self._cursor.execute ('''CREATE TABLE timeline
+                                     (id text, 
+pid integer, cmdline string, start string, end string)''')
+        
+
+    def insert_timeline_data (self, timeline):
+        """
+        stores the whole timeline given into the database
+        """
+
+        # populate the timeline table
+        specline = "?, " * (len (timeline [0]) - 1)
+        cmdline = "INSERT INTO timeline VALUES (%s)" % (specline + '?')
+        self._cursor.executemany (cmdline, timeline)
+
+        
+    def create_status_table (self):
+        """
+        creates the status table for storing the return code of every testcase
+        """
+
+        # systime
+        if (not self.find ('status')):
+            self._cursor.execute ('''CREATE TABLE status
+                                     (id text, status int)''')
+
+
+    def insert_status_data (self, status):
+        """
+        stores the status of every test case into the database
+        """
+
+        # populate the status table
+        specline = "?, " * (len (status [0]) - 1)
+        cmdline = "INSERT INTO status VALUES (%s)" % (specline + '?')
+        self._cursor.executemany (cmdline, status)
 
         
     def create_admin_table (self):
@@ -244,31 +289,6 @@ class dbtest(sqldb):
         if (not self.find ('sys_threads')):
             self._cursor.execute ('''CREATE TABLE sys_threads
                                      (id text, wctime real, numthreads integer)''')
-        
-
-    def create_systimeline_table (self):
-        """
-        creates the systimeline table for storing the start/end time of every
-        process
-        """
-
-        # systime
-        if (not self.find ('sys_timeline')):
-            self._cursor.execute ('''CREATE TABLE sys_timeline
-                                     (id text, 
-pid integer, cmdline string, start string, end string)''')
-        
-
-    def create_sysstatus_table (self):
-        """
-        creates the sysstatus table for storing the return code of every
-        testcase
-        """
-
-        # systime
-        if (not self.find ('sys_status')):
-            self._cursor.execute ('''CREATE TABLE sys_status
-                                     (id text, status int)''')
         
 
     def insert_sysdata (self, acronym, values):

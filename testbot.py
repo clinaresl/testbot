@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Sunday, 11 August 2013 18:38:07 Carlos Linares Lopez (clinares)>
+# Last update <Monday, 12 August 2013 00:18:48 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -737,6 +737,68 @@ def insert_version_data (progname, version, revision, date, databasename):
 
 
 # -----------------------------------------------------------------------------
+# insert_timeline_data
+#
+# saves the timeline computed in the execution into the given database
+# -----------------------------------------------------------------------------
+def insert_timeline_data (timeline, databasename):
+
+    """
+    saves the timeline computed in the execution into the given database
+    """
+
+    # logger settings
+    logger = logging.getLogger ("testbot::insert_timeline_data")
+
+    # compute the filename
+    dbfilename = databasename + '.db'
+    logger.debug (" Writing timeline into '%s'" % dbfilename, extra=LOGDICT)
+
+    # connect to the sql database
+    db = sqltools.dbtest (dbfilename)
+
+    # create the version table
+    db.create_timeline_table ()
+
+    # now, store all the timeline
+    db.insert_timeline_data (timeline)
+
+    # close and exit
+    db.close ()
+
+
+# -----------------------------------------------------------------------------
+# insert_status_data
+#
+# saves the return code of every test case into the given database
+# -----------------------------------------------------------------------------
+def insert_status_data (status, databasename):
+
+    """
+    saves the return code of every test case into the given database
+    """
+
+    # logger settings
+    logger = logging.getLogger ("testbot::insert_status_data")
+
+    # compute the filename
+    dbfilename = databasename + '.db'
+    logger.debug (" Writing status into '%s'" % dbfilename, extra=LOGDICT)
+
+    # connect to the sql database
+    db = sqltools.dbtest (dbfilename)
+
+    # create the version table
+    db.create_status_table ()
+
+    # now, store all the timeline
+    db.insert_status_data (status)
+
+    # close and exit
+    db.close ()
+
+
+# -----------------------------------------------------------------------------
 # insert_sys_data
 #
 # saves all the sys information given in the database
@@ -762,11 +824,9 @@ def insert_sys_data (D, databasename):
     db.create_sysvsize_table ()
     db.create_sysprocs_table ()
     db.create_systhreads_table ()
-    db.create_systimeline_table ()
-    db.create_sysstatus_table ()
 
     # and now, insert their contents into the database
-    for isys in ['time', 'vsize', 'procs', 'threads', 'timeline', 'status']:
+    for isys in ['time', 'vsize', 'procs', 'threads']:
         db.insert_sysdata (isys, D['_sys' + isys])
 
     # close and exit
@@ -922,18 +982,18 @@ class Dispatcher (object):
     """
 
     # Default constructor
-    def __init__ (self, solver, filename, check, time, memory, 
+    def __init__ (self, solver, filename, dbspec, check, time, memory, 
                   directory, output, logfile, level, quiet):
         """
         Explicit constructor
         """
         
         # copy the attributes
-        (self._solver, self._filename, self._check, 
+        (self._solver, self._filename, self._dbspec, self._check, 
          self._time, self._memory, self._directory, 
          self._output, self._logfile, self._level,
          self._quiet) = \
-         (solver, filename, check, 
+         (solver, filename, dbspec, check, 
           time, memory, directory, 
           output, logfile, level, 
           quiet)
@@ -1016,6 +1076,10 @@ class Dispatcher (object):
             insert_admin_data (self._filename, isolver, 
                                self._check, self._time, self._memory,
                                os.path.join (self._directory, solvername, solvername))
+            insert_timeline_data (istats['_systimeline'], 
+                                  os.path.join (self._directory, solvername, solvername))
+            insert_status_data (istats['_sysstatus'], 
+                                  os.path.join (self._directory, solvername, solvername))
             insert_time_data (self._starttime, self._endtime,
                               os.path.join (self._directory, solvername, solvername))
             insert_test_data (self._filename, 
@@ -1065,7 +1129,7 @@ if __name__ == '__main__':
         exit ()
 
     # Now, enclose all the process in a with statement and launch a dispatcher
-    DISPATCHER = Dispatcher (ARGS.solver, ARGS.tests, 
+    DISPATCHER = Dispatcher (ARGS.solver, ARGS.tests, ARGS.db,
                              ARGS.check, ARGS.time, ARGS.memory,
                              ARGS.directory, ARGS.output, ARGS.logfile, 
                              ARGS.level, ARGS.quiet)

@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <Sunday, 11 August 2013 18:31:16 Carlos Linares Lopez (clinares)>
+# Last update <Monday, 12 August 2013 00:27:22 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -172,7 +172,8 @@ class DBParser :
         'DIRVAR',
         'FILEVAR',
         'PARAM',
-        'ID'
+        'ID',
+        'TABLEID'
         ) + tuple(reserved_words.values ())
 
     def __init__ (self):
@@ -246,6 +247,11 @@ class DBParser :
         t.value = int (t.value[1:])
         return t
 
+    # tableid: a correct name for tables (either sys_ or data_)
+    def t_TABLEID (self, t):
+        r'(sys\_|data\_)[a-zA-Z_][a-zA-Z_0-9]*'
+        return t
+
     # The following rule distinguishes automatically between reserved words and
     # identifiers
     def t_ID (self, t):
@@ -285,7 +291,7 @@ class DBParser :
             p[0] = [p[1]] + p[2]
 
     def p_table (self, p):
-        '''table : ID LCURBRACK columns RCURBRACK'''
+        '''table : TABLEID LCURBRACK columns RCURBRACK'''
         p[0] = DBTable (p[1], p[3])
 
     def p_columns (self, p):
@@ -348,7 +354,9 @@ class DBParser :
     # -----------------------------------------------------------------------------
     # Error rule for syntax errors
     def p_error(self, p):
-        print "Syntax error in input!"
+        print "Syntax error while processing the database specification file!"
+        print
+        exit ()
 
     
 # -----------------------------------------------------------------------------

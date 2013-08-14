@@ -1,7 +1,8 @@
-# admin tables including 'admin', 'test', 'time' and 'version' are
-# created systematically
+# admin tables including 'admin', 'test', 'time', 'timeline', 'status'
+# and 'version' are created systematically
 
-# sys tables to be processed in the main loop
+# sys tables to be processed in the main loop. They all have to start
+# with the prefix 'sys_'
 
 # number of processes indexed by the wall-clock time
 sys_procs {
@@ -31,25 +32,8 @@ sys_vsize {
       vsize real :vsize Error;
 }
 
-# sys tables to be processed after the main loop
-
-# return code
-sys_status {
-      id text :id;
-      status integer :status Warning;
-}
-
-# timeline of processes
-sys_timeline {
-      id text :id;
-      pid integer :pid;
-      cmdline text :cmdline "<Unknown>";
-      start text :start Error;
-      end text :end Error;
-      elapsed_time integer :elapsed_time;
-}
-
-# data tables
+# data tables to be processed after the completion of the
+# executable. They all have to start with the prefix 'data_'
 
 # number of expansions of eIDA*
 data_expansions_eida {
