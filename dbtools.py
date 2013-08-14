@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <Tuesday, 06 August 2013 23:41:27 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 07 August 2013 16:51:55 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -257,6 +257,18 @@ class dbtest(sqldb):
             self._cursor.execute ('''CREATE TABLE sys_timeline
                                      (id text, 
 pid integer, cmdline string, start string, end string)''')
+        
+
+    def create_sysstatus_table (self):
+        """
+        creates the sysstatus table for storing the return code of every
+        testcase
+        """
+
+        # systime
+        if (not self.find ('sys_status')):
+            self._cursor.execute ('''CREATE TABLE sys_status
+                                     (id text, status int)''')
         
 
     def insert_sysdata (self, acronym, values):

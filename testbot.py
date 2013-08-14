@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Wednesday, 07 August 2013 16:19:52 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 07 August 2013 16:52:34 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -498,7 +498,7 @@ def test (solver, cases, resultsdir, check, stats, output,
         placeholders.update (itst.get_values ())
 
         # finally, invoke the execution of this test case
-        logger.info (" Solving case '%s'" % itst, extra=LOGDICT)
+        logger.info ('\t%s' % itst, extra=LOGDICT)
 
         run (os.path.abspath (solver), resultsdir, 
              itst.get_id (), itst.get_args (), 
@@ -647,7 +647,8 @@ def run (solver, resultsdir, index, spec, T, output, stats,
  children found: %s""" % timeline.pids (), extra=LOGDICT)
                 timeline.terminate ()
 
-        print status
+        # record the exit status of this process
+        stats ['_sysstatus'].append ((index, status))
 
         # Even if we got here, there may be orphaned children or something we
         # may have missed due to a race condition. Check for that and kill
@@ -752,9 +753,10 @@ def insert_sys_data (D, databasename):
     db.create_sysprocs_table ()
     db.create_systhreads_table ()
     db.create_systimeline_table ()
+    db.create_sysstatus_table ()
 
     # and now, insert their contents into the database
-    for isys in ['time', 'vsize', 'procs', 'threads', 'timeline']:
+    for isys in ['time', 'vsize', 'procs', 'threads', 'timeline', 'status']:
         db.insert_sysdata (isys, D['_sys' + isys])
 
     # close and exit
