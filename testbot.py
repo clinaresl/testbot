@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Friday, 05 July 2013 17:57:56 Carlos Linares Lopez (clinares)>
+# Last update <Friday, 02 August 2013 18:24:31 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -67,7 +67,7 @@ LOGDICT = {'node': socket.gethostname (),       # extra data to be passed
 OUTPUT = "output-"           # prefix of the output filenames
 
 CASEREGEXP = "(?P<index>[0-9]+) (?P<permutation>[0-9 ]+)"
-STATREGEXP = " > (?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
+STATREGEXP = " >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
 VALIDATIONREGEXP = " solution \[(?P<status>(valid|invalid|not validated))\]"
 
 # -----------------------------------------------------------------------------
@@ -201,7 +201,7 @@ def show_switches (solver, filename, check, directory, time, memory):
     """
 
     # logger settings
-    logger = logging.getLogger('tester::show_switches')
+    logger = logging.getLogger('testbot::show_switches')
 
     # compute the solvers' names
     solvernames = map (lambda x:os.path.basename (x), solver)
@@ -231,7 +231,7 @@ def check_flags (solver, filename, check, directory, timeout, memory):
     """
 
     # logger settings
-    logger = logging.getLogger('tester::check_flags')
+    logger = logging.getLogger('testbot::check_flags')
 
     # checks
 
@@ -283,7 +283,7 @@ def version (log=False):
 
     if (log):
 
-        logger = logging.getLogger ("tester::version")
+        logger = logging.getLogger ("testbot::version")
         logger.info ("\n %s\n %s\n %s %s\n" % (__revision__[1:-2], __date__[1:-2], PROGRAM_NAME, __version__), 
                      extra=LOGDICT)
 
@@ -358,7 +358,7 @@ def set_limit(kind, amount):
     try:
         resource.setrlimit(kind, (amount, amount))
     except OSError, e:
-        logger = logging.getLogger('tester::set_limit')
+        logger = logging.getLogger('testbot::set_limit')
         logger.critical (" %s in 'set_limit'\n" % e, extra=LOGDICT)
 
 
@@ -385,26 +385,19 @@ def kill_pgrp(pgrp, sig):
 # directory and are relative to the instance qualified by the given index. The
 # statistics are stored in a dictionary indexed by the variable name and the
 # data consists of a list of tuples with the following information (problem
-# index, target value, value). It returns True if the problem was successfully
-# solved and False otherwise
+# index, value)
 # -----------------------------------------------------------------------------
-def process_results (directory, resultsfile, index, T, stats):
+def process_results (directory, resultsfile, index, stats):
     """
-    process the contents of the results file indicated which resides in the
-    given directory and are relative to the instance qualified by the given
-    index. The statistics are stored in a dictionary indexed by the variable
-    name and the data consists of a list of tuples with the following
-    information (problem index, target value, value). It returns True if the
-    problem was successfully solved and False otherwise
+    process the contents of the results file indicated which resides in the given
+    directory and are relative to the instance qualified by the given index. The
+    statistics are stored in a dictionary indexed by the variable name and the
+    data consists of a list of tuples with the following information (problem
+    index, value)
     """
 
     # logger settings
-    logger = logging.getLogger ("tester::process_results")
-
-    # initialization - None means that the problem was unsolved!
-    unvalidated = None
-    valid = None
-    invalid = None
+    logger = logging.getLogger ("testbot::process_results")
 
     # open the file
     with open (os.path.join (directory, resultsfile), 'r') as stream:
@@ -418,65 +411,23 @@ def process_results (directory, resultsfile, index, T, stats):
             if (restat):
 
                 # add this variable to the dictionary
-                stats [restat.group ('varname').rstrip (" ")].append ((index, T, 
+                stats [restat.group ('varname').rstrip (" ")].append ((index, 
                                                                        float (restat.group ('value'))))
-
-            # check whether this line informs about the validity of this solution
-            reval = re.match (VALIDATIONREGEXP, iline)
-
-            if (reval):
-                (unvalidated, valid, invalid) = ( reval.group ('status') == 'not validated',
-                                                  reval.group ('status') == 'valid',
-                                                  reval.group ('status') == 'invalid' )
-
-    # process the combinations of this problem being validated and the result of
-    # the validation
-    if (unvalidated):
-
-        # store this event in the stats dictionary
-        stats ['solved'].append ((index, T, 1))
-        stats ['valid'].append  ((index, T, -1))
-
-    else:
-
-        if (valid):
-
-            # store this event in the stats dictionary
-            stats ['solved'].append ((index, T, 1))
-            stats ['valid'].append  ((index, T, 1))
-
-        if (invalid):
-
-            logger.error (" Invalid solution!", extra=LOGDICT)
-
-            # and store this even in the stats dictionary
-            stats ['solved'].append ((index, T, 1))
-            stats ['valid'].append  ((index, T, 0))
-            
-        # if this instance was found to be neither valid or invalid is because
-        # it was not solved
-        if (not valid and not invalid):
-
-            logger.warning (" Unsolved!", extra=LOGDICT)
-
-            # and store this even in the stats dictionary
-            stats ['solved'].append ((index, T, 0))
-            stats ['valid'].append  ((index, T, 0))
 
 
 # -----------------------------------------------------------------------------
 # setup
 #
 # this method just sets up all the necessary environment for executing all
-# cases. It returns: the target directory where the output should be written;
+# cases. It returns: the target directory where all output should be written;
 # the directory where the results should be copied; the config dir where
 # additional information (such as the test cases) should be written and the
-# logdirectory where the logs should be stored
+# logdirectory where the logs should be stored. 
 # -----------------------------------------------------------------------------
 def setup (solvername, directory):
     """
     this method just sets up all the necessary environment for executing all
-    cases. It returns: the target directory where the output should be written;
+    cases. It returns: the target directory where all output should be written;
     the directory where the results should be copied; the config dir where
     additional information (such as the test cases) should be written and the
     logdirectory where the logs should be stored
@@ -485,8 +436,8 @@ def setup (solvername, directory):
     def _mksubdir (parent, subdir):
         """
         create the given subdirectory from the parent and returns it. Note that
-        the absolute path is computed. Passing the absolute path to the results
-        dir prevents a number of errors
+        the absolute path is computed. Passing the absolute path prevents a
+        number of errors
         """
         newdir = os.path.abspath (os.path.join (parent, subdir))
         os.mkdir (newdir)
@@ -495,10 +446,9 @@ def setup (solvername, directory):
 
 
     # logger settings
-    logger = logging.getLogger ("tester::setup")
+    logger = logging.getLogger ("testbot::setup")
 
-    # compute the target directory which should be a subdirectory of the target
-    # directory.  
+    # compute the target directory 
     targetdir = os.path.join (directory, solvername)
 
     # the given directory should exist at this time, but not its
@@ -551,10 +501,10 @@ def test (solver, cases, resultsdir, check, stats, output,
 
     def _sub (string, D):
         """
-        substitute the ocurrence of every keyword in D with its value if it
-        appears preceded by '$' in string. Similar to Template.substitute but a
-        little bit more powerful since it also allows the substitution of
-        strings which do not follow the convention of python variable names
+        substitute in string the ocurrence of every keyword in D with its value
+        if it appears preceded by '$' in string. Similar to Template.substitute
+        but it also allows the substitution of strings which do not follow the
+        convention of python variable names
         """
 
         result = string                                 # initialization
@@ -563,11 +513,12 @@ def test (solver, cases, resultsdir, check, stats, output,
         return result                                   # and return
 
     # initialization - the following dictionary contains the last subindex of
-    # all test indices
+    # all test indices. This is necessary since every test case can result in
+    # many different subcases if enum/range are used
     subindex = defaultdict (int)
 
     # logger settings
-    logger = logging.getLogger ("tester::test")
+    logger = logging.getLogger ("testbot::test")
 
     # now, for each test case
     for itst in tsttools.TstIter (tsttools.TstFile (cases)):
@@ -582,24 +533,12 @@ def test (solver, cases, resultsdir, check, stats, output,
         # and now, add the values of all the directives in this testcase
         placeholders.update (itst.get_values ())
 
-        # retrieve the target value from the command line defined in this test
-        # case - this is necessary because 'run' records data indexed by the
-        # target value
-        # T = [iT for iT in itst.get_value ('--target-value')]
-        
-        # # make sure there is only one target value in the command line
-        # if (not T):
-        #     raise ValueError (" No --target-value has been specified in the test case")
-        # if (len (T) > 1):
-        #     raise ValueError (" More than one --target-value has been specified in the test case")
-
         # finally, invoke the execution of this test case
         logger.info (" Solving case '%s'" % itst, extra=LOGDICT)
 
         run (os.path.abspath (solver), resultsdir, 
              itst.get_id (), itst.get_args (), 
              0, 
-             # int (T[0]), 
              _sub (output, placeholders),
              stats, check, timeout, memory)
 
@@ -614,9 +553,10 @@ def test (solver, cases, resultsdir, check, stats, output,
 # is fairly convenient in case the solver needs additional input files which are
 # then extracted from a directory relative to the current location) for solving
 # the particular test case (qualified by index). It copies the stdout and stderr
-# of the solver in files named 'output' (plus .log or .err) which are then moved
-# to the specified results directory. The forked process is pinged every 'check'
-# seconds and it is launched with computational resources 'timeout' and 'memory'
+# of the solver in files named after output (plus .log or .err) which are then
+# moved to the specified results directory. The forked process is pinged every
+# 'check' seconds and it is launched with computational resources 'timeout' and
+# 'memory'
 # -----------------------------------------------------------------------------
 def run (solver, resultsdir, index, spec, T, output, stats,
          check=5, timeout=1800, memory=6442450944):
@@ -626,10 +566,10 @@ def run (solver, resultsdir, index, spec, T, output, stats,
     (this is fairly convenient in case the solver needs additional input files
     which are then extracted from a directory relative to the current location)
     for solving the particular test case (qualified by index). It copies the
-    stdout and stderr of the solver in files named 'output' (plus .log or .err)
-    which are then moved to the specified results directory. The forked process
-    is pinged every 'check' seconds and it is launched with computational
-    resources 'timeout' and 'memory'
+    stdout and stderr of the solver in files named after output (plus .log or
+    .err) which are then moved to the specified results directory. The forked
+    process is pinged every 'check' seconds and it is launched with
+    computational resources 'timeout' and 'memory'
     """
 
     def setlimits ():
@@ -642,22 +582,21 @@ def run (solver, resultsdir, index, spec, T, output, stats,
         set_limit(resource.RLIMIT_AS, memory)
         set_limit(resource.RLIMIT_CORE, 0)
 
-    def update_stats (index, T, data, key, stats):
+    def update_stats (index, data, key, stats):
         """
-        update the stats with the information in data which is a list of lists
-        which is extended with the current index
+        update stats with the information in data. The result is a list of lists
+        which are all preceded by index
         """
 
         stats[key] += (map (lambda x,y:tuple (x+y),
-                            [[index,T]]*len (data), data))
+                            [[index]]*len (data), data))
         
 
     # logger settings
-    logger = logging.getLogger ("tester::run")
+    logger = logging.getLogger ("testbot::run")
 
     # Initialization
     total_vsize = 0
-    set_alarm = False
 
     # change cwd
     cwd = os.getcwd ()
@@ -668,7 +607,7 @@ def run (solver, resultsdir, index, spec, T, output, stats,
 
     # Now, a child is created which will host the solver execution while this
     # process simply monitors the resource comsumption. If any is exceeded the
-    # whole process group is killed
+    # child along with all its processes are killed
     with runtimer:
 
         (fdlog, fderr) = (os.open (os.path.join (os.getcwd (), output + ".log"),
@@ -683,24 +622,6 @@ def run (solver, resultsdir, index, spec, T, output, stats,
                                   stderr = fderr,
                                   preexec_fn=setlimits)
         child_pid = child.pid
-
-        # child_pid = os.fork()
-        # if not child_pid:                                            # child's code
-        #     os.setpgrp()
-        #     set_limit(resource.RLIMIT_CPU, timeout)
-        #     set_limit(resource.RLIMIT_AS, memory)
-        #     set_limit(resource.RLIMIT_CORE, 0)
-        #     for fd_no, filename in [(1, os.path.join (os.getcwd (), output + ".log")),
-        #                             (2, os.path.join (os.getcwd (), output + ".err"))]:
-        #         os.close(fd_no)
-        #         fd = os.open(filename, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0666)
-        #         assert fd == fd_no, fd
-        #     if set_alarm:
-        #         signal.alarm(timeout)
-
-        #     # and launch the solver
-        #     os.execv(solver, 
-        #              [solver]+spec)
 
         # initialization
         max_mem   = 0                           # max mem ever used
@@ -722,7 +643,7 @@ def run (solver, resultsdir, index, spec, T, output, stats,
             time1 = datetime.datetime.now ()    # time after sleeping
             real_time = (time1-time0).total_seconds ()  # compute wall clock time accurately
 
-            # get the total time and memory usage
+            # get some stats such as total time, memory, ...
             total_time = group.total_time()
             total_vsize = group.total_vsize()
             num_processes = group.total_processes ()
@@ -736,10 +657,10 @@ def run (solver, resultsdir, index, spec, T, output, stats,
             # store this information in the stats - note the leading
             # underscore. It means that this should not be treated as ordinary
             # data and it is considered to be system data instead
-            stats ['_systime'].append ((index, T, real_time, total_time))
-            stats ['_sysvsize'].append ((index, T, real_time, total_vsize))
-            stats ['_sysprocs'].append ((index, T, real_time, num_processes))
-            stats ['_systhreads'].append ((index, T, real_time, num_threads))
+            stats ['_systime'].append ((index, real_time, total_time))
+            stats ['_sysvsize'].append ((index, real_time, total_vsize))
+            stats ['_sysprocs'].append ((index, real_time, num_processes))
+            stats ['_systhreads'].append ((index, real_time, num_threads))
 
             # update the maximum memory usage
             max_mem = max (max_mem, total_vsize)
@@ -764,7 +685,7 @@ def run (solver, resultsdir, index, spec, T, output, stats,
                 timeline.terminate ()
 
         # Even if we got here, there may be orphaned children or something we may
-        # have missed due to a race condition. Check for that and kill.
+        # have missed due to a race condition. Check for that and kill
         group = systools.ProcessGroup(child_pid)
         if group:
 
@@ -777,28 +698,28 @@ def run (solver, resultsdir, index, spec, T, output, stats,
         # Either way, kill properly for good measure. Note that it's not clear if
         # checking the ProcessGroup for emptiness is reliable, because reading the
         # process table may not be atomic, so for this last blow, we don't do an
-        # emptiness test.
+        # emptiness test
         kill_pgrp(child_pid, signal.SIGKILL)
         timeline.terminate ()
 
         # add the timeline of this execution to the stats - note the leading
         # underscore. It means that this should not be treated as ordinary data
         # and it is considered to be system data instead
-        update_stats (index, T, timeline.get_processes (), '_systimeline', stats)
+        update_stats (index, timeline.get_processes (), '_systimeline', stats)
 
         # likewise, retrieve information about all files opened by every process
-        update_stats (index, T, timeline.get_fd (), '_sysfd', stats)
-        update_stats (index, T, timeline.get_times ('atime'), '_sysfd_atime', stats)
-        update_stats (index, T, timeline.get_times ('mtime'), '_sysfd_mtime', stats)
-        update_stats (index, T, timeline.get_times ('ctime'), '_sysfd_ctime', stats)
+        update_stats (index, timeline.get_fd (), '_sysfd', stats)
+        update_stats (index, timeline.get_times ('atime'), '_sysfd_atime', stats)
+        update_stats (index, timeline.get_times ('mtime'), '_sysfd_mtime', stats)
+        update_stats (index, timeline.get_times ('ctime'), '_sysfd_ctime', stats)
 
         # and finally, record also information about how the size of the files
         # generated by the processes of this timeline have evolved over time
-        update_stats (index, T, timeline.get_size (), '_sysfd_size', stats)
+        update_stats (index, timeline.get_size (), '_sysfd_size', stats)
 
         # process the contents of the log files generated in the directory where
         # the solver resides
-        process_results (os.path.dirname (solver), output + ".log", index, T, stats)
+        process_results (os.path.dirname (solver), output + ".log", index, stats)
 
         # once it has been processed move the .log and .err files to the results
         # directory
@@ -826,7 +747,7 @@ def wrapup (solver, filename, configdir):
     """
 
     # logger settings
-    logger = logging.getLogger ("tester::wrapup")
+    logger = logging.getLogger ("testbot::wrapup")
 
     # copy the file with all the tests cases to the config dir
     shutil.copy (filename,
@@ -845,7 +766,7 @@ def insert_version_data (progname, version, revision, date, databasename):
     """
 
     # logger settings
-    logger = logging.getLogger ("tester::insert_version_data")
+    logger = logging.getLogger ("testbot::insert_version_data")
 
     # compute the filename
     dbfilename = databasename + '.db'
@@ -876,7 +797,7 @@ def insert_sys_data (D, databasename):
     """
 
     # logger settings
-    logger = logging.getLogger ("tester::insert_sys_data")
+    logger = logging.getLogger ("testbot::insert_sys_data")
 
     # compute the filename
     dbfilename = databasename + '.db'
@@ -919,7 +840,7 @@ def insert_admin_data (filename, solver,
     """
 
     # logger settings
-    logger = logging.getLogger ("tester::insert_admin_data")
+    logger = logging.getLogger ("testbot::insert_admin_data")
 
     # compute the filename
     dbfilename = databasename + '.db'
@@ -950,7 +871,7 @@ def insert_time_data (starttime, endtime, databasename):
     """
 
     # logger settings
-    logger = logging.getLogger ("tester::insert_time_data")
+    logger = logging.getLogger ("testbot::insert_time_data")
 
     # compute the filename
     dbfilename = databasename + '.db'
@@ -981,7 +902,7 @@ def insert_test_data (filename, databasename):
     """
 
     # logger settings
-    logger = logging.getLogger ("tester::insert_test_data")
+    logger = logging.getLogger ("testbot::insert_test_data")
 
     # retrieve the test cases
     cases = tsttools.TstFile (filename).get_defs ()
@@ -1008,20 +929,18 @@ def insert_test_data (filename, databasename):
 #
 # saves the information given in the specified dictionary D into a sqlite3
 # database. The primary key of the dictionary is the name of a variable whose
-# value is a list of tuples with the following contents (problem id, target
-# value, value)
+# value is a list of tuples with the following contents (problem id, value)
 # -----------------------------------------------------------------------------
 def insert_data (D, databasename):
 
     """
     saves the information given in the specified dictionary D into a sqlite3
     database. The primary key of the dictionary is the name of a variable whose
-    value is a list of tuples with the following contents (problem id, target
-    value, value)
+    value is a list of tuples with the following contents (problem id, value)
     """
 
     # logger settings
-    logger = logging.getLogger ("tester::insert_data")
+    logger = logging.getLogger ("testbot::insert_data")
 
     # compute the filename
     dbfilename = databasename + '.db'
@@ -1060,7 +979,7 @@ class Dispatcher (object):
     def __init__ (self, solver, filename, check, time, memory, 
                   directory, output, logfile, level, quiet):
         """
-        Default constructor
+        Explicit constructor
         """
         
         # copy the attributes
@@ -1082,11 +1001,11 @@ class Dispatcher (object):
 
         # now, create the overall log file if anyone has been requested
         if (self._logfile):
-            self._logfilename = self._logfile + '.' + datetime.datetime.now ().strftime ("%y-%m-%d.%H:%M:%S")
+            self._logstream = create_logger (self._logfile + '.' + 
+                                             datetime.datetime.now ().strftime ("%y-%m-%d.%H:%M:%S"),
+                                             self._level)
         else:
-            self._logfilename = None
-
-        self._logfilename = create_logger (self._logfilename, self._level)
+            self._logstream = create_logger (None, self._level)
 
         # before proceeding, check that all parameters are correct
         check_flags (self._solver, self._filename, self._check, 
@@ -1186,7 +1105,6 @@ if __name__ == '__main__':
     if (ARGS.parse_tests):
 
         print tsttools.TstFile (ARGS.file)
-
         exit ()
 
     # Now, enclose all the process in a with statement and launch a dispatcher

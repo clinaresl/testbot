@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Jul  3 17:46:48 2013 Carlos Linares Lopez>
-# Last update <Friday, 05 July 2013 17:51:28 Carlos Linares Lopez (clinares)>
+# Last update <Tuesday, 23 July 2013 22:08:25 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -77,33 +77,48 @@ class FileInfo(object):
         stat (following symlinks) the specified path
 
         :param path: path to stat
-        :type pid: str
+        :type path: str
         """
 
         # initialization
         self._path = path                               # original path
 
         # access the stat info
-        stat = self.stat ()
+        self._stat = self.stat ()
 
-        # update the correct name of this path following the symlink if any exists
-        self._path = {False: path,
-                      True : os.readlink (path)}[os.path.islink (path)]
+        # update the correct name of this path following the symlink if any
+        # exists
+        if (self._stat):
 
-        # and now process all fields of interest
-        self._uid   = extract ('uid',   UIDREGEXP,   stat)
-        self._gid   = extract ('gid',   GIDREGEXP,   stat)
-        self._atime = [extract ('atime', ATIMEREGEXP, stat)]
-        self._mtime = [extract ('mtime', MTIMEREGEXP, stat)]
-        self._ctime = [extract ('ctime', CTIMEREGEXP, stat)]
+            self._path = {False: path,
+                          True : os.readlink (path)}[os.path.islink (path)]
 
-        # including time ---note that the current time is used
-        self._size  = [(time.time (), extract ('size',  SIZEREGEXP,  stat))]
+            # and now process all fields of interest
+            self._uid   = extract ('uid',   UIDREGEXP,   self._stat)
+            self._gid   = extract ('gid',   GIDREGEXP,   self._stat)
+            self._atime = [extract ('atime', ATIMEREGEXP, self._stat)]
+            self._mtime = [extract ('mtime', MTIMEREGEXP, self._stat)]
+            self._ctime = [extract ('ctime', CTIMEREGEXP, self._stat)]
+
+            # including time ---note that the current time is used
+            self._size  = [(time.time (), extract ('size',  SIZEREGEXP,  self._stat))]
+
+        else:
+            self._path  = None
+            self._uid   = None
+            self._gid   = None
+            self._atime = None
+            self._mtime = None
+            self._ctime = None
+            self._size  = None
 
 
     def __eq__ (self, other):
         """
         returns true if this fileinfo and other refer to the same file
+
+        :param other: instance of FileInfo
+        :type other: FileInfo
         """
 
         return (self._path == other.get_path ())
@@ -113,6 +128,9 @@ class FileInfo(object):
         """
         returns false if this fileinfo and other refer to the same file
         ---defined only for consistency with __eq__
+
+        :param other: instance of FileInfo
+        :type other: FileInfo
         """
 
         return (self._path != other.get_path ())
@@ -124,6 +142,14 @@ class FileInfo(object):
         """
 
         return self._path
+        
+
+    def get_stat (self):
+        """
+        returns the stat of this instance
+        """
+
+        return self._stat
         
 
     def get_uid (self):
@@ -154,6 +180,9 @@ class FileInfo(object):
         """
         returns the time attr specified of this instance. Legal choices are
         ['atime', 'mtime', 'ctime']
+
+        :param attr: time attribute to return
+        :type attr: str
         """
 
         if (attr == 'atime'):
@@ -171,12 +200,14 @@ class FileInfo(object):
         returns the result of stat on this file instance
         """
 
-        stat = str ()                                   # initialization
+        # check a race condition -- it might be the case that since the
+        # constructor of this class was invoked, this file dissapeared from the
+        # system
         try:
             stat = str (os.stat (self._path))           # stat the path
 
         except:
-            pass
+            stat = None                                 # no stats
 
         return stat
 
@@ -198,18 +229,20 @@ class FileInfo(object):
             return attr
 
         # access the stat info
-        stat = self.stat ()
+        self._stat = self.stat ()
 
-        # and now update the various fields of this instance
-        self._atime = _insert_ ('atime', ATIMEREGEXP, stat, self._atime)
-        self._mtime = _insert_ ('mtime', MTIMEREGEXP, stat, self._mtime)
-        self._ctime = _insert_ ('ctime', CTIMEREGEXP, stat, self._ctime)
+        if (self._stat):
 
-        # also, update the information on size in case it changed ---note that
-        # current time is used
-        size = extract ('size', SIZEREGEXP, stat)
-        if size not in [isize for itime, isize in self._size]:
-            self._size.append ((time.time (), size))
+            # and now update the various fields of this instance
+            self._atime = _insert_ ('atime', ATIMEREGEXP, self._stat, self._atime)
+            self._mtime = _insert_ ('mtime', MTIMEREGEXP, self._stat, self._mtime)
+            self._ctime = _insert_ ('ctime', CTIMEREGEXP, self._stat, self._ctime)
+
+            # also, update the information on size in case it changed ---note that
+            # current time is used
+            size = extract ('size', SIZEREGEXP, self._stat)
+            if size not in [isize for itime, isize in self._size]:
+                self._size.append ((time.time (), size))
 
 
 # Local Variables:

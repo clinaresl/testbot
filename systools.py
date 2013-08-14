@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 09:26:14 2011 Carlos Linares Lopez>
-# Last update <Friday, 05 July 2013 17:53:18 Carlos Linares Lopez (clinares)>
+# Last update <Tuesday, 23 July 2013 22:09:59 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: systools.py 306 2011-11-11 22:25:37Z clinares                        $
@@ -33,6 +33,8 @@ import time             # time management
 
 import fdtools          # filesystem management
 
+from collections import defaultdict
+
 
 # globals
 # -----------------------------------------------------------------------------
@@ -56,16 +58,42 @@ def rpartition(text, pattern):
         return text[:pos], pattern, text[pos + len(pattern):]
 
 
-def read_processes():
-    for filename in os.listdir("/proc"):
-        if filename.isdigit():
-            pid = int(filename)
-            # Be careful about a race conditions here: The process
-            # may have disappeared after the os.listdir call.
-            try:
-                yield Process(pid)
-            except EnvironmentError:
-                pass
+def read_processes (pgrp):
+    """
+    computes the list of processes whose process group matches the given one or
+    whose parent process id matches the process id of a process under
+    observation. This is necessary to still keep track of those processes that
+    setpgrp () as a mechanism for communicating with its children
+    """
+
+    # compute the list of processes currently running in the system
+    processes = [Process (int (filename)) for filename in os.listdir ("/proc") 
+                 if filename.isdigit ()]
+
+    # initialize a dictionary that maps every pgrp selected to the process ids
+    # that belong to it 
+    pgrps = defaultdict (set)
+    pgrps[pgrp] = set ()        # annotate this pgrp for further tracking
+
+    # now, compute the list of pgrps to watch until a fixpoint is reached
+    sentinel = True
+    while (sentinel):
+
+        sentinel = False
+
+        # and now update the list of pgrps to watch
+        for iprocess in processes:
+            if ((iprocess.pgrp not in pgrps or
+                 iprocess.pid not in pgrps[iprocess.pgrp]) and
+                (iprocess.pgrp in pgrps or
+                 iprocess.ppid in reduce (lambda x,y:x.union (y), pgrps.values ()))):
+
+                sentinel = True
+                pgrps[iprocess.pgrp].add (iprocess.pid)
+
+    # finally, filter the original list of processes and retain only those whose
+    # pgrp has been selected
+    return filter (lambda iprocess:iprocess.pgrp in pgrps, processes)
 
 
 # -----------------------------------------------------------------------------
@@ -94,6 +122,16 @@ class Process(object):
         :param pid: process identifier (PID)
         :type pid: int
         """
+
+        # avoid race conditions by verifying that there is still information
+        # available about this process
+        if (not os.path.exists ("/proc/%d/stat" % pid) or
+            not os.path.exists ("/proc/%d/cmdline" % pid)):
+
+            self.pid = self.ppid = self.pgrp = -1
+            self.cmdline = '<Invalid cmdline>'
+
+            return
 
         stat = open("/proc/%d/stat" % pid).read()
         cmdline = open("/proc/%d/cmdline" % pid).read()
@@ -133,6 +171,15 @@ class Process(object):
         # value (so that consistency can be enforced later) and the list of fds
         # to an empty list
         self.endtime=-1
+
+
+    def __str__ (self):
+        """
+        service for printing this instance
+        """
+
+        return " cmdline: '%s' [pid: %i, ppid: %i, pgrp: %i]" % \
+            (self.cmdline, self.pid, self.ppid, self.pgrp)
 
 
     def __eq__ (self, other):
@@ -222,9 +269,16 @@ class Process(object):
             for ipath in os.listdir (path):
 
                 # and add those that are not present
-                fileInfo = fdtools.FileInfo ("/proc/%d/fd/%s" % (self.pid, ipath))
-                if (fileInfo not in self.fd):
-                    self.fd.append (fileInfo)
+                if os.path.exists ("/proc/%d/fd/%s" % (self.pid, ipath)):
+                    fileInfo = fdtools.FileInfo ("/proc/%d/fd/%s" % (self.pid, ipath))
+
+                    # in case this is a valid FileInfo instance which has not
+                    # been seen before
+                    if (fileInfo.get_stat () and
+                        fileInfo not in self.fd):
+
+                        # then add it to the list of fds of this process
+                        self.fd.append (fileInfo)
 
 
 # -----------------------------------------------------------------------------
@@ -257,8 +311,13 @@ class ProcessGroup(object):
             raise ValueError
 
         # initialize the list of processes with this group process id
-        self.processes = [process for process in read_processes()
-                          if process.pgrp == pgrp]
+        self.processes = read_processes (pgrp)
+        # self.processes = [process for process in read_processes()
+        #                   if process.pgrp == pgrp]
+
+        print "-" * 80
+        for iprocess in self.processes:
+            print " \t ", iprocess
 
 
     def get_processes (self):

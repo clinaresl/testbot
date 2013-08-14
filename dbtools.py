@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <Friday, 05 July 2013 17:57:40 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 24 July 2013 09:25:52 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -208,7 +208,7 @@ class dbtest(sqldb):
 
         if (not self.find ('sys_time')):
             self._cursor.execute ('''CREATE TABLE sys_time
-                                     (id text, tv integer, wctime real, cputime real)''')
+                                     (id text, wctime real, cputime real)''')
         
 
     def create_sysvsize_table (self):
@@ -219,7 +219,7 @@ class dbtest(sqldb):
 
         if (not self.find ('sys_vsize')):
             self._cursor.execute ('''CREATE TABLE sys_vsize
-                                     (id text, tv integer, wctime real, vsize real)''')
+                                     (id text, wctime real, vsize real)''')
         
 
     def create_sysprocs_table (self):
@@ -231,7 +231,7 @@ class dbtest(sqldb):
         # systime
         if (not self.find ('sys_procs')):
             self._cursor.execute ('''CREATE TABLE sys_procs
-                                     (id text, tv integer, wctime real, numprocs integer)''')
+                                     (id text, wctime real, numprocs integer)''')
         
 
     def create_systhreads_table (self):
@@ -243,7 +243,7 @@ class dbtest(sqldb):
         # systime
         if (not self.find ('sys_threads')):
             self._cursor.execute ('''CREATE TABLE sys_threads
-                                     (id text, tv integer, wctime real, numthreads integer)''')
+                                     (id text, wctime real, numthreads integer)''')
         
 
     def create_systimeline_table (self):
@@ -255,7 +255,8 @@ class dbtest(sqldb):
         # systime
         if (not self.find ('sys_timeline')):
             self._cursor.execute ('''CREATE TABLE sys_timeline
-                                     (id text, tv integer, pid integer, cmdline string, start string, end string)''')
+                                     (id text, 
+pid integer, cmdline string, start string, end string)''')
         
 
     def create_sysfd_table (self):
@@ -266,7 +267,7 @@ class dbtest(sqldb):
         # sysfd
         if (not self.find ('sys_fd')):
             self._cursor.execute ('''CREATE TABLE sys_fd
-                                     (id text, tv integer, pid integer, path string, uid string, gid string)''')
+                                     (id text, pid integer, path string, uid string, gid string)''')
         
 
     def create_sysfd_atime_table (self):
@@ -277,7 +278,7 @@ class dbtest(sqldb):
         # sysfd_atime
         if (not self.find ('sys_fd_atime')):
             self._cursor.execute ('''CREATE TABLE sys_fd_atime
-                                     (id text, tv integer, pid integer, path string, atime string)''')
+                                     (id text, pid integer, path string, atime string)''')
         
 
     def create_sysfd_mtime_table (self):
@@ -288,7 +289,7 @@ class dbtest(sqldb):
         # sysfd_mtime
         if (not self.find ('sys_fd_mtime')):
             self._cursor.execute ('''CREATE TABLE sys_fd_mtime
-                                     (id text, tv integer, pid integer, path string, mtime string)''')
+                                     (id text, pid integer, path string, mtime string)''')
         
 
     def create_sysfd_ctime_table (self):
@@ -299,7 +300,7 @@ class dbtest(sqldb):
         # sysfd_ctime
         if (not self.find ('sys_fd_ctime')):
             self._cursor.execute ('''CREATE TABLE sys_fd_ctime
-                                     (id text, tv integer, pid integer, path string, ctime string)''')
+                                     (id text, pid integer, path string, ctime string)''')
         
 
     def create_sysfd_size_table (self):
@@ -311,7 +312,7 @@ class dbtest(sqldb):
         # sysfd_ctime
         if (not self.find ('sys_fd_size')):
             self._cursor.execute ('''CREATE TABLE sys_fd_size
-                                     (id text, tv integer, pid integer, path string, time string, size integer)''')
+                                     (id text, pid integer, path string, time string, size integer)''')
         
 
     def insert_sysdata (self, acronym, values):
@@ -399,9 +400,9 @@ class dbtest(sqldb):
         # initialization
         tablename = DATAPREFIX + despacify (table)
 
-        # first, create the admin table in case it does not exist
+        # first, create the data table in case it does not exist
         if (not self.find (tablename)):
-            command = "CREATE TABLE %s (id text, tv integer, value real)" % tablename
+            command = "CREATE TABLE %s (id text, value real)" % tablename
             self._cursor.execute (command)
         
 
@@ -418,8 +419,7 @@ class dbtest(sqldb):
         # now, just iterate through all data and store all tuples into the table
         for idata in data:
 
-            command = "INSERT INTO %s VALUES (%s, %i, %f)" % (tablename, idata[0], 
-                                                              idata[1], idata[2])
+            command = "INSERT INTO %s VALUES (%s, %f)" % (tablename, idata[0], idata[1])
             self._cursor.execute (command)
             
 

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <Friday, 21 June 2013 15:49:41 Carlos Linares Lopez (clinares)>
+# Last update <Sunday, 04 August 2013 23:39:53 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -30,213 +30,69 @@ __revision__ = '$Revision$'
 import re               # regexp
 
 from collections import defaultdict
-from string import find
-from string import Template
+
+import tbparser         # testbot parser utilities (lex and yacc)
 
 
-# globals
-# -----------------------------------------------------------------------------
-
-# comment lines and blank lines
-COMMENTREGEXP = "[ \t]*#.*"
-BLANKREGEXP = "[ \t]*$"
-
-# enumerates: enumerate sentence, and values of enumerates
-ENUMREGEXP = "enumerate[ \t]*(?P<name>\S+)[ \t]*="
-ENUMREGEXP1 = """(?P<value>"[^"]*")"""
-ENUMREGEXP2 = "(?P<value>'[^']*')"
-ENUMREGEXP3 = "(?P<value>\S+)"
-
-# ranges: range sentence and values
-RANGEREGEXP = "range[ \t]*(?P<name>\S+)[ \t]*="
-RANGEREGEXP1 = "(?P<start>[-+]*\d+):(?P<end>[-+]*\d+)(:(?=(?P<step>[-+]*\d+)))?"
-
-# specification lines: separator between fields, directives and strings
-SPECSEPREGEXP = "\s+"
-DIRECTIVETYPEREGEXP = "^\-+"
-STYPEREGEXP = "(S|s)$"
-
-# fields of the datalines: indexes and strings
-IDXREGEXP = "(?P<index>\d+) "
-SREGEXP = """(?P<value>'[^']*'|"[^"]*"|\S+)"""
-ENUMVAR = "(?P<prefix>\S*)\$(?P<suffix>\S+)"
-
-# functions
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
-# parse_enum
-#
-# parse an enumerate. It returns a list with the strings contained in it
-# -----------------------------------------------------------------------------
-def parse_enum(enumline):
-
+def partition (string, sep="""\"[^\"]+\"|'[^']+'"""):
     """
-    parse an enumerate. It returns a list with the strings contained in it
+    partition the given string according to the given separator (which might be
+    any valid regexp that represents a couple of grouping characters such as the
+    single|double quotes, parenthesis, brackets, etc.)
     """
 
-    # initialization
-    values = []
+    def _split_aux_ (l):
+        """
+        creates a unique list that joins all the lists that result from
+        splitting all the items in l
+        """
 
-    # try the following matches from the most general (quoted strings) to the
-    # least general (strings with no whitespace chars)
-    regexps = [ENUMREGEXP1, ENUMREGEXP2, ENUMREGEXP3]
-    while (enumline):
+        return reduce (lambda x,y:x+y,                  # operation: join
+                       map (lambda x:x.split (),        # operation: split
+                            l))
 
-        for iregex in regexps:
+    def _partition_aux_ (string, groups, rest):
+        """
+        partitions the original string in a list whose items are taken from
+        groups and rest in the same order they appear in string. Whitespaces are
+        automatically removed in all items of the final list. Items in rest are
+        split (using whitespaces) but items in groups are copied as is
+        """
 
-            m = re.match (iregex, enumline)
-            if (m):
-                values.append (m.group ('value'))
-                enumline = enumline[m.end ():].lstrip ()
+        # case bases - one of the lists is empty
+        if not groups:
+            return _split_aux_ (rest)
 
-                break
+        if not rest:
+            return groups
 
-    # and return the list of values computed so far
-    return values
+        # general case - the beginning of the string should match either the
+        # first item in groups or the first item in rest (which are known to contain
+        # items)
+        if re.match (groups[0], string):
+            return ([groups[0]] + 
+                    _partition_aux_ (string[len (groups[0]):], groups[1:], rest))
 
+        if re.match (rest[0], string):
+            return (rest[0].split () +
+                    _partition_aux_ (string[len (rest[0]):], groups, rest[1:]))
 
-# -----------------------------------------------------------------------------
-# parse_range
-#
-# parse a range. It returns a list with the values in the range
-# -----------------------------------------------------------------------------
-def parse_range(rangeline, lineno, filename):
-
-    """
-    parse a range. It returns a list with the values in the range
-    """
-
-    # parses the range limits
-    m = re.match (RANGEREGEXP1, rangeline)
-    if not m:
-        raise SyntaxError ("Wrong range specification, line %i in %s: %s" % 
-                           (lineno, filename, rangeline))
-
-    # compute the limits of the range ---if a step was not given, 1 is assumed
-    # by default
-    (start, end, step) = (int (m.group ('start')), int (m.group ('end')), 1)
-    if (m.group ('step')):
-        step = int (m.group ('step'))
-
-    # check the limits are correct
-    if ((end > start and step < 0) or
-        (end < start and step > 0)):
-        raise SyntaxError ("The specified range diverges, line %i in %s: %s" %
-                           (lineno, filename, rangeline))
-    
-    # and return the values in the range
-    return range (start, end, step)
-
-
-# -----------------------------------------------------------------------------
-# process_specline
-#
-# process the specification line and performs the right substitutions in the
-# dataline without considering variables and return a list of strings with the
-# result of the expansion. lineno and filename are used to label syntax errors
-# in case any is found
-# -----------------------------------------------------------------------------
-def process_specline(specline, dataline, lineno, filename):
-
-    """
-    process the specification line and performs the right substitutions in the
-    dataline without considering variables and return a list of strings with the
-    result of the expansion. lineno and filename are used to label syntax errors
-    in case any is found
-    """
-
-    # initialization
-    cmdline = []                        # no contents in the cmdline yet
-
-    # for every item in the specification line
-    for ispec in specline:
-
-        # if this is a directive, just copy it to all cmdlines
-        if (re.match (DIRECTIVETYPEREGEXP, ispec)):
-
-            cmdline.append (ispec)
-            continue
-
-        # otherwise, if it is not a string, raise a syntax error
-        if (not re.match (STYPEREGEXP, ispec)):
-            raise SyntaxError ("Unknown Type '%s', line %i in %s: %s" % 
-                               (ispec, lineno, filename, dataline))
-
-        # otherwise, retrieve the value from the dataline
-        m = re.match (SREGEXP, dataline)
-        if (not m):
-            raise SyntaxError ("Syntax Error, line %i in %s: %s" % 
-                               (lineno, filename, dataline))
-
-        # and append it to the cmdline
-        cmdline.append (m.group ('value'))
-
-        # and move forward in the data line
-        dataline=dataline[m.end ():].lstrip ()
-
-    # check whether the dataline is not empty
-    if (len (dataline) != 0):
+        # impossible case - paranoid checking
         print """
- Warning - line %i, file %s seems to contain more fields than those appearing in 
-           its specification line""" % (lineno, filename)
-
-    # and now return the cmdline computed so far
-    return cmdline
-
-
-# -----------------------------------------------------------------------------
-# substitute
-#
-# substitute all the placeholders in cmdline (which is a list of strings) by the
-# appropriate values in table
-# -----------------------------------------------------------------------------
-def substitute(cmdline, table):
-
-    """
-    substitute all the placeholders in cmdline (which is a list of strings) by
-    the appropriate values in table
-    """
-
-    # initialization - initially, the result equals the same cmdline
-    result = [cmdline]
-
-    # for every placeholder that ever appears in the current cmdline
-    for ivar in [jvar for jvar in table 
-                 if any ([find (icmd, jvar)>=0 for icmd in cmdline])]:
-
-        # perform the safe substitution of this variable in all strings of every
-        # cmdline
-        result = [[Template.safe_substitute (Template (icmd), {ivar:ivalue}) 
-                   for icmd in icmdline] 
-                  for icmdline in result for ivalue in table [ivar]]
-            
-    # and return the substitution
-    return result
+ Fatal Error in _partition_aux
+ string: %s
+ groups: %s
+ rest: %s""" % (string, groups, rest)
+        raise ValueError
         
 
-# -----------------------------------------------------------------------------
-# expand
-#
-# expand the dataline according to the contents of the given specification line
-# and the values of variables stored in table
-# -----------------------------------------------------------------------------
-def expand(specline, dataline, table, lineno, filename):
+    # split the string in two different parts: groups matching the separators
+    # and the rest
+    groups = re.findall (sep, string)
+    rest   = re.split   (sep, string)
 
-    """
-    expand the dataline according to the contents of the given specification
-    line and the values of variables stored in table
-    """
-
-    # first, process the specification line - this preliminary step returns a
-    # tuple with a list (with the contents of the dataline which are interpreted
-    # according to the specification line) and a list of user-defined variables
-    # appearing in the command line
-    cmdline = process_specline (specline, dataline, lineno, filename)
-    
-    # second, process all placeholders in the cmdline and substitute them
-    # appropriately by the values specified in the symbols table
-    return substitute (cmdline, table)
+    # now, add items from one list and the other in the same order
+    return _partition_aux_ (string, groups, rest)
 
 
 # -----------------------------------------------------------------------------
@@ -279,7 +135,7 @@ class TstIter(object):
 
         if len (self._tstspec._tstdefs):
 
-            if (self._current >= len (self._tstspec._tstdefs)):
+            if self._current >= len (self._tstspec._tstdefs):
                 raise StopIteration
             else:
                 self._current += 1
@@ -306,20 +162,18 @@ class TstCase(object):
 
     def __init__ (self, index, args):
         """
-        initializes the definition of this test case. 'index' is just a string
-        while args shall consist of a list of strings which is interpreted in
-        the same order from left to right
+        initializes the definition of this test case. Both 'index' and 'args'
+        are strings
         """
 
         # while it is absolutely legal to create a test case with no arguments
         # (so that any object of length zero or just None can be given), this is
         # internally represented as a list with the empty string
-        if (not args):
+        if not args:
             args = ['']
 
         # store the index and definition of the test case
         (self._index, self._args) = (index, args)
-
 
     def __str__ (self):
         """
@@ -356,11 +210,11 @@ class TstCase(object):
         returns a list with all the directives included in self._args
         """
 
-        # just look for all the occurrences of strings starting with an
+        # just look for all the (unique) occurrences of strings starting with an
         # arbitrary number of dashes and return a list with them but with dashes
         # removed
-        return map (lambda x:x.lstrip ('-'),
-                    filter (lambda y:re.match ("\-+",y), self._args))
+        return list (set (map (lambda x:x.lstrip ('-'),
+                               filter (lambda y:re.match ("\-+",y), self._args))))
 
 
     def get_value (self, directive):
@@ -442,8 +296,8 @@ class TstCase(object):
 class TstSpec(object):
 
     """
-    this class provides services for accessing and interpreting the
-    contents of test specifications
+    this class provides services for accessing and interpreting the contents of
+    test specifications
     """
 
     def __init__ (self, spec):
@@ -451,87 +305,22 @@ class TstSpec(object):
         decodes the contents of a test specification
         """
 
-        # store the test specification after splitting it by lines
-        self._tstspec = spec.split ('\n')
+        # and now parse the given string
+        p = tbparser.VerbatimTBParser ()
+        p.run (spec)
 
-        # initialize the 'symbols table'
-        self._table = defaultdict (list)
+        # and now, create a TstCase for every command line parsed and qualify
+        # them with a string that consits of three digits
+        self._tstdefs = zip (map (lambda x,y:x%y, 
+                                  ["%03d"] * len (p.cmds),      # identifiers
+                                  range (0, len (p.cmds))),
+                             p.cmds)                            # command lines
 
-        # make the test definitions null
-        self._tstdefs = []
-
-        # decode its contents
-        self._decode (self._tstspec)
-
-
-    def _decode (self, tstspec):
-        """
-        decodes the contents of the given test specification
-        """
-
-        # initialization
-        lineno = 1                      # line number
-        specline = []                   # no specification line has been found yet
-
-        # process separately each line of the test specification
-
-        # for every line not being a comment or blank line
-        for iline in [jline for jline in self._tstspec
-                      if (not re.match (COMMENTREGEXP, jline) and 
-                          not re.match (BLANKREGEXP, jline))]:
-
-            iline = iline.lstrip ()         # remove leading white spaces
-
-            # if this is a spec line, then process its contents
-            if (iline [0] == '@'):
-
-                # get the specification line ---the filter just
-                # removes the empty strings that might appear. The
-                # matching starts at position 2 since after ':'
-                # there should be a blank
-                specline = filter (lambda x:x,
-                                   re.split (SPECSEPREGEXP, iline[2:]))
-                lineno += 1
-                continue
-
-            # is it an enumerate?
-            m = re.match (ENUMREGEXP, iline)
-            if (m):
-                self._table [m.group ('name')] = parse_enum (iline[m.end ():].lstrip ())
-
-                lineno += 1
-                continue
-
-            # is it a range?
-            m = re.match (RANGEREGEXP, iline)
-            if (m):
-                self._table [m.group ('name')] = parse_range (iline[m.end ():].lstrip (),
-                                                              lineno, self._tstspec)
-
-                lineno += 1
-                continue
-
-            # otherwise, this is treated as a data line - note that data
-            # lines can be specified even without spec lines (this is useful
-            # when a solver is invoked without arguments)
-
-            # find the index number first
-            m = re.match (IDXREGEXP, iline)
-
-            # if no index is found, raise a syntax error
-            if (not m):
-                raise SyntaxError ("Index not found in line %i file %s: %s" %
-                                   (lineno, self._tstspec, iline))
-
-            index = m.group ('index')
-
-            # expand the current specification line with the contents of
-            # this data line
-            self._tstdefs += [TstCase (index, icase)
-                              for icase in expand (specline, iline[m.end ():].lstrip (),
-                                                   self._table, lineno, self._tstspec)]
-
-            lineno += 1                             # and move forward
+        # create a TstCase with the information stored in every tuple
+        # ---implemented in a different line to avoid getting a very confusing
+        # one
+        self._tstdefs = [TstCase (identifier, partition (cmdline))      # TstCase
+                         for identifier, cmdline in self._tstdefs]
 
 
     def __len__ (self):
