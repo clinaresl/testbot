@@ -1,0 +1,71 @@
+# admin tables including 'admin', 'test', 'time' and 'version' are
+# created systematically
+
+# sys tables to be processed in the main loop
+
+# number of processes indexed by the wall-clock time
+sys_procs {
+      id text :id None;
+      wctime real :wctime;
+      numprocs integer :numprocs Error;
+}
+
+# number of threads indexed by the wall-clock time
+sys_threads {
+      id text :id;
+      wctime real :wctime;
+      numthreads integer :numthreads Error;
+}
+
+# cpu time indexed by the wall-clock time
+sys_time {
+      id text :id;
+      wctime real :wctime Error;
+      cputime real :cputime Error;
+}
+
+# memory usage indexed by the wall-clock time
+sys_vsize {
+      id text :id;
+      wctime real :wctime Error;
+      vsize real :vsize Error;
+}
+
+# sys tables to be processed after the main loop
+
+# return code
+sys_status {
+      id text :id;
+      status integer :status Warning;
+}
+
+# timeline of processes
+sys_timeline {
+      id text :id;
+      pid integer :pid;
+      cmdline text :cmdline "<Unknown>";
+      start text :start Error;
+      end text :end Error;
+      elapsed_time integer :elapsed_time;
+}
+
+# data tables
+
+# number of expansions of eIDA*
+data_expansions_eida {
+      id text :id;
+      value integer ?"expansions eIDA" Warning;
+}
+
+# number of expansions of IDA*
+data_expansions_ida {
+      id text :id;
+      value integer ?'expansions IDA' Warning;
+}
+
+# heuristic value of the start state
+data_h {
+      id text :id;
+      value integer ?h Warning;
+      solution text <"/home/clinares/lab/ipc2011-data/plansoln/plan.soln";
+}

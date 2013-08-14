@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 11:54:22 2011 Carlos Linares Lopez>
-# Last update <Friday, 14 June 2013 17:01:20 Carlos Linares Lopez (clinares)>
+# Last update <Sunday, 11 August 2013 18:32:43 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: timetools.py 306 2011-11-11 22:25:37Z clinares                       $

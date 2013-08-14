@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Aug  2 09:16:49 2013 Carlos Linares Lopez>
-# Last update <Friday, 02 August 2013 17:47:47 Carlos Linares Lopez (clinares)>
+# Last update <Sunday, 11 August 2013 18:31:38 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -92,8 +92,8 @@ class TBParser :
         self.symbols = {}
 
         # Build the lexer and parser
-        lex.lex(module=self)
-        yacc.yacc(module=self)
+        self._lexer = lex.lex(module=self)
+        self._parser = yacc.yacc(module=self)
 
 
     # lex rules
@@ -295,7 +295,7 @@ class TBParser :
     # Error rule for syntax errors
     def p_error(self, p):
         print "Syntax error in input!"
-    
+
 
 # -----------------------------------------------------------------------------
 # VerbatimTBParser
@@ -313,7 +313,7 @@ class VerbatimTBParser (TBParser):
         """
 
         self.cmds = []                       # initialization
-        yacc.parse(data)
+        self._parser.parse(data, lexer=self._lexer)
 
 
 # -----------------------------------------------------------------------------
@@ -339,7 +339,7 @@ class InteractiveTBParser (TBParser):
             except EOFError:
                 break
             if not s: continue
-            print yacc.parse(s)
+            print self._parser.parse(s, lexer=self._lexer)
 
 
 # -----------------------------------------------------------------------------
@@ -359,7 +359,7 @@ class FileTBParser (TBParser):
 
         self.cmds = []                       # initialization
         with open (filename) as f:
-            yacc.parse (f.read ())
+            self._parser.parse(f.read (), lexer=self._lexer)
 
 
 # Local Variables:

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <Sunday, 04 August 2013 23:56:03 Carlos Linares Lopez (clinares)>
+# Last update <Sunday, 11 August 2013 18:31:08 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -307,7 +307,7 @@ class TstSpec(object):
         decodes the contents of a test specification
         """
 
-        # and now parse the given string
+        # parse the given string
         p = tbparser.VerbatimTBParser ()
         p.run (spec)
 
@@ -379,7 +379,6 @@ class TstFile(TstSpec):
         decodes the contents of a test specification file
         """
 
-        # store the test specification after splitting it by lines
         with open (filename) as stream:
 
             # simply invoke the constructor of the base class with the contents

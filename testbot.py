@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Wednesday, 07 August 2013 16:52:34 Carlos Linares Lopez (clinares)>
+# Last update <Sunday, 11 August 2013 18:38:07 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -48,7 +48,9 @@ import time             # time mgmt
 from collections import defaultdict # finally, a smart way to handle dicts!
 from string import Template     # to use placeholders in the logfile
 
-import dbtools          # sqlite3 database access
+import dbparser         # db parser specification
+import dbtools          # database access & management
+import sqltools         # sqlite3 database access
 import systools         # IPC process management
 import timetools        # IPC timing management
 import tsttools         # test specifications
@@ -95,9 +97,13 @@ def create_parser ():
                             required=True,
                             help="sets the solver to use for solving all cases. It is possible to provide as many as desired")
     mandatory.add_argument ('-f', '--test',
-                            dest='file',                            
+                            dest='tests',                            
                             required=True,
                             help="specification of the test cases")
+    mandatory.add_argument ('-D', '--db',
+                            dest='db',                            
+                            required=True,
+                            help="specification of the database tables with the information to record")
     mandatory.add_argument ('-t', '--time',
                             required=True,
                             type=int,
@@ -139,6 +145,10 @@ def create_parser ():
                        dest='parse_tests',
                        action='store_true',
                        help="processes the test file, shows the resulting definitions and exits")
+    misc.add_argument ('-b', '--parse-db',
+                       dest='parse_db',
+                       action='store_true',
+                       help="processes the database specification file, shows the resulting definitions and exits")
     misc.add_argument ('-q', '--quiet',
                        action='store_true',
                        help="suppress headers")
@@ -714,7 +724,7 @@ def insert_version_data (progname, version, revision, date, databasename):
     logger.debug (" Writing version data into '%s'" % dbfilename, extra=LOGDICT)
 
     # connect to the sql database
-    db = dbtools.dbtest (dbfilename)
+    db = sqltools.dbtest (dbfilename)
 
     # create the version table
     db.create_version_table ()
@@ -745,7 +755,7 @@ def insert_sys_data (D, databasename):
     logger.debug (" Writing sys data into '%s'" % dbfilename, extra=LOGDICT)
 
     # connect to the sql database
-    db = dbtools.dbtest (dbfilename)
+    db = sqltools.dbtest (dbfilename)
 
     # create all the sys tables
     db.create_systime_table ()
@@ -783,7 +793,7 @@ def insert_admin_data (filename, solver,
     logger.debug (" Writing admin data into '%s'" % dbfilename, extra=LOGDICT)
 
     # connect to the sql database
-    db = dbtools.dbtest (dbfilename)
+    db = sqltools.dbtest (dbfilename)
 
     # create the admin table
     db.create_admin_table ()
@@ -814,7 +824,7 @@ def insert_time_data (starttime, endtime, databasename):
     logger.debug (" Writing time data into '%s'" % dbfilename, extra=LOGDICT)
 
     # connect to the sql database
-    db = dbtools.dbtest (dbfilename)
+    db = sqltools.dbtest (dbfilename)
 
     # create the time table
     db.create_time_table ()
@@ -848,7 +858,7 @@ def insert_test_data (filename, databasename):
     logger.debug (" Writing test data into '%s'" % dbfilename, extra=LOGDICT)
 
     # connect to the sql database
-    db = dbtools.dbtest (dbfilename)
+    db = sqltools.dbtest (dbfilename)
 
     # create the time table
     db.create_test_table ()
@@ -883,7 +893,7 @@ def insert_data (D, databasename):
     logger.info (" Writing data into '%s'" % dbfilename, extra=LOGDICT)
 
     # connect to the sql database
-    db = dbtools.dbtest (dbfilename)
+    db = sqltools.dbtest (dbfilename)
 
     # now, create the tables and populate them with data unless the name starts
     # with an underscore which means that it is not 'data'
@@ -1036,15 +1046,26 @@ if __name__ == '__main__':
     # convert the memory (currently in Gigabytes) to bytes
     ARGS.memory *= 1024**3
 
-    # if the user has just requested to parse the test cases and to show the
-    # output
-    if (ARGS.parse_tests):
+    # in case the user has requested just to parse and show the result of
+    # processing either the test specification file or the db specification file
+    if (ARGS.parse_tests or ARGS.parse_db):
 
-        print tsttools.TstFile (ARGS.file)
+        if (ARGS.parse_tests):
+            print
+            print " Contents of the test specification file:"
+            print " ----------------------------------------"
+            print tsttools.TstFile (ARGS.tests)
+
+        if (ARGS.parse_db):
+            print
+            print " Contents of the database specification file:"
+            print " --------------------------------------------"
+            print dbtools.DBFile (ARGS.db)
+
         exit ()
 
     # Now, enclose all the process in a with statement and launch a dispatcher
-    DISPATCHER = Dispatcher (ARGS.solver, ARGS.file, 
+    DISPATCHER = Dispatcher (ARGS.solver, ARGS.tests, 
                              ARGS.check, ARGS.time, ARGS.memory,
                              ARGS.directory, ARGS.output, ARGS.logfile, 
                              ARGS.level, ARGS.quiet)
