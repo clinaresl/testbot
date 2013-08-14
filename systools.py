@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 09:26:14 2011 Carlos Linares Lopez>
-# Last update <Tuesday, 06 August 2013 23:48:13 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 07 August 2013 16:34:18 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: systools.py 306 2011-11-11 22:25:37Z clinares                        $
@@ -29,6 +29,7 @@ __revision__ = '$Revision: 306 $'
 # -----------------------------------------------------------------------------
 import datetime         # date/time
 import os               # process handling
+import signal           # os signals
 import time             # time management
 
 from collections import defaultdict
@@ -472,19 +473,52 @@ class ProcessTimeline(object):
     def terminate (self):
         """
         close the current timeline by setting the current time as the end time
-        of all its processes with unknown end time and kill all the process that
-        are alive. A better estimate of the end time can be obtained by looking
-        in the final report at the cputime consumed by every process
+        of all its processes with unknown end time and kill all the processes
+        that are alive. A better estimate of the end time can be obtained by
+        looking in the final report at the cputime consumed by every process
         """
+
+        def _kill_ (pid):
+            """
+            Tries various forms to kill the process identified by its pid. In
+            case it fails, it raises an exception
+            """
+
+            # check whether the process is still running
+            if os.path.exists ("/proc/%d" % pid):
+
+                # killing a process is done nicely, by sending first a SIGTERM, then
+                # SIGKILL
+                try:
+                    os.kill (pid, signal.SIGTERM)
+                except:
+                    try:
+                        os.kill (pid, signal.SIGKILL)
+                    except:
+                        raise Exception ("""
+ ---------------------------------------------------
+  Fatal Error - Wasn't able to kill process [%i]
+ ---------------------------------------------------
+""" % pid)
 
         # first, take the curren time - this is just an estimation of the end
         # time of the processes. Its accuracy depends on the number of times
         # that the services of this class are invoked
         currtime = time.time ()
 
-        # and now set the end time of those processes to the current time
+        # and now set the end time of all process with unknown end time to the
+        # current time
         for iproc in [jproc for jproc in self.processes if jproc.get_end_time () < 0]:
+            _kill_ (iproc.pid)
             iproc.set_end_time (currtime)
+
+
+    def pids(self):
+        """
+        returns the process identifier of all processes in this timeline
+        """
+
+        return [p.pid for p in self.processes]
 
 
     def total_time(self):

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Tuesday, 06 August 2013 23:42:19 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 07 August 2013 16:19:52 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -39,7 +39,6 @@ import pickle           # serialization
 import re               # matching regex
 import resource         # process resources
 import shutil           # copy files and directories
-import signal           # process management
 import socket           # gethostname
 import stat             # stat constants
 import subprocess       # subprocess management
@@ -344,22 +343,6 @@ def fetch (logdir):
 
 
 # -----------------------------------------------------------------------------
-# kill_pgrp
-#
-# sends the signal sig to the process group pgrp
-# -----------------------------------------------------------------------------
-def kill_pgrp(pgrp, sig):
-    """
-    sends the signal sig to the process group pgrp
-    """
-
-    try:
-        os.killpg(pgrp, sig)
-    except OSError:
-        pass
-
-
-# -----------------------------------------------------------------------------
 # process_results
 #
 # process the contents of the results file indicated which resides in the given
@@ -553,8 +536,6 @@ def run (solver, resultsdir, index, spec, T, output, stats,
     computational resources 'timeout' and 'memory'
     """
 
-    memory = 10
-
     def update_stats (index, data, key, stats):
         """
         update stats with the information in data. The result is a list of lists
@@ -570,10 +551,6 @@ def run (solver, resultsdir, index, spec, T, output, stats,
 
     # Initialization
     total_vsize = 0
-
-    # change cwd
-    cwd = os.getcwd ()
-    os.chdir (os.path.dirname (solver))
 
     # create a timer
     runtimer = timetools.Timer ()
@@ -593,9 +570,19 @@ def run (solver, resultsdir, index, spec, T, output, stats,
                                    0666))
 
         # create the child and record its process identifier
-        child = subprocess.Popen ([solver] + spec, 
-                                  stdout = fdlog,
-                                  stderr = fderr)
+        try:
+            child = subprocess.Popen ([solver] + spec, 
+                                      stdout = fdlog,
+                                      stderr = fderr,
+                                      cwd=os.path.dirname (solver))
+        except OSError:
+            logger.critical (" OSError raised when invoking the subprocess")
+            raise OSError
+
+        except ValueError:
+            logger.critical (" Popen was invoked with invalid arguments")
+            raise ValueError
+
         child_pid = child.pid
 
         # initialization
@@ -619,17 +606,17 @@ def run (solver, resultsdir, index, spec, T, output, stats,
             time1 = datetime.datetime.now ()    # time after sleeping
             real_time = (time1-time0).total_seconds ()  # compute wall clock time accurately
 
+            # Generate the children information before the waitpid call to avoid a
+            # race condition. This way, we know that the child_pid is a descendant.
+            (pid, status) = os.waitpid (child_pid, os.WNOHANG)
+            if ((pid, status) != (0, 0)):
+                break
+
             # get some stats such as total cpu time, memory, ...
-            # total_time = group.total_time()
             total_time = timeline.total_time()
             total_vsize = timeline.total_vsize()
             num_processes = timeline.total_processes ()
             num_threads = timeline.total_threads ()
-
-            # Generate the children information before the waitpid call to avoid a
-            # race condition. This way, we know that the child_pid is a descendant.
-            if (os.waitpid(child_pid, os.WNOHANG) != (0, 0)):
-                break
 
             # store this information in the stats - note the leading
             # underscore. It means that this should not be treated as ordinary
@@ -652,22 +639,21 @@ def run (solver, resultsdir, index, spec, T, output, stats,
             
             if try_term and not term_attempted:
                 logger.debug (""" aborting children with SIGTERM ...
- children found: %s""" % group.pids (), extra=LOGDICT)
-                kill_pgrp(child_pid, signal.SIGTERM)
+ children found: %s""" % timeline.pids (), extra=LOGDICT)
                 timeline.terminate ()
                 term_attempted = True
             elif term_attempted and try_kill:
                 logger.debug (""" aborting children with SIGKILL ...
- children found: %s""" % group.pids (), extra=LOGDICT)
-                kill_pgrp(child_pid, signal.SIGKILL)
+ children found: %s""" % timeline.pids (), extra=LOGDICT)
                 timeline.terminate ()
+
+        print status
 
         # Even if we got here, there may be orphaned children or something we
         # may have missed due to a race condition. Check for that and kill
         # properly for good measure. 
         logger.debug (""" aborting children with SIGKILL for the last time ...
- children found: %s""" % group.pids (), extra=LOGDICT)
-        kill_pgrp(child_pid, signal.SIGKILL)
+ children found: %s""" % timeline.pids (), extra=LOGDICT)
         timeline.terminate ()
 
         # add the timeline of this execution to the stats - note the leading
@@ -675,22 +661,18 @@ def run (solver, resultsdir, index, spec, T, output, stats,
         # and it is considered to be system data instead
         update_stats (index, timeline.get_processes (), '_systimeline', stats)
 
-        # process the contents of the log files generated in the directory where
-        # the solver resides
-        process_results (os.path.dirname (solver), output + ".log", index, stats)
+        # process the contents of the log files generated
+        process_results (os.getcwd (), output + ".log", index, stats)
 
         # once it has been processed move the .log and .err files to the results
         # directory
         for ilogfile in ['.log', '.err']:
-            shutil.move (os.path.join (os.path.dirname (solver), output + ilogfile), 
+            shutil.move (os.path.join (os.getcwd (), output + ilogfile), 
                          resultsdir)
         
         # close the log and error file descriptors
         os.close (fdlog)
         os.close (fderr)
-
-        # finally, return to the previous directory
-        os.chdir (cwd)
 
 
 # -----------------------------------------------------------------------------
