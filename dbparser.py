@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <Monday, 12 August 2013 00:27:22 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 10:56:33 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -60,6 +60,46 @@ class DBColumn:
         
         return "\t [identifier: %s] [type: %s] [vartype: %s] [variable: %s] [action: %s]" % \
             (self._identifier, self._type, self._vartype, self._variable, self._action)
+
+
+    def get_identifier (self):
+        """
+        return the identifier of this column
+        """
+
+        return self._identifier
+
+
+    def get_type (self):
+        """
+        return the type of this column
+        """
+
+        return self._type
+
+
+    def get_vartype (self):
+        """
+        return the type of variable of this column
+        """
+
+        return self._vartype
+
+
+    def get_variable (self):
+        """
+        return the variable of this column
+        """
+
+        return self._variable
+
+
+    def get_action (self):
+        """
+        return the action of this column
+        """
+
+        return self._action
 
 
 # -----------------------------------------------------------------------------
@@ -123,6 +163,14 @@ class DBTable:
         (self._name, self._columns) = (name, columns)
 
 
+    def __iter__ (self):
+        """
+        return an iterator over the columns defined in this database
+        """
+
+        return DBTableIter (self)
+
+
     def __str__ (self):
         """
         output formatting
@@ -135,6 +183,111 @@ class DBTable:
         return """ %s {
 %s
  }""" % (self._name, columns)
+
+
+    def get_name (self):
+        """
+        return the name of this database table
+        """
+
+        return self._name
+
+
+    def sysp (self):
+        """
+        returns True if this is a sys table
+        """
+
+        return self._name[0:4] == 'sys_'
+
+
+    def datap (self):
+        """
+        returns True if this is a data table
+        """
+
+        return self._name[0:4] == 'data_'
+
+
+    def execute_action (self, column):
+        """
+        executes the action associated to the given column
+        """
+
+        # value to return
+        value = None
+
+        # execute the action specified for this column
+        if column.get_action () == 'Warning':
+            print " The variable '%s' was not available!" % column.get_variable ()
+        elif column.get_action () == 'Error':
+            print " The variable '%s' was not available!" % column.get_variable ()
+            raise ValueError
+        elif column.get_action () != 'None':
+            return column.get_action ()
+
+        # by default, return nothing
+        return None
+
+
+    def poll (self, D):
+        """
+        returns a tuple of values according to the definition of
+        columns of this table and the values specified in D. In case
+        the value requested for a particular column is not found, the
+        specified action is executed.
+        """
+
+        def _neutral (ctype):
+            """
+            returns the neutral element of the given column type:
+            text, integer or real
+            """
+
+            if ctype == 'text': return ''
+            elif ctype == 'integer': return 0
+            elif ctype == 'real': return 0.0
+            else: 
+                print " Unknown type '%s'" % ctype
+                raise TypeError
+
+
+        def _cast_value (ctype, cvalue):
+            """
+            converts the given value to the specified column type
+            """
+
+            if ctype == 'text': return str (cvalue)
+            elif ctype == 'integer': return int (cvalue)
+            elif ctype == 'real': return float (cvalue)
+            else:
+                print " Unknown type '%s'" % ctype
+                raise TypeError
+
+
+        # initialization 
+        t=()
+
+        # for all columns in this table
+        for icolumn in self._columns:
+
+            # in case the variable requested for this column is not
+            # available, ...
+            if icolumn.get_variable () not in D:
+
+                # then execute the specified action
+                value = self.execute_action (icolumn)
+
+                # and include the pertinent value
+                if value: t += (value,)
+                else: t+=(_neutral (icolumn.get_type ()),)
+
+            # otherwise
+            else:
+                t += (_cast_value (icolumn.get_type (), D[icolumn.get_variable ()]),)
+                
+        # and finally return the tuple
+        return t
         
 
 # -----------------------------------------------------------------------------

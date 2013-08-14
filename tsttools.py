@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <Sunday, 11 August 2013 18:31:08 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 10:51:21 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -324,6 +324,14 @@ class TstSpec(object):
         # where groups (embraced by single|double quotes) are preserved
         self._tstdefs = [TstCase (identifier, partition (cmdline))      # TstCase
                          for identifier, cmdline in self._tstdefs]
+
+
+    def __iter__ (self):
+        """
+        return an iterator over the test cases defined in this specification
+        """
+
+        return TstIter (self)
 
 
     def __len__ (self):

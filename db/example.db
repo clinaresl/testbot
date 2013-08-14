@@ -6,28 +6,28 @@
 
 # number of processes indexed by the wall-clock time
 sys_procs {
-      id text :id None;
+      id text :index None;
       wctime real :wctime;
       numprocs integer :numprocs Error;
 }
 
 # number of threads indexed by the wall-clock time
 sys_threads {
-      id text :id;
+      id text :index;
       wctime real :wctime;
       numthreads integer :numthreads Error;
 }
 
-# cpu time indexed by the wall-clock time
+# cpu time indexed by wall-clock time
 sys_time {
-      id text :id;
+      id text :index Error;
       wctime real :wctime Error;
       cputime real :cputime Error;
 }
 
 # memory usage indexed by the wall-clock time
 sys_vsize {
-      id text :id;
+      id text :index Error;
       wctime real :wctime Error;
       vsize real :vsize Error;
 }
@@ -37,19 +37,19 @@ sys_vsize {
 
 # number of expansions of eIDA*
 data_expansions_eida {
-      id text :id;
+      id text :index;
       value integer ?"expansions eIDA" Warning;
 }
 
 # number of expansions of IDA*
 data_expansions_ida {
-      id text :id;
+      id text :index;
       value integer ?'expansions IDA' Warning;
 }
 
 # heuristic value of the start state
 data_h {
-      id text :id;
+      id text :index;
       value integer ?h Warning;
       solution text <"/home/clinares/lab/ipc2011-data/plansoln/plan.soln";
 }

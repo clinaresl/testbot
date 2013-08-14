@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <Monday, 12 August 2013 00:44:31 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 10:49:19 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -106,6 +106,15 @@ class DBSpec(object):
 
         # and copy all tables
         self._tables = p._tables
+
+
+    def __iter__ (self):
+        """
+        return an iterator over the tables defined for this database
+        specification
+        """
+
+        return DBIter (self)
 
     
     def __len__ (self):

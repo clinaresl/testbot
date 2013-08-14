@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Monday, 12 August 2013 15:41:42 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 10:55:53 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -30,16 +30,12 @@ __date__     = '$Date:$'
 # -----------------------------------------------------------------------------
 import argparse         # parser for command-line options
 import datetime         # date/time
-import getopt           # variable-length params
 import getpass          # getuser
 import logging          # loggers
 import os               # path and process management
-import pickle           # serialization
 import re               # matching regex
-import resource         # process resources
 import shutil           # copy files and directories
 import socket           # gethostname
-import stat             # stat constants
 import subprocess       # subprocess management
 import sys              # argv, exit
 import time             # time mgmt
@@ -462,19 +458,21 @@ def setup (solvername, directory):
 # test
 #
 # invokes the execution of the given solver *in the same directory where it
-# resides* for solving all cases specified in 'cases' using the specified
+# resides* for solving all cases specified in 'tstspec' using the specified
 # computational resources. The results are stored in 'resultsdir'; the solver is
 # sampled every 'check' seconds and the different stats are stored in
-# 'stats'. Output files are named after 'output'
+# 'stats'. Output files are named after 'output' and 'dbspec' contains the
+# database specification used to store sys and data information
 # -----------------------------------------------------------------------------
-def test (solver, cases, resultsdir, check, stats, output,
+def test (solver, tstspec, dbspec, resultsdir, check, stats, output,
           timeout=1800, memory=6442450944):
     """
     invokes the execution of the given solver *in the same directory where it
-    resides* for solving all cases specified in 'cases' using the specified
-    computational resources. The results are stored in 'resultsdir'; the solver is
-    sampled every 'check' seconds and the different stats are stored in
-    'stats'. Output files are named after 'output'
+    resides* for solving all cases specified in 'tstspec' using the specified
+    computational resources. The results are stored in 'resultsdir'; the solver
+    is sampled every 'check' seconds and the different stats are stored in
+    'stats'. Output files are named after 'output' and 'dbspec' contains the
+    database specification used to store sys and data information
     """
 
     def _sub (string, D):
@@ -494,7 +492,7 @@ def test (solver, cases, resultsdir, check, stats, output,
     logger = logging.getLogger ("testbot::test")
 
     # now, for each test case
-    for itst in tsttools.TstIter (tsttools.TstFile (cases)):
+    for itst in tstspec:
 
         # initialize the dictionary with the value of the placeholders
         placeholders = {'index'   : itst.get_id (),
@@ -505,13 +503,19 @@ def test (solver, cases, resultsdir, check, stats, output,
         # and now, add the values of all the directives in this testcase
         placeholders.update (itst.get_values ())
 
+        # and also with the position of every argument (so that $1 can be
+        # interpreted as the first parameter, $2 as the second, and so on)
+        # ---note that these numerical indices are casted to strings for the
+        # convenience of other functions
+        placeholders.update (dict (zip([str(i) for i in range(0,len(itst.get_args ()))], 
+                                       itst.get_args ())))
+
         # finally, invoke the execution of this test case
         logger.info ('\t%s' % itst, extra=LOGDICT)
 
         run (os.path.abspath (solver), resultsdir, 
-             itst.get_id (), itst.get_args (), 
-             0, 
-             _sub (output, placeholders),
+             itst.get_id (), itst.get_args (), dbspec, 
+             _sub (output, placeholders), placeholders,
              stats, check, timeout, memory)
 
 
@@ -525,20 +529,24 @@ def test (solver, cases, resultsdir, check, stats, output,
 # of the solver in files named after output (plus .log or .err) which are then
 # moved to the specified results directory. The forked process is pinged every
 # 'check' seconds and it is launched with computational resources 'timeout' and
-# 'memory'
+# 'memory'. 'dbspec' contains the database specification used to store sys and
+# data information where placeholders contain specify the variable substitutions
+# to be performed
 # -----------------------------------------------------------------------------
-def run (solver, resultsdir, index, spec, T, output, stats,
+def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
          check=5, timeout=1800, memory=6442450944):
 
     """
-    executes the specified 'solver' *in the same directory where it resides*
-    (this is fairly convenient in case the solver needs additional input files
-    which are then extracted from a directory relative to the current location)
-    for solving the particular test case (qualified by index). It copies the
-    stdout and stderr of the solver in files named after output (plus .log or
-    .err) which are then moved to the specified results directory. The forked
-    process is pinged every 'check' seconds and it is launched with
-    computational resources 'timeout' and 'memory'
+    executes the specified 'solver' *in the same directory where it resides* (this
+    is fairly convenient in case the solver needs additional input files which are
+    then extracted from a directory relative to the current location) for solving
+    the particular test case (qualified by index). It copies the stdout and stderr
+    of the solver in files named after output (plus .log or .err) which are then
+    moved to the specified results directory. The forked process is pinged every
+    'check' seconds and it is launched with computational resources 'timeout' and
+    'memory'. 'dbspec' contains the database specification used to store sys and
+    data information where placeholders contain specify the variable substitutions
+    to be performed
     """
 
     def update_stats (index, data, key, stats):
@@ -623,13 +631,24 @@ def run (solver, resultsdir, index, spec, T, output, stats,
             num_processes = timeline.total_processes ()
             num_threads = timeline.total_threads ()
 
+            placeholders ['cputime'] = timeline.total_time ()
+            placeholders ['wctime'] = real_time
+            placeholders ['vsize'] = timeline.total_vsize ()
+            placeholders ['numprocs'] = timeline.total_processes ()
+            placeholders ['numthreads'] = timeline.total_threads ()
+
             # store this information in the stats - note the leading
             # underscore. It means that this should not be treated as ordinary
             # data and it is considered to be system data instead
-            stats ['_systime'].append ((index, real_time, total_time))
-            stats ['_sysvsize'].append ((index, real_time, total_vsize))
-            stats ['_sysprocs'].append ((index, real_time, num_processes))
-            stats ['_systhreads'].append ((index, real_time, num_threads))
+            # stats ['sys_time'].append ((index, real_time, total_time))
+            # stats ['sys_vsize'].append ((index, real_time, total_vsize))
+            # stats ['sys_procs'].append ((index, real_time, num_processes))
+            # stats ['sys_threads'].append ((index, real_time, num_threads))
+
+            # poll all sys tables
+            for itable in dbspec:
+                if itable.sysp ():
+                    stats [itable.get_name ()].append (itable.poll (placeholders))
 
             # update the maximum memory usage
             max_mem = max (max_mem, total_vsize)
@@ -653,7 +672,7 @@ def run (solver, resultsdir, index, spec, T, output, stats,
                 timeline.terminate ()
 
         # record the exit status of this process
-        stats ['_sysstatus'].append ((index, status))
+        stats ['sys_status'].append ((index, status))
 
         # Even if we got here, there may be orphaned children or something we
         # may have missed due to a race condition. Check for that and kill
@@ -665,7 +684,7 @@ def run (solver, resultsdir, index, spec, T, output, stats,
         # add the timeline of this execution to the stats - note the leading
         # underscore. It means that this should not be treated as ordinary data
         # and it is considered to be system data instead
-        update_stats (index, timeline.get_processes (), '_systimeline', stats)
+        update_stats (index, timeline.get_processes (), 'sys_timeline', stats)
 
         # process the contents of the log files generated
         process_results (os.getcwd (), output + ".log", index, stats)
@@ -686,7 +705,7 @@ def run (solver, resultsdir, index, spec, T, output, stats,
 #
 # wrapup all the execution performing the last operations
 # -----------------------------------------------------------------------------
-def wrapup (solver, tests, db, configdir):
+def wrapup (solver, tstfile, dbfile, configdir):
 
     """
     wrapup all the execution performing the last operations
@@ -696,12 +715,12 @@ def wrapup (solver, tests, db, configdir):
     logger = logging.getLogger ("testbot::wrapup")
 
     # copy the file with all the tests cases to the config dir
-    shutil.copy (tests,
-                 os.path.join (configdir, os.path.basename (tests)))
+    shutil.copy (tstfile,
+                 os.path.join (configdir, os.path.basename (tstfile)))
 
     # and also the file with the database specification to the config dir
-    shutil.copy (db,
-                 os.path.join (configdir, os.path.basename (db)))
+    shutil.copy (dbfile,
+                 os.path.join (configdir, os.path.basename (dbfile)))
 
 
 # -----------------------------------------------------------------------------
@@ -709,7 +728,7 @@ def wrapup (solver, tests, db, configdir):
 #
 # saves the specified params into the given database
 # -----------------------------------------------------------------------------
-def insert_admin_params (solver, tests, dbname, 
+def insert_admin_params (solver, tstfile, dbfile, 
                          check, time, memory, databasename):
 
     """
@@ -730,7 +749,7 @@ def insert_admin_params (solver, tests, dbname,
     db.create_admin_params_table ()
 
     # now, store all the admin data
-    db.insert_admin_params (solver, tests, dbname, check, time, memory)
+    db.insert_admin_params (solver, tstfile, dbfile, check, time, memory)
 
     # close and exit
     db.close ()
@@ -782,7 +801,7 @@ def insert_test_data (tstspec, databasename):
     logger = logging.getLogger ("testbot::insert_test_data")
 
     # retrieve the test cases
-    cases = tsttools.TstFile (tstspec).get_defs ()
+    cases = tstspec.get_defs ()
 
     # compute the filename
     dbfilename = databasename + '.db'
@@ -920,8 +939,8 @@ def insert_data (D, databasename):
     db = sqltools.dbtest (dbfilename)
 
     # now, create the tables and populate them with data unless the name starts
-    # with an underscore which means that it is not 'data'
-    for ivar in [jvar for jvar in D if jvar[0] != '_']:
+    # with '_sys'
+    for ivar in [jvar for jvar in D if jvar[0:4] != 'sys_']:
 
         # create this data table
         db.create_data_table (ivar)
@@ -962,7 +981,7 @@ def insert_sys_data (D, databasename):
 
     # and now, insert their contents into the database
     for isys in ['time', 'vsize', 'procs', 'threads']:
-        db.insert_sysdata (isys, D['_sys' + isys])
+        db.insert_sysdata (isys, D['sys_' + isys])
 
     # close and exit
     db.close ()
@@ -981,18 +1000,18 @@ class Dispatcher (object):
     """
 
     # Default constructor
-    def __init__ (self, solver, tstspec, dbspec, check, time, memory, 
+    def __init__ (self, solver, tstfile, dbfile, check, time, memory, 
                   directory, output, logfile, level, quiet):
         """
         Explicit constructor
         """
         
         # copy the attributes
-        (self._solver, self._tstspec, self._dbspec, self._check, 
+        (self._solver, self._tstfile, self._dbfile, self._check, 
          self._time, self._memory, self._directory, 
          self._output, self._logfile, self._level,
          self._quiet) = \
-         (solver, tstspec, dbspec, check, 
+         (solver, tstfile, dbfile, check, 
           time, memory, directory, 
           output, logfile, level, 
           quiet)
@@ -1013,8 +1032,12 @@ class Dispatcher (object):
             self._logstream = create_logger (None, self._level)
 
         # before proceeding, check that all parameters are correct
-        check_flags (self._solver, self._tstspec, self._dbspec, self._check, 
+        check_flags (self._solver, self._tstfile, self._dbfile, self._check, 
                      self._directory, self._time, self._memory)
+
+        # and now, create the test case and database specifications
+        self._tstspec = tsttools.TstFile (self._tstfile)
+        self._dbspec  = dbtools.DBFile (self._dbfile)
 
 
     # The following method sets up the environment for automating the experiments
@@ -1033,7 +1056,7 @@ class Dispatcher (object):
             version (log=True)
 
             # show the current params
-            show_switches (self._solver, self._tstspec, self._dbspec, 
+            show_switches (self._solver, self._tstfile, self._dbfile, 
                            self._check, self._directory, self._time, self._memory)
 
         # finally, run the experiments going solver by solver
@@ -1058,7 +1081,7 @@ class Dispatcher (object):
             self._starttime = datetime.datetime.now ()
 
             # now, invoke the execution of all tests with this solver
-            test (isolver, self._tstspec, resultsdir, 
+            test (isolver, self._tstspec, self._dbspec, resultsdir, 
                   self._check, istats, self._output,
                   self._time, self._memory)
 
@@ -1066,21 +1089,21 @@ class Dispatcher (object):
             self._endtime = datetime.datetime.now ()
 
             # and wrapup
-            wrapup (isolver, self._tstspec, self._dbspec, configdir)
+            wrapup (isolver, self._tstfile, self._dbfile, configdir)
 
             # finally, write down all the information to a sqlite3 db
 
             # admin data
-            insert_admin_params (isolver, self._tstspec, self._dbspec, 
+            insert_admin_params (isolver, self._tstfile, self._dbfile, 
                                self._check, self._time, self._memory,
                                os.path.join (self._directory, solvername, solvername))
-            insert_status_data (istats['_sysstatus'], 
+            insert_status_data (istats['sys_status'], 
                                   os.path.join (self._directory, solvername, solvername))
             insert_test_data (self._tstspec, 
                               os.path.join (self._directory, solvername, solvername))
             insert_time_data (self._starttime, self._endtime,
                               os.path.join (self._directory, solvername, solvername))
-            insert_timeline_data (istats['_systimeline'], 
+            insert_timeline_data (istats['sys_timeline'], 
                                   os.path.join (self._directory, solvername, solvername))
             insert_version_data (PROGRAM_NAME, __version__, __revision__[1:-1], __date__[1:-1],
                                  os.path.join (self._directory, solvername, solvername))
