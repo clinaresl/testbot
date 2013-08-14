@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Monday, 12 August 2013 01:34:44 Carlos Linares Lopez (clinares)>
+# Last update <Monday, 12 August 2013 15:41:42 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -30,7 +30,6 @@ __date__     = '$Date:$'
 # -----------------------------------------------------------------------------
 import argparse         # parser for command-line options
 import datetime         # date/time
-import fnmatch          # filename matching
 import getopt           # variable-length params
 import getpass          # getuser
 import logging          # loggers
@@ -196,7 +195,7 @@ class ShowPlaceHolders (argparse.Action):
 #
 # show a somehow beautified view of the current params
 # -----------------------------------------------------------------------------
-def show_switches (solver, filename, check, directory, time, memory):
+def show_switches (solver, tstspec, dbspec, check, directory, time, memory):
 
     """
     show a somehow beautified view of the current params
@@ -212,13 +211,14 @@ def show_switches (solver, filename, check, directory, time, memory):
 -----------------------------------------------------------------------------
  * Solver               : %s
  * Tests                : %s
+ * Database             : %s
 
  * Check flag           : %i seconds
 
  * Directory            : %s
  * Time limit           : %i seconds
  * Memory bound         : %i bytes
------------------------------------------------------------------------------\n""" % (solvernames, filename, check, directory, time, memory), extra=LOGDICT)
+-----------------------------------------------------------------------------\n""" % (solvernames, tstspec, dbspec, check, directory, time, memory), extra=LOGDICT)
 
 
 # -----------------------------------------------------------------------------
@@ -226,7 +226,7 @@ def show_switches (solver, filename, check, directory, time, memory):
 #
 # check the parameters provided by the user
 # -----------------------------------------------------------------------------
-def check_flags (solver, filename, check, directory, timeout, memory):
+def check_flags (solver, tstspec, dbspec, check, directory, timeout, memory):
 
     """
     check the parameters provided by the user
@@ -249,10 +249,19 @@ def check_flags (solver, filename, check, directory, timeout, memory):
             raise ValueError
 
     # verify also that the test cases are accessible as well
-    if (filename and (not os.access (filename, os.F_OK) or 
-                      not os.access (os.path.dirname (filename), os.R_OK))):
+    if (tstspec and (not os.access (tstspec, os.F_OK) or 
+                      not os.access (os.path.dirname (tstspec), os.R_OK))):
         print """
- The file specified with the cases does not exist or it resides in an unreachable location
+ The test cases specification does not exist or it resides in an unreachable location
+ Type '%s --help' for more information
+""" % PROGRAM_NAME
+        raise ValueError
+
+    # and also the database specification
+    if (dbspec and (not os.access (dbspec, os.F_OK) or 
+                    not os.access (os.path.dirname (dbspec), os.R_OK))):
+        print """
+ The database specification does not exist or it resides in an unreachable location
  Type '%s --help' for more information
 """ % PROGRAM_NAME
         raise ValueError
@@ -763,7 +772,7 @@ def insert_status_data (status, databasename):
 #
 # saves the specified tests data into the tests table
 # -----------------------------------------------------------------------------
-def insert_test_data (filename, databasename):
+def insert_test_data (tstspec, databasename):
 
     """
     saves the specified tests data into the tests table
@@ -773,7 +782,7 @@ def insert_test_data (filename, databasename):
     logger = logging.getLogger ("testbot::insert_test_data")
 
     # retrieve the test cases
-    cases = tsttools.TstFile (filename).get_defs ()
+    cases = tsttools.TstFile (tstspec).get_defs ()
 
     # compute the filename
     dbfilename = databasename + '.db'
@@ -972,18 +981,18 @@ class Dispatcher (object):
     """
 
     # Default constructor
-    def __init__ (self, solver, filename, dbspec, check, time, memory, 
+    def __init__ (self, solver, tstspec, dbspec, check, time, memory, 
                   directory, output, logfile, level, quiet):
         """
         Explicit constructor
         """
         
         # copy the attributes
-        (self._solver, self._filename, self._dbspec, self._check, 
+        (self._solver, self._tstspec, self._dbspec, self._check, 
          self._time, self._memory, self._directory, 
          self._output, self._logfile, self._level,
          self._quiet) = \
-         (solver, filename, dbspec, check, 
+         (solver, tstspec, dbspec, check, 
           time, memory, directory, 
           output, logfile, level, 
           quiet)
@@ -1004,7 +1013,7 @@ class Dispatcher (object):
             self._logstream = create_logger (None, self._level)
 
         # before proceeding, check that all parameters are correct
-        check_flags (self._solver, self._filename, self._check, 
+        check_flags (self._solver, self._tstspec, self._dbspec, self._check, 
                      self._directory, self._time, self._memory)
 
 
@@ -1024,7 +1033,7 @@ class Dispatcher (object):
             version (log=True)
 
             # show the current params
-            show_switches (self._solver, self._filename, 
+            show_switches (self._solver, self._tstspec, self._dbspec, 
                            self._check, self._directory, self._time, self._memory)
 
         # finally, run the experiments going solver by solver
@@ -1049,7 +1058,7 @@ class Dispatcher (object):
             self._starttime = datetime.datetime.now ()
 
             # now, invoke the execution of all tests with this solver
-            test (isolver, self._filename, resultsdir, 
+            test (isolver, self._tstspec, resultsdir, 
                   self._check, istats, self._output,
                   self._time, self._memory)
 
@@ -1057,17 +1066,17 @@ class Dispatcher (object):
             self._endtime = datetime.datetime.now ()
 
             # and wrapup
-            wrapup (isolver, self._filename, self._dbspec, configdir)
+            wrapup (isolver, self._tstspec, self._dbspec, configdir)
 
             # finally, write down all the information to a sqlite3 db
 
             # admin data
-            insert_admin_params (isolver, self._filename, self._dbspec, 
+            insert_admin_params (isolver, self._tstspec, self._dbspec, 
                                self._check, self._time, self._memory,
                                os.path.join (self._directory, solvername, solvername))
             insert_status_data (istats['_sysstatus'], 
                                   os.path.join (self._directory, solvername, solvername))
-            insert_test_data (self._filename, 
+            insert_test_data (self._tstspec, 
                               os.path.join (self._directory, solvername, solvername))
             insert_time_data (self._starttime, self._endtime,
                               os.path.join (self._directory, solvername, solvername))
