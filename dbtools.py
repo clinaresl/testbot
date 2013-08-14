@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <Wednesday, 14 August 2013 10:49:19 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 12:57:22 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -106,6 +106,16 @@ class DBSpec(object):
 
         # and copy all tables
         self._tables = p._tables
+
+
+    def __iadd__ (self, itable):
+        """
+        adds a new table to this specification
+        """
+
+        self._tables.append (itable)
+
+        return self
 
 
     def __iter__ (self):

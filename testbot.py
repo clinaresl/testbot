@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Wednesday, 14 August 2013 12:48:19 Carlos Linares Lopez (clinares)>
+# Last update <Wednesday, 14 August 2013 14:44:33 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -561,16 +561,6 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
     to be performed
     """
 
-    def update_stats (index, data, key, stats):
-        """
-        update stats with the information in data. The result is a list of lists
-        which are all preceded by index
-        """
-
-        stats[key] += (map (lambda x,y:tuple (x+y),
-                            [[index]]*len (data), data))
-        
-
     # logger settings
     logger = logging.getLogger ("testbot::run")
 
@@ -649,14 +639,6 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
             placeholders ['numprocs'] = timeline.total_processes ()
             placeholders ['numthreads'] = timeline.total_threads ()
 
-            # store this information in the stats - note the leading
-            # underscore. It means that this should not be treated as ordinary
-            # data and it is considered to be system data instead
-            # stats ['sys_time'].append ((index, real_time, total_time))
-            # stats ['sys_vsize'].append ((index, real_time, total_vsize))
-            # stats ['sys_procs'].append ((index, real_time, num_processes))
-            # stats ['sys_threads'].append ((index, real_time, num_threads))
-
             # poll all sys tables
             for itable in dbspec:
                 if itable.sysp ():
@@ -684,7 +666,7 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
                 timeline.terminate ()
 
         # record the exit status of this process
-        stats ['sys_status'].append ((index, status))
+        stats ['admin_status'].append ((index, status))
 
         # Even if we got here, there may be orphaned children or something we
         # may have missed due to a race condition. Check for that and kill
@@ -693,10 +675,10 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
  children found: %s""" % timeline.pids (), extra=LOGDICT)
         timeline.terminate ()
 
-        # add the timeline of this execution to the stats - note the leading
-        # underscore. It means that this should not be treated as ordinary data
-        # and it is considered to be system data instead
-        update_stats (index, timeline.get_processes (), 'sys_timeline', stats)
+        # add the timeline of this execution to the stats
+        stats ['admin_timeline'] += (map (lambda x,y:tuple (x+y), 
+                                          [[index]]*len (timeline.get_processes ()), 
+                                          timeline.get_processes ()))
 
         # process the contents of the log files generated
         process_results (os.getcwd (), output + ".log", dbspec, placeholders, stats)
@@ -769,196 +751,6 @@ def insert_data (databasename, dbtable, data):
 
 
 # -----------------------------------------------------------------------------
-# insert_admin_params
-#
-# saves the specified params into the given database
-# -----------------------------------------------------------------------------
-def insert_admin_params (solver, tstfile, dbfile, 
-                         check, time, memory, databasename):
-
-    """
-    saves the specified admin data into the given database
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_admin_params")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing params into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create the admin table
-    db.create_admin_params_table ()
-
-    # now, store all the admin data
-    db.insert_admin_params (solver, tstfile, dbfile, check, time, memory)
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
-# insert_status_data
-#
-# saves the return code of every test case into the given database
-# -----------------------------------------------------------------------------
-def insert_status_data (status, databasename):
-
-    """
-    saves the return code of every test case into the given database
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_status_data")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing status into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create the version table
-    db.create_admin_status_table ()
-
-    # now, store all the timeline
-    db.insert_admin_status (status)
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
-# insert_test_data
-#
-# saves the specified tests data into the tests table
-# -----------------------------------------------------------------------------
-def insert_test_data (tstspec, databasename):
-
-    """
-    saves the specified tests data into the tests table
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_test_data")
-
-    # retrieve the test cases
-    cases = tstspec.get_defs ()
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing test data into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create the time table
-    db.create_admin_test_table ()
-
-    # now, store all the test data
-    db.insert_admin_test (cases)
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
-# insert_time_data
-#
-# saves the specified time data into the time table
-# -----------------------------------------------------------------------------
-def insert_time_data (starttime, endtime, databasename):
-
-    """
-    saves the specified time data into the time table
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_time_data")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing time data into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create the time table
-    db.create_admin_time_table ()
-
-    # now, store all the admin data
-    db.insert_admin_time (starttime, endtime)
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
-# insert_timeline_data
-#
-# saves the timeline computed in the execution into the given database
-# -----------------------------------------------------------------------------
-def insert_timeline_data (timeline, databasename):
-
-    """
-    saves the timeline computed in the execution into the given database
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_timeline_data")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing timeline into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create the version table
-    db.create_admin_timeline_table ()
-
-    # now, store all the timeline
-    db.insert_admin_timeline (timeline)
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
-# insert_version_data
-#
-# saves the specified version data into the given database
-# -----------------------------------------------------------------------------
-def insert_version_data (progname, version, revision, date, databasename):
-
-    """
-    saves the specified version data into the given database
-    """
-
-    # logger settings
-    logger = logging.getLogger ("testbot::insert_version_data")
-
-    # compute the filename
-    dbfilename = databasename + '.db'
-    logger.debug (" Writing version data into '%s'" % dbfilename, extra=LOGDICT)
-
-    # connect to the sql database
-    db = sqltools.dbtest (dbfilename)
-
-    # create the version table
-    db.create_admin_version_table ()
-
-    # now, store all the version data
-    db.insert_admin_version (progname, version, revision, date)
-
-    # close and exit
-    db.close ()
-
-
-# -----------------------------------------------------------------------------
 # Dispatcher
 #
 # this class creates a dispatcher for automating the experiments. Besides, it
@@ -1011,6 +803,68 @@ class Dispatcher (object):
         self._dbspec  = dbtools.DBFile (self._dbfile)
 
 
+    # The execution of every solver (with all test cases) shall generate a
+    # number of admin tables. These are created by hand in the following method
+    def create_admin_tables (self):
+        """
+        The execution of every solver (with all test cases) shall generate a
+        number of admin tables. These are created by hand in the following method
+        """
+
+        self._dbspec += dbparser.DBTable ("admin_params",
+                                          [dbparser.DBColumn ('solver', 'text', 'ADMINVAR', 
+                                                              'solver', 'None'),
+                                           dbparser.DBColumn ('tests', 'text', 'ADMINVAR', 
+                                                              'tstfile', 'None'),
+                                           dbparser.DBColumn ('db', 'text', 'ADMINVAR', 
+                                                              'dbfile', 'None'),
+                                           dbparser.DBColumn ('delay', 'integer', 'ADMINVAR', 
+                                                              'check', 'None'),
+                                           dbparser.DBColumn ('time', 'integer', 'ADMINVAR', 
+                                                              'time', 'None'),
+                                           dbparser.DBColumn ('memory', 'integer', 'ADMINVAR', 
+                                                              'memory', 'None')])
+        self._dbspec += dbparser.DBTable ("admin_tests",
+                                          [dbparser.DBColumn ('id', 'text', 'ADMINVAR', 
+                                                              'index', 'None'),
+                                           dbparser.DBColumn ('args', 'text', 'ADMINVAR', 
+                                                              'args', 'None')])
+        self._dbspec += dbparser.DBTable ("admin_time",
+                                          [dbparser.DBColumn ('starttime', 'text', 'ADMINVAR', 
+                                                              'starttime', 'None'),
+                                           dbparser.DBColumn ('endtime', 'text', 'ADMINVAR', 
+                                                              'endtime', 'None'),
+                                           dbparser.DBColumn ('elapsedseconds', 'real', 'ADMINVAR', 
+                                                              'elapsed', 'None')])
+        self._dbspec += dbparser.DBTable ("admin_timeline",
+                                          [dbparser.DBColumn ('id', 'integer', 'ADMINVAR', 
+                                                              'index', 'None'),
+                                           dbparser.DBColumn ('pid', 'integer', 'ADMINVAR', 
+                                                              'pid', 'None'),
+                                           dbparser.DBColumn ('cmdline', 'text', 'ADMINVAR', 
+                                                              'cmdline', 'None'),
+                                           dbparser.DBColumn ('starttime', 'text', 'ADMINVAR', 
+                                                              'starttime', 'None'),
+                                           dbparser.DBColumn ('endtime', 'text', 'ADMINVAR', 
+                                                              'endtime', 'None'),
+                                           dbparser.DBColumn ('elapsedseconds', 'real', 'ADMINVAR', 
+                                                              'elapsedseconds', 'None')])
+        self._dbspec += dbparser.DBTable ("admin_version",
+                                          [dbparser.DBColumn ('program', 'text', 'ADMINVAR', 
+                                                              'program', 'None'),
+                                           dbparser.DBColumn ('version', 'text', 'ADMINVAR', 
+                                                              'version', 'None'),
+                                           dbparser.DBColumn ('revision', 'text', 'ADMINVAR', 
+                                                              'revision', 'None'),
+                                           dbparser.DBColumn ('date', 'text', 'ADMINVAR', 
+                                                              'revdate', 'None')])
+        self._dbspec += dbparser.DBTable ("admin_status",
+                                          [dbparser.DBColumn ('id', 'text', 'ADMINVAR', 
+                                                              'index', 'None'),
+                                           dbparser.DBColumn ('status', 'integer', 'ADMINVAR', 
+                                                              'status', 'None')])
+        
+        
     # The following method sets up the environment for automating the experiments
     def tester (self):
         """
@@ -1067,21 +921,21 @@ class Dispatcher (object):
             logger.info (" Writing data into '%s.db'" % databasename, 
                          extra=LOGDICT)
 
-            # admin data
-            insert_admin_params (isolver, self._tstfile, self._dbfile, 
-                               self._check, self._time, self._memory,
-                               os.path.join (self._directory, solvername, solvername))
-            insert_status_data (istats['sys_status'], 
-                                  os.path.join (self._directory, solvername, solvername))
-            insert_test_data (self._tstspec, 
-                              os.path.join (self._directory, solvername, solvername))
-            insert_time_data (self._starttime, self._endtime,
-                              os.path.join (self._directory, solvername, solvername))
-            insert_timeline_data (istats['sys_timeline'], 
-                                  os.path.join (self._directory, solvername, solvername))
-            insert_version_data (PROGRAM_NAME, __version__, __revision__[1:-1], __date__[1:-1],
-                                 os.path.join (self._directory, solvername, solvername))
-            
+            # admin tables are not populated using the poll method in every
+            # dbtable. Instead, their contents are inserted manually in either
+            # "run" or here
+            istats ['admin_params'] = [(isolver, self._tstfile, self._dbfile, self._check, self._time, self._memory)]
+            istats ['admin_tests'] = self._tstspec.get_defs ()
+            istats ['admin_time'] = [(self._starttime, self._endtime, 
+                                      (self._endtime - self._starttime).total_seconds ())]
+            istats ['admin_version'] = [(PROGRAM_NAME, __version__, __revision__[1:-1], __date__ [1:-1])]
+
+            # now, create and populate all the admin datatables
+            self.create_admin_tables ()
+            for itable in self._dbspec:
+                if not itable.datap () and not itable.sysp ():
+                    insert_data (databasename, itable, istats[itable.get_name ()])
+
             # user data and sys data
             for itable in self._dbspec:
                 if itable.datap () or itable.sysp ():

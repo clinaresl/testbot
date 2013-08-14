@@ -1,4 +1,4 @@
-# admin tables including 'admin', 'test', 'time', 'timeline', 'status'
+# admin tables including 'admin', 'tests', 'time', 'timeline', 'status'
 # and 'version' are created systematically
 
 # sys tables to be processed in the main loop. They all have to start
