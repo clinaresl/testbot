@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <Wednesday, 14 August 2013 14:44:33 Carlos Linares Lopez (clinares)>
+# Last update <martes, 10 diciembre 2013 23:37:03 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -29,6 +29,7 @@ __date__     = '$Date:$'
 # imports
 # -----------------------------------------------------------------------------
 import argparse         # parser for command-line options
+import bz2              # bzip2 compression service
 import datetime         # date/time
 import getpass          # getuser
 import logging          # loggers
@@ -118,6 +119,9 @@ def create_parser ():
     optional.add_argument ('-d', '--directory',
                            default=os.getcwd (),
                            help="directory where the results of the tests are stored. By default, the current working directory. Relative directories are rooted in the current working directory")
+    optional.add_argument ('-B','--bzip2',
+                           action='store_true',
+                           help="if enabled, the (standard and error) output are compressed using bzip2 and the suffix 'bzip2' is appended")
 
     # Group of logging services
     logging = parser.add_argument_group ('Logging', 'The following arguments specify various logging settings')
@@ -477,7 +481,7 @@ def setup (solvername, directory):
 # database specification used to store sys and data information
 # -----------------------------------------------------------------------------
 def test (solver, tstspec, dbspec, resultsdir, check, stats, output,
-          timeout=1800, memory=6442450944):
+          timeout=1800, memory=6442450944, bzip2=False):
     """
     invokes the execution of the given solver *in the same directory where it
     resides* for solving all cases specified in 'tstspec' using the specified
@@ -499,6 +503,7 @@ def test (solver, tstspec, dbspec, resultsdir, check, stats, output,
         for (ire, isub) in D.items ():                  # for all keys
             result = re.sub ('\$'+ire, isub, result)    # substitute
         return result                                   # and return
+
 
     # logger settings
     logger = logging.getLogger ("testbot::test")
@@ -525,10 +530,12 @@ def test (solver, tstspec, dbspec, resultsdir, check, stats, output,
         # finally, invoke the execution of this test case
         logger.info ('\t%s' % itst, extra=LOGDICT)
 
+        outputprefix = _sub (output, placeholders)
+
         run (os.path.abspath (solver), resultsdir, 
              itst.get_id (), itst.get_args (), dbspec, 
-             _sub (output, placeholders), placeholders,
-             stats, check, timeout, memory)
+             outputprefix, placeholders,
+             stats, check, timeout, memory, bzip2)
 
 
 # -----------------------------------------------------------------------------
@@ -546,7 +553,7 @@ def test (solver, tstspec, dbspec, resultsdir, check, stats, output,
 # to be performed
 # -----------------------------------------------------------------------------
 def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
-         check=5, timeout=1800, memory=6442450944):
+         check=5, timeout=1800, memory=6442450944, bzip2=False):
 
     """
     executes the specified 'solver' *in the same directory where it resides* (this
@@ -560,6 +567,22 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
     data information where placeholders contain specify the variable substitutions
     to be performed
     """
+
+    def _bzip2 (filename):
+        """
+        compress the contents of the given filename replacing its contents
+        """
+
+        # first, compress the contents of the file (currently done in one shot!
+        # which might be inefficient if the file is indeed very large)
+        with open (filename) as stream:
+            bzdata = bz2.compress (stream.read ())
+
+        # second, replace the contents of the original file with the compressed
+        # data
+        with open (filename, 'w') as stream:
+            stream.write (bzdata)
+
 
     # logger settings
     logger = logging.getLogger ("testbot::run")
@@ -671,8 +694,8 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
         # Even if we got here, there may be orphaned children or something we
         # may have missed due to a race condition. Check for that and kill
         # properly for good measure. 
-        logger.debug (""" aborting children with SIGKILL for the last time ...
- children found: %s""" % timeline.pids (), extra=LOGDICT)
+        logger.debug (""" [Sanity check] aborting children with SIGKILL for the last time ...
+ [Sanity check] children found: %s""" % timeline.pids (), extra=LOGDICT)
         timeline.terminate ()
 
         # add the timeline of this execution to the stats
@@ -686,8 +709,33 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
         # once it has been processed move the .log and .err files to the results
         # directory
         for ilogfile in ['.log', '.err']:
-            shutil.move (os.path.join (os.getcwd (), output + ilogfile), 
-                         resultsdir)
+
+            # compute the input filename
+            ifilename = os.path.join (os.getcwd (), output + ilogfile)
+
+            # first, if compression was explicitly requested, then proceed to
+            # compress data
+            if (bzip2):
+                logger.debug (" Compressing the contents of file '%s'" % ifilename, 
+                              extra = LOGDICT)
+
+                _bzip2 (ifilename)
+
+                # and now move it to its target location with the suffix 'bzip2'
+                logger.debug (" Moving '%s' to '%s'" % (ifilename, 
+                                                        os.path.join (resultsdir, 
+                                                                      output + ilogfile + '.bzip2')), 
+                              extra = LOGDICT)
+
+                shutil.move (ifilename,
+                             os.path.join (resultsdir, output + ilogfile + '.bzip2'))
+
+            # if compression was not requested
+            else:
+
+                # just move the file to its target location
+                shutil.move (os.path.join (os.getcwd (), output + ilogfile), 
+                             resultsdir)
         
         # close the log and error file descriptors
         os.close (fdlog)
@@ -764,7 +812,7 @@ class Dispatcher (object):
 
     # Default constructor
     def __init__ (self, solver, tstfile, dbfile, check, time, memory, 
-                  directory, output, logfile, level, quiet):
+                  directory, output, logfile, bzip2, level, quiet):
         """
         Explicit constructor
         """
@@ -772,12 +820,12 @@ class Dispatcher (object):
         # copy the attributes
         (self._solver, self._tstfile, self._dbfile, self._check, 
          self._time, self._memory, self._directory, 
-         self._output, self._logfile, self._level,
-         self._quiet) = \
+         self._output, self._logfile, self._bzip2,
+         self._level, self._quiet) = \
          (solver, tstfile, dbfile, check, 
           time, memory, directory, 
-          output, logfile, level, 
-          quiet)
+          output, logfile, bzip2,
+          level, quiet)
 
 
     # Execute the following body when entering the dispatcher
@@ -908,7 +956,7 @@ class Dispatcher (object):
             # now, invoke the execution of all tests with this solver
             test (isolver, self._tstspec, self._dbspec, resultsdir, 
                   self._check, istats, self._output,
-                  self._time, self._memory)
+                  self._time, self._memory, self._bzip2)
 
             # record the end time of this solver
             self._endtime = datetime.datetime.now ()
@@ -987,7 +1035,7 @@ if __name__ == '__main__':
     DISPATCHER = Dispatcher (ARGS.solver, ARGS.tests, ARGS.db,
                              ARGS.check, ARGS.time, ARGS.memory,
                              ARGS.directory, ARGS.output, ARGS.logfile, 
-                             ARGS.level, ARGS.quiet)
+                             ARGS.bzip2, ARGS.level, ARGS.quiet)
     with DISPATCHER:
             
         # and request automating all the experiments
