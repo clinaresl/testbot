@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <martes, 10 diciembre 2013 23:37:03 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 11 diciembre 2013 16:31:40 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -91,11 +91,11 @@ def create_parser ():
                             required=True,
                             help="sets the solver to use for solving all cases. It is possible to provide as many as desired")
     mandatory.add_argument ('-f', '--test',
-                            dest='tests',                            
+                            dest='tests',
                             required=True,
                             help="specification of the test cases")
     mandatory.add_argument ('-D', '--db',
-                            dest='db',                            
+                            dest='db',
                             required=True,
                             help="specification of the database tables with the information to record")
     mandatory.add_argument ('-t', '--time',
@@ -119,9 +119,9 @@ def create_parser ():
     optional.add_argument ('-d', '--directory',
                            default=os.getcwd (),
                            help="directory where the results of the tests are stored. By default, the current working directory. Relative directories are rooted in the current working directory")
-    optional.add_argument ('-B','--bzip2',
+    optional.add_argument ('-B','--bz2',
                            action='store_true',
-                           help="if enabled, the (standard and error) output are compressed using bzip2 and the suffix 'bzip2' is appended")
+                           help="if enabled, the (standard and error) output are compressed using bz2 and the suffix 'bz2' is appended")
 
     # Group of logging services
     logging = parser.add_argument_group ('Logging', 'The following arguments specify various logging settings')
@@ -174,7 +174,7 @@ class ShowPlaceHolders (argparse.Action):
         print """
  placeholder   description
  %s+%s""" % ('-'*12, '-'*65)
-        
+
         print """ $name       | name of the solver
  $index      | index of the current test case (defined in the test file)
  $date       | current date
@@ -182,20 +182,20 @@ class ShowPlaceHolders (argparse.Action):
 
         print """ %s+%s
  Also, every directive specified in the tests file can be used as a placeholder
- For example, if '--argument value' is used in the test file then 
+ For example, if '--argument value' is used in the test file then
  'argument' can be used in '--output' to include its 'value' in the output file
 """ % ('-'*12, '-'*65)
 
         # and finally exit
         sys.exit (0)
-        
+
 
 # -----------------------------------------------------------------------------
 # show_switches
 #
 # show a somehow beautified view of the current params
 # -----------------------------------------------------------------------------
-def show_switches (solver, tstspec, dbspec, check, directory, time, memory):
+def show_switches (solver, tstspec, dbspec, check, directory, time, memory, compress):
 
     """
     show a somehow beautified view of the current params
@@ -216,9 +216,10 @@ def show_switches (solver, tstspec, dbspec, check, directory, time, memory):
  * Check flag           : %i seconds
 
  * Directory            : %s
+ * Compression          : %s
  * Time limit           : %i seconds
  * Memory bound         : %i bytes
------------------------------------------------------------------------------\n""" % (solvernames, tstspec, dbspec, check, directory, time, memory), extra=LOGDICT)
+-----------------------------------------------------------------------------\n""" % (solvernames, tstspec, dbspec, check, directory, {False: 'disabled', True: 'enabled'}[compress], time, memory), extra=LOGDICT)
 
 
 # -----------------------------------------------------------------------------
@@ -240,7 +241,7 @@ def check_flags (solver, tstspec, dbspec, check, directory, timeout, memory):
     # verify that all solvers are accessible
     for isolver in solver:
 
-        if (not os.access (isolver, os.F_OK) or 
+        if (not os.access (isolver, os.F_OK) or
             not os.access (os.path.dirname (isolver), os.X_OK)):
             print """
  The solver '%s' does not exist or it resides in an unreachable location
@@ -249,7 +250,7 @@ def check_flags (solver, tstspec, dbspec, check, directory, timeout, memory):
             raise ValueError
 
     # verify also that the test cases are accessible as well
-    if (tstspec and (not os.access (tstspec, os.F_OK) or 
+    if (tstspec and (not os.access (tstspec, os.F_OK) or
                       not os.access (os.path.dirname (tstspec), os.R_OK))):
         print """
  The test cases specification does not exist or it resides in an unreachable location
@@ -258,7 +259,7 @@ def check_flags (solver, tstspec, dbspec, check, directory, timeout, memory):
         raise ValueError
 
     # and also the database specification
-    if (dbspec and (not os.access (dbspec, os.F_OK) or 
+    if (dbspec and (not os.access (dbspec, os.F_OK) or
                     not os.access (os.path.dirname (dbspec), os.R_OK))):
         print """
  The database specification does not exist or it resides in an unreachable location
@@ -268,7 +269,7 @@ def check_flags (solver, tstspec, dbspec, check, directory, timeout, memory):
 
     # verify that check is not negative
     if (check < 0):
-        logger.critical (" The check flag should be either zero or positive", 
+        logger.critical (" The check flag should be either zero or positive",
                          extra=LOGDICT)
 
     # finally, verify the time and memory bounds
@@ -295,7 +296,7 @@ def version (log=False):
     if (log):
 
         logger = logging.getLogger ("testbot::version")
-        logger.info ("\n %s\n %s\n %s %s\n" % (__revision__[1:-2], __date__[1:-2], PROGRAM_NAME, __version__), 
+        logger.info ("\n %s\n %s\n %s %s\n" % (__revision__[1:-2], __date__[1:-2], PROGRAM_NAME, __version__),
                      extra=LOGDICT)
 
     else:
@@ -319,7 +320,7 @@ def create_logger (logfile, level):
     opens a file in write mode in the current working directory in
     case a logfile is given. If not, it creates a basic
     logger. Messages above the given level are issued.
-    
+
     it returns the name of the logfile recording all logrecords. If
     none has been created it returns the empty string
     """
@@ -327,11 +328,11 @@ def create_logger (logfile, level):
     # create the log file either as a file stream or to the stdout
     if (logfile):
 
-        logging.basicConfig (filename=logfile, filemode = 'w', level=level, 
-                             format="[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s") 
+        logging.basicConfig (filename=logfile, filemode = 'w', level=level,
+                             format="[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s")
 
     else:
-        logging.basicConfig (level=level, 
+        logging.basicConfig (level=level,
                              format="[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s")
 
     # and return the logfilename
@@ -412,7 +413,7 @@ def process_results (directory, resultsfile, dbspec, placeholders, stats):
 # cases. It returns: the target directory where all output should be written;
 # the directory where the results should be copied; the config dir where
 # additional information (such as the test cases) should be written and the
-# logdirectory where the logs should be stored. 
+# logdirectory where the logs should be stored.
 # -----------------------------------------------------------------------------
 def setup (solvername, directory):
     """
@@ -438,7 +439,7 @@ def setup (solvername, directory):
     # logger settings
     logger = logging.getLogger ("testbot::setup")
 
-    # compute the target directory 
+    # compute the target directory
     targetdir = os.path.join (directory, solvername)
 
     # the given directory should exist at this time, but not its
@@ -452,7 +453,7 @@ def setup (solvername, directory):
 
     # create the target directory
     os.mkdir (targetdir)
-    
+
     # create another subdir to store the results. Note that the absolute path is
     # computed. Passing the absolute path to the results dir prevents a number
     # of errors
@@ -481,7 +482,7 @@ def setup (solvername, directory):
 # database specification used to store sys and data information
 # -----------------------------------------------------------------------------
 def test (solver, tstspec, dbspec, resultsdir, check, stats, output,
-          timeout=1800, memory=6442450944, bzip2=False):
+          timeout=1800, memory=6442450944, compress=False):
     """
     invokes the execution of the given solver *in the same directory where it
     resides* for solving all cases specified in 'tstspec' using the specified
@@ -524,7 +525,7 @@ def test (solver, tstspec, dbspec, resultsdir, check, stats, output,
         # interpreted as the first parameter, $2 as the second, and so on)
         # ---note that these numerical indices are casted to strings for the
         # convenience of other functions
-        placeholders.update (dict (zip([str(i) for i in range(0,len(itst.get_args ()))], 
+        placeholders.update (dict (zip([str(i) for i in range(0,len(itst.get_args ()))],
                                        itst.get_args ())))
 
         # finally, invoke the execution of this test case
@@ -532,10 +533,10 @@ def test (solver, tstspec, dbspec, resultsdir, check, stats, output,
 
         outputprefix = _sub (output, placeholders)
 
-        run (os.path.abspath (solver), resultsdir, 
-             itst.get_id (), itst.get_args (), dbspec, 
+        run (os.path.abspath (solver), resultsdir,
+             itst.get_id (), itst.get_args (), dbspec,
              outputprefix, placeholders,
-             stats, check, timeout, memory, bzip2)
+             stats, check, timeout, memory, compress)
 
 
 # -----------------------------------------------------------------------------
@@ -553,7 +554,7 @@ def test (solver, tstspec, dbspec, resultsdir, check, stats, output,
 # to be performed
 # -----------------------------------------------------------------------------
 def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
-         check=5, timeout=1800, memory=6442450944, bzip2=False):
+         check=5, timeout=1800, memory=6442450944, compress=False):
 
     """
     executes the specified 'solver' *in the same directory where it resides* (this
@@ -568,20 +569,25 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
     to be performed
     """
 
-    def _bzip2 (filename):
+    def _bz2 (filename, remove=False):
         """
-        compress the contents of the given filename replacing its contents
+        compress the contents of the given filename and writes the results to a
+        file with the same name + '.bz2'. If remove is enabled, the original
+        filename is removed
         """
 
-        # first, compress the contents of the file (currently done in one shot!
-        # which might be inefficient if the file is indeed very large)
-        with open (filename) as stream:
-            bzdata = bz2.compress (stream.read ())
+        # open the original file in read mode
+        with open(filename, 'r') as input:
 
-        # second, replace the contents of the original file with the compressed
-        # data
-        with open (filename, 'w') as stream:
-            stream.write (bzdata)
+            # create a bz2file to write compressed data
+            with bz2.BZ2File(filename+'.bz2', 'w', compresslevel=9) as output:
+
+                # and just transfer data from one file to the other
+                shutil.copyfileobj(input, output)
+
+        # if remove is enabled, remove the original filename
+        if (remove):
+            os.remove (filename)
 
 
     # logger settings
@@ -609,7 +615,7 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
 
         # create the child and record its process identifier
         try:
-            child = subprocess.Popen ([solver] + spec, 
+            child = subprocess.Popen ([solver] + spec,
                                       stdout = fdlog,
                                       stderr = fderr,
                                       cwd=os.path.dirname (solver))
@@ -627,7 +633,7 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
         max_mem   = 0                           # max mem ever used
         real_time = 0                           # real time (in seconds)
         term_attempted = False                  # no SIGTERM yet
-        time0 = datetime.datetime.now ()        # current time   
+        time0 = datetime.datetime.now ()        # current time
 
         timeline = systools.ProcessTimeline ()  # create a process timeline
 
@@ -677,7 +683,7 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
             try_kill = (total_time > timeout + KILL_DELAY or
                         real_time >= 1.5 * timeout + KILL_DELAY or
                         max_mem > memory)
-            
+
             if try_term and not term_attempted:
                 logger.debug (""" aborting children with SIGTERM ...
  children found: %s""" % timeline.pids (), extra=LOGDICT)
@@ -693,14 +699,14 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
 
         # Even if we got here, there may be orphaned children or something we
         # may have missed due to a race condition. Check for that and kill
-        # properly for good measure. 
+        # properly for good measure.
         logger.debug (""" [Sanity check] aborting children with SIGKILL for the last time ...
  [Sanity check] children found: %s""" % timeline.pids (), extra=LOGDICT)
         timeline.terminate ()
 
         # add the timeline of this execution to the stats
-        stats ['admin_timeline'] += (map (lambda x,y:tuple (x+y), 
-                                          [[index]]*len (timeline.get_processes ()), 
+        stats ['admin_timeline'] += (map (lambda x,y:tuple (x+y),
+                                          [[index]]*len (timeline.get_processes ()),
                                           timeline.get_processes ()))
 
         # process the contents of the log files generated
@@ -715,28 +721,24 @@ def run (solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
 
             # first, if compression was explicitly requested, then proceed to
             # compress data
-            if (bzip2):
-                logger.debug (" Compressing the contents of file '%s'" % ifilename, 
+            if (compress):
+                logger.debug (" Compressing the contents of file '%s'" % ifilename,
                               extra = LOGDICT)
 
-                _bzip2 (ifilename)
+                _bz2 (ifilename, remove=True)
 
-                # and now move it to its target location with the suffix 'bzip2'
-                logger.debug (" Moving '%s' to '%s'" % (ifilename, 
-                                                        os.path.join (resultsdir, 
-                                                                      output + ilogfile + '.bzip2')), 
-                              extra = LOGDICT)
+                # and now move it to its target location with the suffix 'bz2'
+                shutil.move (ifilename + '.bz2',
+                             os.path.join (resultsdir, output + ilogfile + '.bz2'))
 
-                shutil.move (ifilename,
-                             os.path.join (resultsdir, output + ilogfile + '.bzip2'))
 
             # if compression was not requested
             else:
 
                 # just move the file to its target location
-                shutil.move (os.path.join (os.getcwd (), output + ilogfile), 
+                shutil.move (os.path.join (os.getcwd (), output + ilogfile),
                              resultsdir)
-        
+
         # close the log and error file descriptors
         os.close (fdlog)
         os.close (fderr)
@@ -811,20 +813,20 @@ class Dispatcher (object):
     """
 
     # Default constructor
-    def __init__ (self, solver, tstfile, dbfile, check, time, memory, 
-                  directory, output, logfile, bzip2, level, quiet):
+    def __init__ (self, solver, tstfile, dbfile, check, time, memory,
+                  directory, output, logfile, compress, level, quiet):
         """
         Explicit constructor
         """
-        
+
         # copy the attributes
-        (self._solver, self._tstfile, self._dbfile, self._check, 
-         self._time, self._memory, self._directory, 
-         self._output, self._logfile, self._bzip2,
+        (self._solver, self._tstfile, self._dbfile, self._check,
+         self._time, self._memory, self._directory,
+         self._output, self._logfile, self._compress,
          self._level, self._quiet) = \
-         (solver, tstfile, dbfile, check, 
-          time, memory, directory, 
-          output, logfile, bzip2,
+         (solver, tstfile, dbfile, check,
+          time, memory, directory,
+          output, logfile, compress,
           level, quiet)
 
 
@@ -836,14 +838,14 @@ class Dispatcher (object):
 
         # now, create the overall log file if anyone has been requested
         if (self._logfile):
-            self._logstream = create_logger (self._logfile + '.' + 
+            self._logstream = create_logger (self._logfile + '.' +
                                              datetime.datetime.now ().strftime ("%y-%m-%d.%H:%M:%S"),
                                              self._level)
         else:
             self._logstream = create_logger (None, self._level)
 
         # before proceeding, check that all parameters are correct
-        check_flags (self._solver, self._tstfile, self._dbfile, self._check, 
+        check_flags (self._solver, self._tstfile, self._dbfile, self._check,
                      self._directory, self._time, self._memory)
 
         # and now, create the test case and database specifications
@@ -860,59 +862,59 @@ class Dispatcher (object):
         """
 
         self._dbspec += dbparser.DBTable ("admin_params",
-                                          [dbparser.DBColumn ('solver', 'text', 'ADMINVAR', 
+                                          [dbparser.DBColumn ('solver', 'text', 'ADMINVAR',
                                                               'solver', 'None'),
-                                           dbparser.DBColumn ('tests', 'text', 'ADMINVAR', 
+                                           dbparser.DBColumn ('tests', 'text', 'ADMINVAR',
                                                               'tstfile', 'None'),
-                                           dbparser.DBColumn ('db', 'text', 'ADMINVAR', 
+                                           dbparser.DBColumn ('db', 'text', 'ADMINVAR',
                                                               'dbfile', 'None'),
-                                           dbparser.DBColumn ('delay', 'integer', 'ADMINVAR', 
+                                           dbparser.DBColumn ('delay', 'integer', 'ADMINVAR',
                                                               'check', 'None'),
-                                           dbparser.DBColumn ('time', 'integer', 'ADMINVAR', 
+                                           dbparser.DBColumn ('time', 'integer', 'ADMINVAR',
                                                               'time', 'None'),
-                                           dbparser.DBColumn ('memory', 'integer', 'ADMINVAR', 
+                                           dbparser.DBColumn ('memory', 'integer', 'ADMINVAR',
                                                               'memory', 'None')])
         self._dbspec += dbparser.DBTable ("admin_tests",
-                                          [dbparser.DBColumn ('id', 'text', 'ADMINVAR', 
+                                          [dbparser.DBColumn ('id', 'text', 'ADMINVAR',
                                                               'index', 'None'),
-                                           dbparser.DBColumn ('args', 'text', 'ADMINVAR', 
+                                           dbparser.DBColumn ('args', 'text', 'ADMINVAR',
                                                               'args', 'None')])
         self._dbspec += dbparser.DBTable ("admin_time",
-                                          [dbparser.DBColumn ('starttime', 'text', 'ADMINVAR', 
+                                          [dbparser.DBColumn ('starttime', 'text', 'ADMINVAR',
                                                               'starttime', 'None'),
-                                           dbparser.DBColumn ('endtime', 'text', 'ADMINVAR', 
+                                           dbparser.DBColumn ('endtime', 'text', 'ADMINVAR',
                                                               'endtime', 'None'),
-                                           dbparser.DBColumn ('elapsedseconds', 'real', 'ADMINVAR', 
+                                           dbparser.DBColumn ('elapsedseconds', 'real', 'ADMINVAR',
                                                               'elapsed', 'None')])
         self._dbspec += dbparser.DBTable ("admin_timeline",
-                                          [dbparser.DBColumn ('id', 'integer', 'ADMINVAR', 
+                                          [dbparser.DBColumn ('id', 'integer', 'ADMINVAR',
                                                               'index', 'None'),
-                                           dbparser.DBColumn ('pid', 'integer', 'ADMINVAR', 
+                                           dbparser.DBColumn ('pid', 'integer', 'ADMINVAR',
                                                               'pid', 'None'),
-                                           dbparser.DBColumn ('cmdline', 'text', 'ADMINVAR', 
+                                           dbparser.DBColumn ('cmdline', 'text', 'ADMINVAR',
                                                               'cmdline', 'None'),
-                                           dbparser.DBColumn ('starttime', 'text', 'ADMINVAR', 
+                                           dbparser.DBColumn ('starttime', 'text', 'ADMINVAR',
                                                               'starttime', 'None'),
-                                           dbparser.DBColumn ('endtime', 'text', 'ADMINVAR', 
+                                           dbparser.DBColumn ('endtime', 'text', 'ADMINVAR',
                                                               'endtime', 'None'),
-                                           dbparser.DBColumn ('elapsedseconds', 'real', 'ADMINVAR', 
+                                           dbparser.DBColumn ('elapsedseconds', 'real', 'ADMINVAR',
                                                               'elapsedseconds', 'None')])
         self._dbspec += dbparser.DBTable ("admin_version",
-                                          [dbparser.DBColumn ('program', 'text', 'ADMINVAR', 
+                                          [dbparser.DBColumn ('program', 'text', 'ADMINVAR',
                                                               'program', 'None'),
-                                           dbparser.DBColumn ('version', 'text', 'ADMINVAR', 
+                                           dbparser.DBColumn ('version', 'text', 'ADMINVAR',
                                                               'version', 'None'),
-                                           dbparser.DBColumn ('revision', 'text', 'ADMINVAR', 
+                                           dbparser.DBColumn ('revision', 'text', 'ADMINVAR',
                                                               'revision', 'None'),
-                                           dbparser.DBColumn ('date', 'text', 'ADMINVAR', 
+                                           dbparser.DBColumn ('date', 'text', 'ADMINVAR',
                                                               'revdate', 'None')])
         self._dbspec += dbparser.DBTable ("admin_status",
-                                          [dbparser.DBColumn ('id', 'text', 'ADMINVAR', 
+                                          [dbparser.DBColumn ('id', 'text', 'ADMINVAR',
                                                               'index', 'None'),
-                                           dbparser.DBColumn ('status', 'integer', 'ADMINVAR', 
+                                           dbparser.DBColumn ('status', 'integer', 'ADMINVAR',
                                                               'status', 'None')])
-        
-        
+
+
     # The following method sets up the environment for automating the experiments
     def tester (self):
         """
@@ -929,8 +931,8 @@ class Dispatcher (object):
             version (log=True)
 
             # show the current params
-            show_switches (self._solver, self._tstfile, self._dbfile, 
-                           self._check, self._directory, self._time, self._memory)
+            show_switches (self._solver, self._tstfile, self._dbfile,
+                           self._check, self._directory, self._time, self._memory, self._compress)
 
         # finally, run the experiments going solver by solver
         for isolver in self._solver:
@@ -940,7 +942,7 @@ class Dispatcher (object):
 
             solvername = os.path.basename (isolver)
 
-            logger.info (" Starting experiments with solver '%s'" % solvername, 
+            logger.info (" Starting experiments with solver '%s'" % solvername,
                          extra=LOGDICT)
 
             # setup the necessary environment and retrieve the directories to be
@@ -954,9 +956,9 @@ class Dispatcher (object):
             self._starttime = datetime.datetime.now ()
 
             # now, invoke the execution of all tests with this solver
-            test (isolver, self._tstspec, self._dbspec, resultsdir, 
+            test (isolver, self._tstspec, self._dbspec, resultsdir,
                   self._check, istats, self._output,
-                  self._time, self._memory, self._bzip2)
+                  self._time, self._memory, self._compress)
 
             # record the end time of this solver
             self._endtime = datetime.datetime.now ()
@@ -966,7 +968,7 @@ class Dispatcher (object):
 
             # finally, write down all the information to a sqlite3 db
             databasename = os.path.join (self._directory, solvername, solvername)
-            logger.info (" Writing data into '%s.db'" % databasename, 
+            logger.info (" Writing data into '%s.db'" % databasename,
                          extra=LOGDICT)
 
             # admin tables are not populated using the poll method in every
@@ -974,7 +976,7 @@ class Dispatcher (object):
             # "run" or here
             istats ['admin_params'] = [(isolver, self._tstfile, self._dbfile, self._check, self._time, self._memory)]
             istats ['admin_tests'] = self._tstspec.get_defs ()
-            istats ['admin_time'] = [(self._starttime, self._endtime, 
+            istats ['admin_time'] = [(self._starttime, self._endtime,
                                       (self._endtime - self._starttime).total_seconds ())]
             istats ['admin_version'] = [(PROGRAM_NAME, __version__, __revision__[1:-1], __date__ [1:-1])]
 
@@ -1034,10 +1036,10 @@ if __name__ == '__main__':
     # Now, enclose all the process in a with statement and launch a dispatcher
     DISPATCHER = Dispatcher (ARGS.solver, ARGS.tests, ARGS.db,
                              ARGS.check, ARGS.time, ARGS.memory,
-                             ARGS.directory, ARGS.output, ARGS.logfile, 
-                             ARGS.bzip2, ARGS.level, ARGS.quiet)
+                             ARGS.directory, ARGS.output, ARGS.logfile,
+                             ARGS.bz2, ARGS.level, ARGS.quiet)
     with DISPATCHER:
-            
+
         # and request automating all the experiments
         DISPATCHER.tester ()
 
