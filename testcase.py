@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 22:09:24 2013 Carlos Linares Lopez>
-# Last update <jueves, 12 diciembre 2013 11:28:40 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 12 diciembre 2013 12:29:12 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -36,11 +36,11 @@ class Dummy:
         pass
 
     def test_one (self):
+
         pass
 
     def test_two (self):
         pass
-
 
 
 class TestCaseOne (autobot.BotTestCase):
@@ -48,27 +48,23 @@ class TestCaseOne (autobot.BotTestCase):
     Definition of an automated test case
     """
 
-    def __init__ (self):
-
-        pass
-
-    
     def setUp (self):
 
-        print "\t setting up test case #1"
-
+        self._parser = autobot.BotTestCase ()._parser
+        self._mandatory.add_argument ('-M', '--testing-additional-params', help='<empty>')
+        self._parser.parse_args ()
 
     def test_domains (self):
 
         print "\t testing domains ... "
-        autobot.BotTestCase ().gotest ()
+        autobot.BotTestCase ().go ()
 
 
     def test_planners (self):
 
         print "\t testing planners ..."
 
-        
+
     def tearDown (self):
 
         print "\t tearing down in test case #1"
@@ -82,13 +78,10 @@ class TestCaseTwo (autobot.BotTestCase):
     Definition of an automated test case
     """
 
-    def __init__ (self):
-
-        pass
-
     def test_suite (self):
 
         print "\t Executing test suite ..."
+        autobot.BotTestCase ().go ()
 
     def tearDown (self):
 
