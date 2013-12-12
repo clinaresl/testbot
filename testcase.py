@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 22:09:24 2013 Carlos Linares Lopez>
-# Last update <jueves, 12 diciembre 2013 12:29:12 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 12 diciembre 2013 14:38:25 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -26,6 +26,7 @@ __version__  = '1.0'
 __revision__ = '$Revision$'
 
 import autobot
+import logging
 
 class Dummy:
     """
@@ -50,9 +51,21 @@ class TestCaseOne (autobot.BotTestCase):
 
     def setUp (self):
 
-        self._parser = autobot.BotTestCase ()._parser
-        self._mandatory.add_argument ('-M', '--testing-additional-params', help='<empty>')
+        myBot = autobot.BotTestCase ()
+
+        # parsing
+        self._parser = myBot._parser
         self._parser.parse_args ()
+
+        # logging
+        myBot.create_logger (level='DEBUG')
+        logger = logging.getLogger('testcase::setUp')
+        myBot.debug (logger, "Esto es un mensaje de depuracion")
+        myBot.info (logger, "Esto es un mensaje de informacion")
+        myBot.warning (logger, "Esto es un mensaje de aviso")
+        myBot.error (logger, "Esto es un mensaje de error")
+        myBot.critical (logger, "Esto es un mensaje de error critico")
+
 
     def test_domains (self):
 
@@ -91,7 +104,6 @@ class TestCaseTwo (autobot.BotTestCase):
 if __name__ == '__main__':
 
     autobot.BotMain (module='testcase')
-
 
 
 # Local Variables:
