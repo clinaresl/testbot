@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <miércoles, 11 diciembre 2013 16:31:40 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 14 diciembre 2013 00:06:50 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -25,6 +25,7 @@ automatically executes any program and records various data
 __version__  = '1.0.0'
 __revision__ = '$Revision:$'
 __date__     = '$Date:$'
+
 
 # imports
 # -----------------------------------------------------------------------------

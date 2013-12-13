@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 22:09:24 2013 Carlos Linares Lopez>
-# Last update <viernes, 13 diciembre 2013 22:16:42 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 14 diciembre 2013 00:34:36 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -52,7 +52,10 @@ class TestCaseOne (autobot.BotTestCase):
     def setUp (self):
 
         # parsing
-        self._parser.parse_args ()
+        self._parser._optional.add_argument ('-M','--yujuju',action='store_true')
+        newgroup = self._parser._parser.add_argument_group ('New group')
+        newgroup.add_argument ('-I', '--be-imaginative',type=int, default=3)
+        args = self._parser.parse_args ()
 
         # logging
         self.create_logger (level='DEBUG', logfile='kk')
