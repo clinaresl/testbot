@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 22:09:24 2013 Carlos Linares Lopez>
-# Last update <jueves, 12 diciembre 2013 14:38:25 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 13 diciembre 2013 22:16:42 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -51,26 +51,22 @@ class TestCaseOne (autobot.BotTestCase):
 
     def setUp (self):
 
-        myBot = autobot.BotTestCase ()
-
         # parsing
-        self._parser = myBot._parser
         self._parser.parse_args ()
 
         # logging
-        myBot.create_logger (level='DEBUG')
+        self.create_logger (level='DEBUG', logfile='kk')
         logger = logging.getLogger('testcase::setUp')
-        myBot.debug (logger, "Esto es un mensaje de depuracion")
-        myBot.info (logger, "Esto es un mensaje de informacion")
-        myBot.warning (logger, "Esto es un mensaje de aviso")
-        myBot.error (logger, "Esto es un mensaje de error")
-        myBot.critical (logger, "Esto es un mensaje de error critico")
-
+        self.debug (logger, "Esto es un mensaje de depuracion")
+        self.info (logger, "Esto es un mensaje de informacion")
+        self.warning (logger, "Esto es un mensaje de aviso")
+        self.error (logger, "Esto es un mensaje de error")
+        self.critical (logger, "Esto es un mensaje de error critico")
 
     def test_domains (self):
 
         print "\t testing domains ... "
-        autobot.BotTestCase ().go ()
+        self.go ()
 
 
     def test_planners (self):

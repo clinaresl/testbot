@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <jueves, 12 diciembre 2013 14:36:38 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 13 diciembre 2013 22:17:20 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -315,6 +315,11 @@ class BotTestCase (object):
 
     # logging services
     # -----------------------------------------------------------------------------
+    # set up the configuration of the default logger
+    logging.basicConfig (level='INFO',
+                         format="[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s")
+
+    # and now provide various services to access the logger
     def create_logger (self, level='INFO', logfile=None): BotLogger ().create_logger (level, logfile)
     def debug (self, logger, msg): BotLogger ().debug (logger, msg)
     def info (self, logger, msg): BotLogger ().info (logger, msg)
@@ -332,7 +337,9 @@ class BotTestCase (object):
         main service provided by this class. It automates the whole execution
         """
 
-        print "\t\t gotest!! go, go!!!"
+        # print _logger
+        logger=logging.getLogger ('BotTestCase::go')
+        self.info (logger, "\t\t gotest!! go, go!!!")
 
 
 # -----------------------------------------------------------------------------
@@ -418,19 +425,28 @@ class BotMain:
 
             print " Processing class %s" % classname
 
+            # create an instance of this class so that methods will be
+            # bounded
+            instance = self._classes [classname] ()
+
             # first, execute the setUp method if any was defined
             setUp = getattr (self._classes [classname], 'setUp', False)
             if setUp:
-                setUp.im_func (BotTestCase)
+                instance.setUp ()
 
             # now execute all methods in this class
             for method in methodList:
-                method.im_func (BotTestCase)
+
+                # we go through the descriptors of our instance to bind the
+                # method to our instance and then to execute it
+                method.__get__ (instance, self._classes [classname]) ()
+
 
             # tearing down, if given
             tearDown = getattr (self._classes [classname], 'tearDown', False)
             if tearDown:
-                tearDown.im_func (BotTestCase)
+                # tearDown.im_func (BotTestCase)
+                instance.tearDown ()
 
             print
 
