@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <domingo, 15 diciembre 2013 01:52:52 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 15 diciembre 2013 23:12:05 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -55,7 +55,7 @@ class TestBot (autobot.BotTestCase):
     def test_case (self):
 
         # invoke the main service provided by autobot
-        self.go (self.args.solver, self.args.tests, self.args.db, self.args.time,
+        self.go (self.args.solver, self.args.tests, self.args.db, self.args.timeout,
                  self.args.memory, self.args.output, self.args.check, self.args.directory,
                  self.args.bz2, self.args.quiet)
 

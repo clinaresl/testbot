@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 22:09:24 2013 Carlos Linares Lopez>
-# Last update <domingo, 15 diciembre 2013 15:40:04 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 15 diciembre 2013 23:12:00 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -72,7 +72,7 @@ class TestCaseOne (autobot.BotTestCase):
         self.info (logger, " Testing the first case ... ")
 
         # invoke the main service provided by autobot
-        self.go (self.args.solver, self.args.tests, self.args.db, self.args.time,
+        self.go (self.args.solver, self.args.tests, self.args.db, self.args.timeout,
                  self.args.memory, self.args.output, self.args.check, self.args.directory,
                  self.args.bz2, self.args.quiet)
 

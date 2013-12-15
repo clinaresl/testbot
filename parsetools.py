@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Dec 14 00:04:20 2013 Carlos Linares Lopez>
-# Last update <sábado, 14 diciembre 2013 00:32:30 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 15 diciembre 2013 23:10:23 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -161,7 +161,7 @@ class BotArgParser ():
                                       dest='db',
                                       required=True,
         help="specification of the database tables with the information to record")
-        self._mandatory.add_argument ('-t', '--time',
+        self._mandatory.add_argument ('-t', '--timeout',
                                       required=True,
                                       type=int,
                                       help="the maximum allowed time for solving a particular instance in seconds")

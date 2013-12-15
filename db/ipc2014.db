@@ -28,6 +28,6 @@ sys_vsize {
 
 data_limits {
      id text :index Error;
-     time real @time Error;
-     memory real @memory Error;
+     time integer @timeout Error;
+     memory integer @memory Error;
 }
