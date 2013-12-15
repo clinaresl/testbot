@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <domingo, 15 diciembre 2013 01:42:31 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 15 diciembre 2013 01:52:52 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -64,7 +64,7 @@ class TestBot (autobot.BotTestCase):
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
 
-    autobot.BotMain (module='testcase')
+    autobot.BotMain (module='testbot')
 
 
 # Local Variables:
