@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <domingo, 15 diciembre 2013 01:18:14 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 15 diciembre 2013 15:55:54 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -201,7 +201,7 @@ class BotTestCase (object):
     # how long to wait between SIGTERM and SIGKILL
     # -----------------------------------------------------------------------------
     kill_delay = 5
-    
+
     # regular epression for recognizing pairs (var, val) in the stdout
     # -----------------------------------------------------------------------------
     statregexp = " >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
@@ -1007,16 +1007,32 @@ class BotMain:
     services provided by the testbot
     """
 
-    def __init__ (self, module='__main__'):
+    def __init__ (self, module='__main__', cmp=None):
         """
-        Process the parameters of this session retrieving the test
-        functions to execute
+        Process the parameters of this session retrieving the test functions to
+        execute. Test functions are sorted according to None. If it equals None
+        then they are sorted in ascending order of the lexicographical order
         """
+
+        def _cmp (methodA, methodB):
+            """
+            Returns -1, 0 or +1 if depending on whether the first argument is
+            smaller, equal or larger than the second argument. 'methodA' and
+            'methodB' are method implementations so that their names are accessed
+            through __name__
+            """
+
+            if methodA.__name__ < methodB.__name__: return -1
+            elif methodA.__name__ > methodB.__name__:   return +1
+            return 0
+
 
         # retrieve the module to process
         self._module = importlib.import_module (module)
 
-        # get all the test cases to execute
+        # get all the test cases to execute --- classes is a dictionary of names
+        # to defs and methods is another dictionary of class names to method
+        # implementations
         (self._classes, self._methods) = BotLoader ().loadTestsFromModule (self._module)
 
         # and execute all methods
@@ -1031,6 +1047,13 @@ class BotMain:
             if setUp:
                 instance.setUp ()
 
+            # sort the methods in ascending order according to cmp. If no
+            # comparison is function is given then sort them lexicographically
+            # in ascending order
+            if (not cmp):
+                cmp = _cmp
+            methodList = sorted (methodList, cmp=lambda x,y: cmp (x, y))
+
             # now execute all methods in this class
             for method in methodList:
 
@@ -1042,8 +1065,6 @@ class BotMain:
             tearDown = getattr (self._classes [classname], 'tearDown', False)
             if tearDown:
                 instance.tearDown ()
-
-            print
 
 
 

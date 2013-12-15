@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 22:09:24 2013 Carlos Linares Lopez>
-# Last update <domingo, 15 diciembre 2013 01:52:37 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 15 diciembre 2013 15:40:04 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -105,11 +105,19 @@ class TestCaseTwo (autobot.BotTestCase):
         pass
 
 
+def _cmplen (methodA, methodB):
+    
+    if   len (methodA.__name__) < len(methodB.__name__): return -1
+    elif len (methodA.__name__) > len(methodB.__name__): return +1
+    return 0
+
+
+
 # main
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
 
-    autobot.BotMain (module='testexample')
+    autobot.BotMain (module='testexample', cmp=_cmplen)
 
 
 # Local Variables:
