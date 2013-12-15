@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 09:26:14 2011 Carlos Linares Lopez>
-# Last update <Monday, 12 August 2013 01:14:35 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 15 diciembre 2013 00:50:06 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: systools.py 306 2011-11-11 22:25:37Z clinares                        $
@@ -307,7 +307,7 @@ class ProcessGroup(object):
         For example, if the process id of the *ipython* interpreter is 3075, the
         following code returns the only process id in its own group::
 
-          In [1]: from IPCData import systools
+          In [1]: import systools
 
           In [2]: group = systools.ProcessGroup (3075)
 
@@ -328,7 +328,7 @@ class ProcessGroup(object):
         following code returns the total CPU time of the processes in this group
         (which is only one, the interpreter itself)::
 
-          In [1]: from IPCData import systools
+          In [1]: import systools
 
           In [2]: group = systools.ProcessGroup (3075)
 
@@ -349,7 +349,7 @@ class ProcessGroup(object):
         snippet can be used to return the total amount of memory in use by the
         processes in this group (which is only one, the interpreter itself)::
 
-          In [1]: from IPCData import systools
+          In [1]: import systools
 
           In [2]: group = systools.ProcessGroup (3075)
 
@@ -371,7 +371,7 @@ class ProcessGroup(object):
         following chunk of code shows how to retrieve the total number of
         processes in this group, which is only one, the interpreter itself::
 
-          In [1]: from IPCData import systools
+          In [1]: import systools
 
           In [2]: group = systools.ProcessGroup (3075)
 
@@ -392,7 +392,7 @@ class ProcessGroup(object):
         of threads launched by its processes (which is only one, the interpreter
         itself), can be retrieved with the following lines::
 
-          In [1]: from IPCData import systools
+          In [1]: import systools
 
           In [2]: group = systools.ProcessGroup (3075)
 

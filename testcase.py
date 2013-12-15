@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 22:09:24 2013 Carlos Linares Lopez>
-# Last update <sábado, 14 diciembre 2013 00:34:36 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 15 diciembre 2013 01:15:22 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -55,49 +55,53 @@ class TestCaseOne (autobot.BotTestCase):
         self._parser._optional.add_argument ('-M','--yujuju',action='store_true')
         newgroup = self._parser._parser.add_argument_group ('New group')
         newgroup.add_argument ('-I', '--be-imaginative',type=int, default=3)
-        args = self._parser.parse_args ()
+        self.args = self._parser.parse_args ()
+
+        # convert properly the memory allotted from Gb to bytes
+        self.args.memory *= 1024**3
 
         # logging
         self.create_logger (level='DEBUG', logfile='kk')
-        logger = logging.getLogger('testcase::setUp')
-        self.debug (logger, "Esto es un mensaje de depuracion")
-        self.info (logger, "Esto es un mensaje de informacion")
-        self.warning (logger, "Esto es un mensaje de aviso")
-        self.error (logger, "Esto es un mensaje de error")
-        self.critical (logger, "Esto es un mensaje de error critico")
+        logger = logging.getLogger('TestCaseOne::setUp')
+        self.debug (logger, "Esto es un mensaje de depuracion desde setUp")
+        self.info (logger, "Esto es un mensaje de informacion desde setUp")
 
     def test_domains (self):
 
-        print "\t testing domains ... "
-        self.go ()
+        logger = logging.getLogger ('TestCaseOne::test_domains')
+        self.info (logger, "\t testing domains ... ")
+
+        self.go (self.args.solver, self.args.tests, self.args.db, self.args.time,
+                 self.args.memory, self.args.output, self.args.check, self.args.directory,
+                 self.args.bz2, self.args.quiet)
 
 
     def test_planners (self):
 
-        print "\t testing planners ..."
+        logger = logging.getLogger ('TestCaseOne::test_planners')
+        self.info (logger, "\t testing planners ... ")
 
 
     def tearDown (self):
 
-        print "\t tearing down in test case #1"
-
-        for i in range(0,10):
-            print i, ' ',
+        logger = logging.getLogger ('TestCaseOne::tearDown')
+        self.info (logger, "\t tearing down in test case #1")
 
 
-class TestCaseTwo (autobot.BotTestCase):
-    """
-    Definition of an automated test case
-    """
 
-    def test_suite (self):
+# class TestCaseTwo (autobot.BotTestCase):
+#     """
+#     Definition of an automated test case
+#     """
 
-        print "\t Executing test suite ..."
-        autobot.BotTestCase ().go ()
+#     def test_suite (self):
 
-    def tearDown (self):
+#         print "\t Executing test suite ..."
+#         autobot.BotTestCase ().go ()
 
-        print "\t tearing down in the second test case"
+#     def tearDown (self):
+
+#         print "\t tearing down in the second test case"
 
 
 if __name__ == '__main__':
