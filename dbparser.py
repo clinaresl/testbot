@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <Wednesday, 14 August 2013 12:31:15 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 18 diciembre 2013 18:36:08 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -57,7 +57,7 @@ class DBColumn:
         """
         output formatting
         """
-        
+
         return "\t [identifier: %s] [type: %s] [vartype: %s] [variable: %s] [action: %s]" % \
             (self._identifier, self._type, self._vartype, self._variable, self._action)
 
@@ -132,7 +132,7 @@ class DBTableIter(object):
 
         return self
 
-    
+
     def next (self):
         """
         returns the current column
@@ -187,7 +187,7 @@ class DBTable:
         # first, print the columns
         columns = reduce (lambda x,y:x+'\n'+y,
                           [DBColumn.__str__ (icolumn) for icolumn in self._columns])
-        
+
         return """ %s {
 %s
  }""" % (self._name, columns)
@@ -255,7 +255,7 @@ class DBTable:
             if ctype == 'text': return ''
             elif ctype == 'integer': return 0
             elif ctype == 'real': return 0.0
-            else: 
+            else:
                 print " Unknown type '%s'" % ctype
                 raise TypeError
 
@@ -273,7 +273,7 @@ class DBTable:
                 raise TypeError
 
 
-        # initialization 
+        # initialization
         t=()
 
         # for all columns in this table
@@ -293,10 +293,10 @@ class DBTable:
             # otherwise
             else:
                 t += (_cast_value (icolumn.get_type (), D[icolumn.get_variable ()]),)
-                
+
         # and finally return the tuple
         return t
-        
+
 
 # -----------------------------------------------------------------------------
 # DBParser
@@ -332,6 +332,7 @@ class DBParser :
         'DATAVAR',
         'DIRVAR',
         'FILEVAR',
+        'MAINVAR', 
         'PARAM',
         'ID',
         'TABLEID'
@@ -390,6 +391,13 @@ class DBParser :
         else: t.value = t.value[1:]
         return t
 
+    # directive variables: the value of any directive passed to the
+    # executable. They stand for the value of directives given to the solver
+    def t_DIRVAR (self, t):
+        r"@[a-zA-Z_][a-zA-Z_0-9\-]*"
+        t.value = t.value[1:]
+        return t
+
     # file variables: strings (either single|double quoted that might contain
     # blank characters or just ordinary variables without any blank characters)
     # preceded by <. They stand for files whose content is copied once the
@@ -400,11 +408,14 @@ class DBParser :
         else: t.value = t.value[1:]
         return t
 
-    # directive variables: the value of any directive passed to the
-    # executable. They stand for the value of directives given to the solver
-    def t_DIRVAR (self, t):
-        r"@[a-zA-Z_][a-zA-Z_0-9\-]*"
-        t.value = t.value[1:]
+    # main variables: strings (either single|double quoted that might contain
+    # blank characters or just ordinary variables without any blank characters)
+    # preceded by _. They stand for parameters passed to the testbot that
+    # invokes the executable
+    def t_MAINVAR (self, t):
+        r"""_([0-9a-zA-Z_/\.~]+|\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?')"""
+        if t.value[1]=='"' or t.value[1]=="'": t.value = t.value [2:-1]
+        else: t.value = t.value[1:]
         return t
 
     # param: any number preceded by the dollar sign. They stand for the
@@ -503,6 +514,10 @@ class DBParser :
         '''variable : FILEVAR'''
         p[0] = ('FILEVAR', p[1])
 
+    def p_variable_main (self, p):
+        '''variable : MAINVAR'''
+        p[0] = ('MAINVAR', p[1])
+
     def p_action (self, p):
         '''action : NONE
                   | WARNING
@@ -525,7 +540,7 @@ class DBParser :
         print
         exit ()
 
-    
+
 # -----------------------------------------------------------------------------
 # VerbatimDBParser
 #

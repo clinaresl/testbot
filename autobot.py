@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <domingo, 15 diciembre 2013 15:55:54 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 18 diciembre 2013 21:54:27 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -407,18 +407,20 @@ class BotTestCase (object):
     # resides* for solving all cases specified in 'tstspec' using the allotted
     # time and memory. The results are stored in 'resultsdir'; the solver is
     # sampled every 'check' seconds and different stats are stored in
-    # 'stats'. Output files are named after 'output' and 'dbspec' contains the
-    # database specification used to store sys and data information
+    # 'stats'. Output files are named after 'output' and variable substitutions
+    # specified in mainplaceholders are allwoed. 'dbspec' contains the database
+    # specification used to store different data
     # -----------------------------------------------------------------------------
     def test (self, solver, tstspec, dbspec, time, memory, output, check,
-              resultsdir, compress, stats):
+              resultsdir, compress, mainplaceholders, stats):
         """
         invokes the execution of the given solver *in the same directory where
         it resides* for solving all cases specified in 'tstspec' using the
         allotted time and memory. The results are stored in 'resultsdir'; the
         solver is sampled every 'check' seconds and different stats are stored
-        in 'stats'. Output files are named after 'output' and 'dbspec' contains
-        the database specification used to store sys and data information
+        in 'stats'. Output files are named after 'output' and variable
+        substitutions specified in placeholders are allwoed. 'dbspec' contains
+        the database specification used to store different data
         """
 
         def _sub (string, D):
@@ -447,8 +449,10 @@ class BotTestCase (object):
                             'date'    : datetime.datetime.now ().strftime ("%Y-%m-%d"),
                             'time'    : datetime.datetime.now ().strftime ("%H:%M:%S")}
 
-            # and now, add the values of all the directives in this testcase
+            # and now, add the values of all the directives in this testcase and
+            # all the arguments given to the main script
             placeholders.update (itst.get_values ())
+            placeholders.update (mainplaceholders)
 
             # and also with the position of every argument (so that $1 can be
             # interpreted as the first parameter, $2 as the second, and so on)
@@ -528,8 +532,7 @@ class BotTestCase (object):
     # directory. The forked process is pinged every 'check' seconds and it is
     # launched with computational resources 'timeout' and 'memory'. 'dbspec'
     # contains the database specification used to store sys and data information
-    # where placeholders contain specify the variable substitutions to be
-    # performed
+    # where placeholders specify the variable substitutions to be performed
     # -----------------------------------------------------------------------------
     def run (self, solver, resultsdir, index, spec, dbspec, output, placeholders, stats,
              check, timeout, memory, compress):
@@ -544,8 +547,8 @@ class BotTestCase (object):
         directory. The forked process is pinged every 'check' seconds and it is
         launched with computational resources 'timeout' and 'memory'. 'dbspec'
         contains the database specification used to store sys and data
-        information where placeholders contain specify the variable
-        substitutions to be performed
+        information where placeholders specify the variable substitutions to be
+        performed
         """
 
         def _bz2 (filename, remove=False):
@@ -845,13 +848,24 @@ class BotTestCase (object):
     # go
     #
     # main service provided by this class. It automates the whole execution
-    # according to the given parameters
+    # according to the given parameters. Solver is a list of solvers that are
+    # applied in succession each one creating a different database according to
+    # the specification in dbfile. All executions refer to the same test cases
+    # defined in tstfile and are allotted the same computational resources (time
+    # and memory). The argnamespace is the Namespace of the parser used (which
+    # should be an instance of argparse or None)
     # -----------------------------------------------------------------------------
-    def go (self, solver, tstfile, dbfile, time, memory,
+    def go (self, solver, tstfile, dbfile, time, memory, argnamespace=None,
             output='$index', check=5, directory=os.getcwd (), compress=False,
             quiet=False):
         """
         main service provided by this class. It automates the whole execution
+        according to the given parameters. Solver is a list of solvers that are
+        applied in succession each one creating a different database according
+        to the specification in dbfile. All executions refer to the same test
+        cases defined in tstfile and are allotted the same computational
+        resources (time and memory). The argnamespace is the Namespace of the
+        parser used (which should be an instance of argparse or None)
         """
 
         # print _logger
@@ -894,6 +908,15 @@ class BotTestCase (object):
 
             self.info (logger, " Starting experiments with solver '%s'" % solvername)
 
+            # initialize the placeholders with the parameters passed to the main
+            # script. These are given in argnamespace. Since the argparser
+            # automatically casts type according to their type field, they are
+            # all converted into strings here to allow a uniform treatment
+            placeholders = {}
+            if argnamespace:
+                for index, value in argnamespace.__dict__.items ():
+                    placeholders [index] = str (value)
+
             # setup the necessary environment and retrieve the directories to be
             # used in the experimentation
             (targetdir, resultsdir, configdir, logdir) = self.setup (solvername, self._directory)
@@ -906,7 +929,8 @@ class BotTestCase (object):
 
             # now, invoke the execution of all tests with this solver
             self.test (isolver, self._tstspec, self._dbspec, self._time, self._memory,
-                       self._output, self._check, resultsdir, self._compress, istats)
+                       self._output, self._check, resultsdir, self._compress,
+                       placeholders, istats)
 
             # record the end time of this solver
             self._endtime = datetime.datetime.now ()
@@ -1010,7 +1034,7 @@ class BotMain:
     def __init__ (self, module='__main__', cmp=None):
         """
         Process the parameters of this session retrieving the test functions to
-        execute. Test functions are sorted according to None. If it equals None
+        execute. Test functions are sorted according to cmp. If it equals None
         then they are sorted in ascending order of the lexicographical order
         """
 
