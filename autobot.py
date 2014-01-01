@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <miércoles, 18 diciembre 2013 21:54:27 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 01 enero 2014 22:27:41 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -46,7 +46,6 @@ from collections import defaultdict
 
 import dbparser                 # parsing of database specification files
 import dbtools                  # database specification files
-import parsetools               # parser used by default in the autobot
 import sqltools                 # sqlite3 database access
 import systools                 # process management
 import timetools                # timing management
@@ -206,10 +205,6 @@ class BotTestCase (object):
     # -----------------------------------------------------------------------------
     statregexp = " >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
 
-    # arguments parser
-    # -----------------------------------------------------------------------------
-    _parser = parsetools.BotArgParser ()
-
     # logging services
     # -----------------------------------------------------------------------------
     # set up the configuration of the default logger
@@ -318,21 +313,19 @@ class BotTestCase (object):
     # -----------------------------------------------------------------------------
     # setup
     #
-    # sets up all the necessary environment. It returns: the target directory
-    # where all output should be written and its subdirectories: the directory
-    # where the results should be copied (ie, stdout and stderr of the process);
-    # the config dir where additional information (such as the test
-    # specification and db specification) should be written and the logdirectory
-    # where the logs should be stored.
+    # sets up all the necessary environment. It returns: the directory where the
+    # results should be copied (ie, stdout and stderr of the process); the
+    # config dir where additional information (such as the test specification
+    # and db specification) should be written and the logdirectory where the
+    # logs should be stored.
     # -----------------------------------------------------------------------------
     def setup (self, solvername, directory):
         """
-        sets up all the necessary environment. It returns: the target directory
-        where all output should be written and its subdirectories: the directory
-        where the results should be copied (ie, stdout and stderr of the
-        process); the config dir where additional information (such as the test
-        specification and db specification) should be written and the
-        logdirectory where the logs should be stored.
+        sets up all the necessary environment. It returns: the directory where
+        the results should be copied (ie, stdout and stderr of the process); the
+        config dir where additional information (such as the test specification
+        and db specification) should be written and the logdirectory where the
+        logs should be stored.
         """
 
         def _mksubdir (parent, subdir):
@@ -379,7 +372,7 @@ class BotTestCase (object):
         logdir = _mksubdir (targetdir, "log")
 
         # return the directories to be used in the experimentation
-        return (targetdir, resultsdir, configdir, logdir)
+        return (resultsdir, configdir, logdir)
 
 
     # -----------------------------------------------------------------------------
@@ -919,7 +912,7 @@ class BotTestCase (object):
 
             # setup the necessary environment and retrieve the directories to be
             # used in the experimentation
-            (targetdir, resultsdir, configdir, logdir) = self.setup (solvername, self._directory)
+            (resultsdir, configdir, logdir) = self.setup (solvername, self._directory)
 
             # write all the log information in the logdir
             self.fetch (logdir)

@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <miércoles, 18 diciembre 2013 21:48:52 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 01 enero 2014 22:29:10 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -31,8 +31,8 @@ __date__     = '$Date:$'
 
 # imports
 # -----------------------------------------------------------------------------
-import autobot
-
+import autobot                  # main facility for automating experimentation
+import parsetools               # argument parser
 
 # -----------------------------------------------------------------------------
 # TestCase
@@ -47,7 +47,8 @@ class TestBot (autobot.BotTestCase):
     def setUp (self):
 
         # parse arguments
-        self.args = self._parser.parse_args ()
+        # self.args = self._parser.parse_args ()
+        self.args = parsetools.BotArgParser ().parse_args ()
 
         # convert properly the memory allotted from Gb to bytes
         self.args.memory *= 1024**3
