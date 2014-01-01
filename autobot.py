@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <miércoles, 01 enero 2014 22:27:41 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 02 enero 2014 00:00:19 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -53,137 +53,6 @@ import tsttools                 # test specification files
 
 
 # -----------------------------------------------------------------------------
-# BotLogger
-#
-# Provides various services for creating a logger and logging messages
-# of different kinds
-# -----------------------------------------------------------------------------
-class BotLogger ():
-    """
-    Provides various services for creating a logger and logging
-    messages of different kinds
-    """
-
-    # Static members
-
-    # Extra parameters used by the logger
-    # -----------------------------------------------------------------------------
-    _logdict = {'node': socket.gethostname (),
-                'user': getpass.getuser ()}
-
-    # -----------------------------------------------------------------------------
-    # create_logger
-    #
-    # opens a file in write mode in the current working directory in case
-    # a logfile is given. If not, it creates a basic logger. Messages
-    # above the given level are issued.
-    #
-    # it returns the name of the logfile recording all logrecords. If none has been
-    # created it returns the empty string
-    # -----------------------------------------------------------------------------
-    def create_logger (self, level='INFO', logfile=None):
-
-        """
-        opens a file in write mode in the current working directory in
-        case a logfile is given. If not, it creates a basic
-        logger. Messages above the given level are issued.
-
-        it returns the name of the logfile recording all logrecords. If
-        none has been created it returns the empty string
-        """
-
-        # create the log file either as a file stream or to the stdout
-        if (logfile):
-
-            logging.basicConfig (filename=logfile, filemode = 'w', level=level,
-                                 format="[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s")
-
-        else:
-            logging.basicConfig (level=level,
-                                 format="[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s")
-
-
-    # -----------------------------------------------------------------------------
-    # debug
-    #
-    # logs the debug message 'msg' through the given logger appending
-    # the static member _logdict
-    # -----------------------------------------------------------------------------
-    def debug (self, logger, msg):
-
-        """
-        logs the debug message 'msg' through the given logger appending
-        the static member _logdict
-        """
-
-        logger.debug (msg, extra=self._logdict)
-
-
-    # -----------------------------------------------------------------------------
-    # info
-    #
-    # logs the info message 'msg' through the given logger appending
-    # the static member _logdict
-    # -----------------------------------------------------------------------------
-    def info (self, logger, msg):
-
-        """
-        logs the info message 'msg' through the given logger appending
-        the static member _logdict
-        """
-
-        logger.info (msg, extra=self._logdict)
-
-
-    # -----------------------------------------------------------------------------
-    # warning
-    #
-    # logs the warning message 'msg' through the given logger
-    # appending the static member _logdict
-    # -----------------------------------------------------------------------------
-    def warning (self, logger, msg):
-
-        """
-        logs the warning message 'msg' through the given logger
-        appending the static member _logdict
-        """
-
-        logger.warning (msg, extra=self._logdict)
-
-
-    # -----------------------------------------------------------------------------
-    # error
-    #
-    # logs the error message 'msg' through the given logger appending
-    # the static member _logdict
-    # -----------------------------------------------------------------------------
-    def error (self, logger, msg):
-
-        """
-        logs the error message 'msg' through the given logger
-        appending the static member _logdict
-        """
-
-        logger.error (msg, extra=self._logdict)
-
-
-    # -----------------------------------------------------------------------------
-    # critical
-    #
-    # logs the critical message 'msg' through the given logger
-    # appending the static member _logdict
-    # -----------------------------------------------------------------------------
-    def critical (self, logger, msg):
-
-        """
-        logs the critical message 'msg' through the given logger
-        appending the static member _logdict
-        """
-
-        logger.critical (msg, extra=self._logdict)
-
-
-# -----------------------------------------------------------------------------
 # BotTestCase
 #
 # Base class of all testbots. This class is equipped with an argument
@@ -207,17 +76,8 @@ class BotTestCase (object):
 
     # logging services
     # -----------------------------------------------------------------------------
-    # set up the configuration of the default logger
-    logging.basicConfig (level='INFO',
-                         format="[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s\n")
+    _loglevel = logging.INFO            # default logging level
 
-    # and now provide various services to access the logger
-    def create_logger (self, level='INFO', logfile=None): BotLogger ().create_logger (level, logfile)
-    def debug (self, logger, msg): BotLogger ().debug (logger, msg)
-    def info (self, logger, msg): BotLogger ().info (logger, msg)
-    def warning (self, logger, msg): BotLogger ().warning (logger, msg)
-    def error (self, logger, msg): BotLogger ().error (logger, msg)
-    def critical (self, logger, msg): BotLogger ().critical (logger, msg)
 
     # -----------------------------------------------------------------------------
     # check_flags
@@ -230,15 +90,12 @@ class BotTestCase (object):
         check the parameters given to the automated execution of this instance
         """
 
-        # logger settings
-        logger = logging.getLogger('BotTestCase::check_flags')
-
         # verify that all solvers are accessible
         for isolver in solver:
 
             if (not os.access (isolver, os.F_OK) or
                 not os.access (os.path.dirname (isolver), os.X_OK)):
-                self.critical (logger, """
+                self._logger.critical ("""
      The solver '%s' does not exist or it resides in an unreachable location
      Use '--help' for more information
     """ % (isolver))
@@ -247,7 +104,7 @@ class BotTestCase (object):
         # verify also that the test cases are accessible as well
         if (tstfile and (not os.access (tstfile, os.F_OK) or
                           not os.access (os.path.dirname (tstfile), os.R_OK))):
-            self.critical (logger, """
+            self._logger.critical ("""
      The test cases specification file does not exist or it resides in an unreachable location
      Use '--help' for more information
     """)
@@ -256,7 +113,7 @@ class BotTestCase (object):
         # and also the database specification
         if (dbfile and (not os.access (dbfile, os.F_OK) or
                         not os.access (os.path.dirname (dbfile), os.R_OK))):
-            self.critical (logger, """
+            self._logger.critical ("""
      The database specification file does not exist or it resides in an unreachable location
      Use '--help' for more information
     """)
@@ -264,16 +121,16 @@ class BotTestCase (object):
 
         # verify that check is not negative
         if (check < 0):
-            self.critical (logger, " The check flag should be non negative")
+            self._logger.critical (" The check flag should be non negative")
             raise ValueError
 
         # finally, verify the time and memory bounds
         if (time <= 0):
-            self.critical (logger, " The time param shall be positive!")
+            self._logger.critical (" The time param shall be positive!")
             raise ValueError
 
         if (memory <= 0):
-            self.critical (logger, " The memory param shall be positive!")
+            self._logger.critical (" The memory param shall be positive!")
             raise ValueError
 
 
@@ -288,13 +145,10 @@ class BotTestCase (object):
         show a somehow beautified view of the current params
         """
 
-        # logger settings
-        logger = logging.getLogger('BotTestCase::show_switches')
-
         # compute the solvers' names
         solvernames = map (lambda x:os.path.basename (x), solver)
 
-        self.info (logger, """
+        self._logger.info ("""
   %s %s %s
  -----------------------------------------------------------------------------
   * Solver               : %s
@@ -340,9 +194,6 @@ class BotTestCase (object):
             return newdir
 
 
-        # logger settings
-        logger = logging.getLogger ("BotTestCase::setup")
-
         # compute the target directory
         targetdir = os.path.join (directory, solvername)
 
@@ -350,9 +201,9 @@ class BotTestCase (object):
         # subdirectories. A couple of sanity checks follow:
         if (not os.access (directory, os.F_OK)):
             os.makedirs (directory)
-            self.debug (logger, " The directory '%s' has been created!" % directory)
+            self._logger.debug (" The directory '%s' has been created!" % directory)
         if (os.access (targetdir, os.F_OK)):        # paranoid checking!!
-            self.critical (logger, " The directory '%s' already exists!" % targetdir)
+            self._logger.critical (" The directory '%s' already exists!" % targetdir)
             raise ValueError
 
         # create the target directory
@@ -387,6 +238,8 @@ class BotTestCase (object):
         in different files located at the log dir
         """
 
+        self._logger.debug (" Fetching OS info ...")
+        
         shutil.copy ("/proc/version", os.path.join (logdir, "ver-info.log"))
         shutil.copy ("/proc/cpuinfo", os.path.join (logdir, "cpu-info.log"))
         shutil.copy ("/proc/meminfo", os.path.join (logdir, "mem-info.log"))
@@ -430,9 +283,6 @@ class BotTestCase (object):
             return result                                   # and return
 
 
-        # logger settings
-        logger = logging.getLogger ("BotTestCase::test")
-
         # now, for each test case
         for itst in tstspec:
 
@@ -455,7 +305,7 @@ class BotTestCase (object):
                                            itst.get_args ())))
 
             # finally, invoke the execution of this test case
-            self.info (logger, '\t%s' % itst)
+            self._logger.info ('\t%s' % itst)
 
             outputprefix = _sub (output, placeholders)
 
@@ -565,9 +415,6 @@ class BotTestCase (object):
                 os.remove (filename)
 
 
-        # logger settings
-        logger = logging.getLogger ("BotTestCase::run")
-
         # Initialization
         total_vsize = 0
 
@@ -595,11 +442,11 @@ class BotTestCase (object):
                                           stderr = fderr,
                                           cwd=os.path.dirname (solver))
             except OSError:
-                self.critical (logger, " OSError raised when invoking the subprocess")
+                self._logger.critical (" OSError raised when invoking the subprocess")
                 raise OSError
 
             except ValueError:
-                self.critical (logger, " Popen was invoked with invalid arguments")
+                self._logger.critical (" Popen was invoked with invalid arguments")
                 raise ValueError
 
             child_pid = child.pid
@@ -660,12 +507,12 @@ class BotTestCase (object):
                             max_mem > memory)
 
                 if try_term and not term_attempted:
-                    self.debug (logger, """ aborting children with SIGTERM ...
+                    self._logger.debug (""" aborting children with SIGTERM ...
      children found: %s""" % timeline.pids ())
                     timeline.terminate ()
                     term_attempted = True
                 elif term_attempted and try_kill:
-                    self.debug (logger, """ aborting children with SIGKILL ...
+                    self._logger.debug (""" aborting children with SIGKILL ...
      children found: %s""" % timeline.pids ())
                     timeline.terminate ()
 
@@ -675,8 +522,8 @@ class BotTestCase (object):
             # Even if we got here, there may be orphaned children or something we
             # may have missed due to a race condition. Check for that and kill
             # properly for good measure.
-            self.debug (logger, """ [Sanity check] aborting children with SIGKILL for the last time ...
-     [Sanity check] children found: %s""" % timeline.pids ())
+            self._logger.debug (""" [Sanity check] aborting children with SIGKILL for the last time ...
+ [Sanity check] children found: %s""" % timeline.pids ())
             timeline.terminate ()
 
             # add the timeline of this execution to the stats
@@ -697,7 +544,7 @@ class BotTestCase (object):
                 # first, if compression was explicitly requested, then proceed to
                 # compress data
                 if (compress):
-                    logger.debug (logger, " Compressing the contents of file '%s'" % ifilename)
+                    self._logger.debug (" Compressing the contents of file '%s'" % ifilename)
 
                     _bz2 (ifilename, remove=True)
 
@@ -817,12 +664,9 @@ class BotTestCase (object):
         given databasename and writes the specified 'data' into it
         """
 
-        # logger settings
-        logger = logging.getLogger ("BotTestCase::insert_data")
-
         # compute the filename
         dbfilename = databasename + '.db'
-        self.debug (logger, " Populating '%s' in '%s'" % (dbtable.get_name (), dbfilename))
+        self._logger.debug (" Populating '%s' in '%s'" % (dbtable.get_name (), dbfilename))
 
         # connect to the sql database
         db = sqltools.dbtest (dbfilename)
@@ -846,24 +690,46 @@ class BotTestCase (object):
     # the specification in dbfile. All executions refer to the same test cases
     # defined in tstfile and are allotted the same computational resources (time
     # and memory). The argnamespace is the Namespace of the parser used (which
-    # should be an instance of argparse or None)
+    # should be an instance of argparse or None). Other (optional) parameters
+    # are:
+    #
+    # output - prefix of the output files that capture the standard out and
+    #          error
+    # check - time (in seconds) between successive pings to the executable
+    # directory - target directory where all output is recorded
+    # compress - if true, the files containing the standard output and error are
+    # compressed with bzip2
+    # logger - if a logger is given, autobot uses a child of it. Otherwise, it
+    # creates its own logger
+    # logfilter - if the client code uses a logger that requires additional
+    # information, a logging.Filter should be given here
+    # quiet - if given, some additional information is skipped
     # -----------------------------------------------------------------------------
     def go (self, solver, tstfile, dbfile, time, memory, argnamespace=None,
             output='$index', check=5, directory=os.getcwd (), compress=False,
-            quiet=False):
+            logger=None, logfilter=None, quiet=False):
         """
-        main service provided by this class. It automates the whole execution
-        according to the given parameters. Solver is a list of solvers that are
-        applied in succession each one creating a different database according
-        to the specification in dbfile. All executions refer to the same test
-        cases defined in tstfile and are allotted the same computational
-        resources (time and memory). The argnamespace is the Namespace of the
-        parser used (which should be an instance of argparse or None)
+        # main service provided by this class. It automates the whole execution
+        # according to the given parameters. Solver is a list of solvers that are
+        # applied in succession each one creating a different database according to
+        # the specification in dbfile. All executions refer to the same test cases
+        # defined in tstfile and are allotted the same computational resources (time
+        # and memory). The argnamespace is the Namespace of the parser used (which
+        # should be an instance of argparse or None). Other (optional) parameters
+        # are:
+        #
+        # output - prefix of the output files that capture the standard out and
+        #          error
+        # check - time (in seconds) between successive pings to the executable
+        # directory - target directory where all output is recorded
+        # compress - if true, the files containing the standard output and error are
+        # compressed with bzip2
+        # logger - if a logger is given, autobot uses a child of it. Otherwise, it
+        # creates its own logger
+        # logfilter - if the client code uses a logger that requires additional
+        # information, a logging.Filter should be given here
+        # quiet - if given, some additional information is skipped
         """
-
-        # print _logger
-        logger=logging.getLogger ('BotTestCase::go')
-        self.debug (logger, " Starting automated execution ...")
 
         # copy the attributes
         (self._solver, self._tstfile, self._dbfile, self._time, self._memory,
@@ -872,6 +738,31 @@ class BotTestCase (object):
          (solver, tstfile, dbfile, time, memory,
           output, check, directory, compress,
           quiet)
+
+        # logger settings - if a logger has been passed, just create a child of
+        # it
+        if logger:
+            self._logger = logger.getChild ('autobot.BotTestCase')
+
+            # in case a filter has been given add it and finally set the log level
+            if logfilter:
+                self._logger.addFilter (logfilter)
+
+        # otherwise, create a simple logger based on a stream handler
+        else:
+            self._logger = logging.getLogger(self.__class__.__module__ + '.' +
+                                             self.__class__.__name__)
+            handler = logging.StreamHandler ()
+            handler.setLevel (BotTestCase._loglevel)
+            handler.setFormatter (logging.Formatter (" %(levelname)-10s:   %(message)s"))
+            self._logger.addHandler (handler)
+
+            # not passing a logger does not mean that other loggers do not exist
+            # so that make sure that the log messages generated here are not
+            # propagated upwards in the logging hierarchy
+            self._logger.propagate = False
+
+        self._logger.debug (" Starting automated execution ...")
 
         # check that all parameters are valid
         self.check_flags (solver, tstfile, dbfile, time,
@@ -885,10 +776,10 @@ class BotTestCase (object):
 
         # and now, create the test case and database specifications from their
         # filenames
-        self.debug (logger, " Parsing the tests specification file ...")
+        self._logger.debug (" Parsing the tests specification file ...")
         self._tstspec = tsttools.TstFile (self._tstfile)
 
-        self.debug (logger, " Parsing the database specification file ...")
+        self._logger.debug (" Parsing the database specification file ...")
         self._dbspec  = dbtools.DBFile (self._dbfile)
 
         # at last, run the experiments going through every solver
@@ -899,7 +790,7 @@ class BotTestCase (object):
 
             solvername = os.path.basename (isolver)
 
-            self.info (logger, " Starting experiments with solver '%s'" % solvername)
+            self._logger.info (" Starting experiments with solver '%s'" % solvername)
 
             # initialize the placeholders with the parameters passed to the main
             # script. These are given in argnamespace. Since the argparser
@@ -933,7 +824,7 @@ class BotTestCase (object):
 
             # finally, write down all the information to a sqlite3 db
             databasename = os.path.join (self._directory, solvername, solvername)
-            self.info (logger, " Writing data into '%s.db'" % databasename)
+            self._logger.info (" Writing data into '%s.db'" % databasename)
 
             # admin tables are not populated using the poll method in every
             # dbtable. Instead, their contents are inserted manually in either
@@ -955,7 +846,7 @@ class BotTestCase (object):
                 if itable.datap () or itable.sysp ():
                     self.insert_data (databasename, itable, istats[itable.get_name ()])
 
-        self.debug (logger, " Exiting from the automated execution ...")
+        self._logger.debug (" Exiting from the automated execution ...")
 
 
 # -----------------------------------------------------------------------------
