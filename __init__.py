@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May 25 19:22:08 2013 Carlos Linares Lopez>
-# Last update <Sunday, 11 August 2013 18:32:00 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 03 enero 2014 19:48:14 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -29,7 +29,16 @@
 __version__  = '1.0'
 __revision__ = '$Revision$'
 
-__all__ = [""]
+__all__ = ["testbot",
+           "tsttools",
+           "timetools",
+           "tbparser",
+           "systools",
+           "sqltools",
+           "parsetools",
+           "dbtools",
+           "dbparser",
+           "autobot"]
 
 
 # Local Variables:
