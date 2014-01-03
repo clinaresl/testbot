@@ -1,12 +1,12 @@
 #!/usr/bin/python
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 #
 # dbtools.py
 # Description: database access
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <Wednesday, 14 August 2013 12:57:22 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 03 enero 2014 19:59:05 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -17,6 +17,25 @@
 # Made by Carlos Linares Lopez
 # Login   <clinares@psyche>
 #
+
+# -----------------------------------------------------------------------------
+#     This file is part of testbot
+#
+#     testbot is free software: you can redistribute it and/or modify it under
+#     the terms of the GNU General Public License as published by the Free
+#     Software Foundation, either version 3 of the License, or (at your option)
+#     any later version.
+#
+#     testbot is distributed in the hope that it will be useful, but WITHOUT ANY
+#     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+#     FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+#     details.
+#
+#     You should have received a copy of the GNU General Public License along
+#     with testbot.  If not, see <http://www.gnu.org/licenses/>.
+#
+#     Copyright Carlos Linares Lopez, 2014
+# -----------------------------------------------------------------------------
 
 """
 database access

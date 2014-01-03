@@ -1,12 +1,12 @@
 #!/usr/bin/python2.7
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 #
 # test_tsttools.py
 # Description: unittest of tsttools
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Jun 14 17:03:21 2013 Carlos Linares Lopez>
-# Last update <Sunday, 11 August 2013 18:33:01 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 03 enero 2014 19:58:08 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -17,6 +17,25 @@
 # Made by Carlos Linares Lopez
 # Login   <clinares@psyche>
 #
+
+# -----------------------------------------------------------------------------
+#     This file is part of testbot
+#
+#     testbot is free software: you can redistribute it and/or modify it under
+#     the terms of the GNU General Public License as published by the Free
+#     Software Foundation, either version 3 of the License, or (at your option)
+#     any later version.
+#
+#     testbot is distributed in the hope that it will be useful, but WITHOUT ANY
+#     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+#     FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+#     details.
+#
+#     You should have received a copy of the GNU General Public License along
+#     with testbot.  If not, see <http://www.gnu.org/licenses/>.
+#
+#     Copyright Carlos Linares Lopez, 2014
+# -----------------------------------------------------------------------------
 
 """
 .. module:: test_tsttools

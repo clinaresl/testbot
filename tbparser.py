@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 #
 # tbparser.py
 # Description: A parser of the testbot language used for specifying
@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Aug  2 09:16:49 2013 Carlos Linares Lopez>
-# Last update <Monday, 12 August 2013 00:26:22 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 03 enero 2014 19:58:30 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -18,6 +18,25 @@
 # Made by Carlos Linares Lopez
 # Login   <clinares@psyche>
 #
+
+# -----------------------------------------------------------------------------
+#     This file is part of testbot
+#
+#     testbot is free software: you can redistribute it and/or modify it under
+#     the terms of the GNU General Public License as published by the Free
+#     Software Foundation, either version 3 of the License, or (at your option)
+#     any later version.
+#
+#     testbot is distributed in the hope that it will be useful, but WITHOUT ANY
+#     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+#     FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+#     details.
+#
+#     You should have received a copy of the GNU General Public License along
+#     with testbot.  If not, see <http://www.gnu.org/licenses/>.
+#
+#     Copyright Carlos Linares Lopez, 2014
+# -----------------------------------------------------------------------------
 
 """
 A parser of the testbot language used for specifying command lines

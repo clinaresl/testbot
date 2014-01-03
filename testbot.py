@@ -1,5 +1,5 @@
-#!/usr/bin/python2.7
-# -*- coding: iso-8859-1 -*-
+#!/usr/bin/python2
+# -*- coding: utf-8 -*-
 #
 # testbot.py
 # Description: automatically executes any program and records various data using
@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <viernes, 03 enero 2014 02:09:23 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 03 enero 2014 22:16:57 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -18,6 +18,25 @@
 # Made by Carlos Linares Lopez
 # Login   <clinares@psyche>
 #
+
+# -----------------------------------------------------------------------------
+#     This file is part of testbot
+#
+#     testbot is free software: you can redistribute it and/or modify it under
+#     the terms of the GNU General Public License as published by the Free
+#     Software Foundation, either version 3 of the License, or (at your option)
+#     any later version.
+#
+#     testbot is distributed in the hope that it will be useful, but WITHOUT ANY
+#     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+#     FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+#     details.
+#
+#     You should have received a copy of the GNU General Public License along
+#     with testbot.  If not, see <http://www.gnu.org/licenses/>.
+#
+#     Copyright Carlos Linares Lopez, 2014
+# -----------------------------------------------------------------------------
 
 """
 automatically executes any program and records various data using the services
@@ -170,7 +189,7 @@ class Prologue (autobot.BotAction):
 
         childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
         childlogger.addFilter (ContextFilter ())
-        childlogger.info (""" Prologue:
+        childlogger.debug (""" Prologue:
  * solver      : %s
  * itest       : %s
  * time        : %d seconds
@@ -202,7 +221,7 @@ class Epilogue (autobot.BotAction):
         
         childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
         childlogger.addFilter (ContextFilter ())
-        childlogger.info (""" Epilogue:
+        childlogger.debug (""" Epilogue:
  * solver      : %s
  * itest       : %s
  * time        : %d seconds

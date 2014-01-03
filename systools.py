@@ -1,11 +1,12 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # systools.py
 # Description: process management ---literally taken from the IPC 2008
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 09:26:14 2011 Carlos Linares Lopez>
-# Last update <domingo, 15 diciembre 2013 00:50:06 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 03 enero 2014 19:58:37 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: systools.py 306 2011-11-11 22:25:37Z clinares                        $
@@ -13,6 +14,25 @@
 # $Revision:: 306                                                            $
 # -----------------------------------------------------------------------------
 #
+
+# -----------------------------------------------------------------------------
+#     This file is part of testbot
+#
+#     testbot is free software: you can redistribute it and/or modify it under
+#     the terms of the GNU General Public License as published by the Free
+#     Software Foundation, either version 3 of the License, or (at your option)
+#     any later version.
+#
+#     testbot is distributed in the hope that it will be useful, but WITHOUT ANY
+#     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+#     FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+#     details.
+#
+#     You should have received a copy of the GNU General Public License along
+#     with testbot.  If not, see <http://www.gnu.org/licenses/>.
+#
+#     Copyright Carlos Linares Lopez, 2014
+# -----------------------------------------------------------------------------
 
 """
 .. module:: systools
