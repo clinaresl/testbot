@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <viernes, 03 enero 2014 22:16:57 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 04 enero 2014 00:50:15 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -43,6 +43,8 @@ automatically executes any program and records various data using the services
 provided by autobot
 """
 
+# globals
+# -----------------------------------------------------------------------------
 __version__  = '2.0'
 __revision__ = '$Revision:$'
 __date__     = '$Date:$'
