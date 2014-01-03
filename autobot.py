@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <jueves, 02 enero 2014 00:00:19 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 03 enero 2014 02:15:11 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -50,6 +50,49 @@ import sqltools                 # sqlite3 database access
 import systools                 # process management
 import timetools                # timing management
 import tsttools                 # test specification files
+
+
+# -----------------------------------------------------------------------------
+# BotAction
+#
+# It is feasible to invoke a prologue and an epilogue before and after every
+# invocation of the executable in the BotTestCase. To enable further flexibility
+# these actions are implemented as subclasses of BotAction which have to
+# implement __call__. If these functions are provided then the corresponding
+# subclass is invoked with all the variables that define the current environment
+# of the execution: solver, tstspec, itest, dbspec, time, memory, output (with
+# its placeholders substituted), check, resultsdir, compress and placeholders
+# -----------------------------------------------------------------------------
+class BotAction (object):
+    """
+    It is feasible to invoke a prologue and an epilogue before and after every
+    invocation of the executable in the BotTestCase. To enable further
+    flexibility these actions are implemented as subclasses of BotAction which
+    have to implement __call__. If these functions are provided then the
+    corresponding subclass is invoked with all the variables that define the
+    current environment of the execution: solver, tstspec, itest, dbspec, time,
+    memory, output (with its placeholders substituted), check, resultsdir,
+    compress and placeholders
+    """
+
+    def __init__ (self, solver, tstspec, itest, dbspec, time, memory, output,
+                  check, resultsdir, compress, placeholders):
+        """
+        stores the values of all variables that define the current environment
+        """
+
+        # copy the attributes
+        (self.solver, self.tstspec, self.itest, self.dbspec, self.time,
+         self.memory, self.output, self.check, self.resultsdir,
+         self.compress, self.placeholders) = \
+        (solver, tstspec, itest, dbspec, time,
+         memory, output, check, resultsdir,
+         compress, placeholders)
+
+
+    def __call__(self, itest):
+        raise NotImplementedError ('__call__() not defined')
+
 
 
 # -----------------------------------------------------------------------------
@@ -239,7 +282,7 @@ class BotTestCase (object):
         """
 
         self._logger.debug (" Fetching OS info ...")
-        
+
         shutil.copy ("/proc/version", os.path.join (logdir, "ver-info.log"))
         shutil.copy ("/proc/cpuinfo", os.path.join (logdir, "cpu-info.log"))
         shutil.copy ("/proc/meminfo", os.path.join (logdir, "mem-info.log"))
@@ -255,18 +298,24 @@ class BotTestCase (object):
     # sampled every 'check' seconds and different stats are stored in
     # 'stats'. Output files are named after 'output' and variable substitutions
     # specified in mainplaceholders are allwoed. 'dbspec' contains the database
-    # specification used to store different data
+    # specification used to store different data. If a prologue/epilogue is
+    # given (they should be a subclass of BotAction ) then its __call__ method
+    # is invoked before/after the execution of the solver with regard to every
+    # test case
     # -----------------------------------------------------------------------------
     def test (self, solver, tstspec, dbspec, time, memory, output, check,
-              resultsdir, compress, mainplaceholders, stats):
+              resultsdir, compress, mainplaceholders, stats, prologue, epilogue):
         """
         invokes the execution of the given solver *in the same directory where
         it resides* for solving all cases specified in 'tstspec' using the
         allotted time and memory. The results are stored in 'resultsdir'; the
         solver is sampled every 'check' seconds and different stats are stored
         in 'stats'. Output files are named after 'output' and variable
-        substitutions specified in placeholders are allwoed. 'dbspec' contains
-        the database specification used to store different data
+        substitutions specified in mainplaceholders are allwoed. 'dbspec'
+        contains the database specification used to store different data. If a
+        prologue/epilogue is given (they should be a subclass of BotAction )
+        then its __call__ method is invoked before/after the execution of the
+        solver with regard to every test case
         """
 
         def _sub (string, D):
@@ -304,15 +353,30 @@ class BotTestCase (object):
             placeholders.update (dict (zip([str(i) for i in range(0,len(itst.get_args ()))],
                                            itst.get_args ())))
 
-            # finally, invoke the execution of this test case
-            self._logger.info ('\t%s' % itst)
-
+            # compute the right name of the output file using the placeholders
+            # if any was given there
             outputprefix = _sub (output, placeholders)
 
+            # if a prologue was given, execute it now
+            if prologue:
+                action = prologue (solver, tstspec, itst, dbspec, time,
+                                   memory, outputprefix, check, resultsdir,
+                                   compress, placeholders)
+                action (self._logger)
+
+            # invoke the execution of this test case
+            self._logger.info ('\t%s' % itst)
             self.run (os.path.abspath (solver), resultsdir,
                       itst.get_id (), itst.get_args (), dbspec,
                       outputprefix, placeholders,
                       stats, check, time, memory, compress)
+
+            # finally, if an epilogue was given, execute it now
+            if epilogue:
+                action = epilogue (solver, tstspec, itst, dbspec, time,
+                                   memory, outputprefix, check, resultsdir,
+                                   compress, placeholders)
+                action (self._logger)
 
 
     # -----------------------------------------------------------------------------
@@ -698,37 +762,60 @@ class BotTestCase (object):
     # check - time (in seconds) between successive pings to the executable
     # directory - target directory where all output is recorded
     # compress - if true, the files containing the standard output and error are
-    # compressed with bzip2
+    #            compressed with bzip2
     # logger - if a logger is given, autobot uses a child of it. Otherwise, it
-    # creates its own logger
+    #          creates its own logger
     # logfilter - if the client code uses a logger that requires additional
-    # information, a logging.Filter should be given here
+    #             information, a logging.Filter should be given here
+    # prologue - if a class is provided here then __call__ () is automatically
+    #            invoked before every execution of the solver with every test
+    #            case. This class should be a subclass of BotAction so that it
+    #            automatically inherits the following attributes: solver,
+    #            tstspec, itest, dbspec, time, memory, output, check,
+    #            resultsdir, compress, placeholders
+    # epilogue - if a class is provided here then __call__ () is automatically
+    #            invoked after every execution of the solver with every test
+    #            case. This class should be a subclass of BotAction so that it
+    #            automatically inherits the same attributes described in
+    #            prologue
     # quiet - if given, some additional information is skipped
     # -----------------------------------------------------------------------------
     def go (self, solver, tstfile, dbfile, time, memory, argnamespace=None,
             output='$index', check=5, directory=os.getcwd (), compress=False,
-            logger=None, logfilter=None, quiet=False):
+            logger=None, logfilter=None, prologue=None, epilogue=None,
+            quiet=False):
         """
-        # main service provided by this class. It automates the whole execution
-        # according to the given parameters. Solver is a list of solvers that are
-        # applied in succession each one creating a different database according to
-        # the specification in dbfile. All executions refer to the same test cases
-        # defined in tstfile and are allotted the same computational resources (time
-        # and memory). The argnamespace is the Namespace of the parser used (which
-        # should be an instance of argparse or None). Other (optional) parameters
-        # are:
-        #
-        # output - prefix of the output files that capture the standard out and
-        #          error
-        # check - time (in seconds) between successive pings to the executable
-        # directory - target directory where all output is recorded
-        # compress - if true, the files containing the standard output and error are
-        # compressed with bzip2
-        # logger - if a logger is given, autobot uses a child of it. Otherwise, it
-        # creates its own logger
-        # logfilter - if the client code uses a logger that requires additional
-        # information, a logging.Filter should be given here
-        # quiet - if given, some additional information is skipped
+        main service provided by this class. It automates the whole execution
+        according to the given parameters. Solver is a list of solvers that are
+        applied in succession each one creating a different database according to
+        the specification in dbfile. All executions refer to the same test cases
+        defined in tstfile and are allotted the same computational resources (time
+        and memory). The argnamespace is the Namespace of the parser used (which
+        should be an instance of argparse or None). Other (optional) parameters
+        are:
+        
+        output - prefix of the output files that capture the standard out and
+                 error
+        check - time (in seconds) between successive pings to the executable
+        directory - target directory where all output is recorded
+        compress - if true, the files containing the standard output and error are
+                   compressed with bzip2
+        logger - if a logger is given, autobot uses a child of it. Otherwise, it
+                 creates its own logger
+        logfilter - if the client code uses a logger that requires additional
+                    information, a logging.Filter should be given here
+        prologue - if a class is provided here then __call__ () is automatically
+                   invoked before every execution of the solver with every test
+                   case. This class should be a subclass of BotAction so that it
+                   automatically inherits the following attributes: solver,
+                   tstspec, itest, dbspec, time, memory, output, check,
+                   resultsdir, compress, placeholders
+        epilogue - if a class is provided here then __call__ () is automatically
+                   invoked after every execution of the solver with every test
+                   case. This class should be a subclass of BotAction so that it
+                   automatically inherits the same attributes described in
+                   prologue
+        quiet - if given, some additional information is skipped
         """
 
         # copy the attributes
@@ -814,7 +901,7 @@ class BotTestCase (object):
             # now, invoke the execution of all tests with this solver
             self.test (isolver, self._tstspec, self._dbspec, self._time, self._memory,
                        self._output, self._check, resultsdir, self._compress,
-                       placeholders, istats)
+                       placeholders, istats, prologue, epilogue)
 
             # record the end time of this solver
             self._endtime = datetime.datetime.now ()
