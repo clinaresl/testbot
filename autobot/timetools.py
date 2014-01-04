@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 11:54:22 2011 Carlos Linares Lopez>
-# Last update <viernes, 03 enero 2014 19:57:59 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 04 enero 2014 01:29:05 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: timetools.py 306 2011-11-11 22:25:37Z clinares                       $

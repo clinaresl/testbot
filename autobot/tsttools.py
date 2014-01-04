@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <viernes, 03 enero 2014 19:57:51 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 04 enero 2014 01:38:47 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -46,11 +46,11 @@ __revision__ = '$Revision$'
 
 # imports
 # -----------------------------------------------------------------------------
-import re               # regexp
+import re                       # regexp
+
+import tbparser                 # testbot parser utilities (lex and yacc)
 
 from collections import defaultdict
-
-import tbparser         # testbot parser utilities (lex and yacc)
 
 
 # functions

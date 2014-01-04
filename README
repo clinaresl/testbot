@@ -76,6 +76,15 @@ This information can be accessed with:
 
    $ testbot.py --help
 
+Configuration files are provided under examples/ For instance, try:
+
+./testbot.py --solver examples/solvers/eperimeter 
+             --test examples/tests/8puzzle.tb 
+             --db examples/db/example.db 
+             --timeout 5 --memory 2 --check 0 --bz2
+
+and examine the contents of the directory eperimeter/ just created
+
 Further information is offered at the User's Manual and the
 Programmer's Guide of testbot
 

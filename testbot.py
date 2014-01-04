@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 00:50:15 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 04 enero 2014 02:47:38 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -52,13 +52,16 @@ __date__     = '$Date:$'
 
 # imports
 # -----------------------------------------------------------------------------
-import autobot                  # main facility for automating experimentation
 import datetime                 # date and time services
 import getpass                  # getuser
 import logging                  # loggers
 import os                       # path mgmt
-import parsetools               # argument parser
 import socket                   # gethostname
+
+from autobot.bots import BotTestCase
+from autobot.bots import BotAction
+from autobot.bots import BotMain
+from autobot import parsetools
 
 
 # -----------------------------------------------------------------------------
@@ -114,11 +117,11 @@ class ContextFilter(logging.Filter):
 
 
 # -----------------------------------------------------------------------------
-# TestCase
+# TestBot
 #
 # Execution of a particular test case that can inivolve various executions
 # -----------------------------------------------------------------------------
-class TestBot (autobot.BotTestCase):
+class TestBot (BotTestCase):
     """
     Execution of a particular test case that can inivolve various executions
     """
@@ -174,7 +177,7 @@ class TestBot (autobot.BotTestCase):
 
 
 
-class Prologue (autobot.BotAction):
+class Prologue (BotAction):
     """
     Bot Action to be executed before every invocation of the solver with every
     test case
@@ -206,7 +209,7 @@ class Prologue (autobot.BotAction):
         self.placeholders ['dummy'] = 'testing the prologue/epilogue'
 
 
-class Epilogue (autobot.BotAction):
+class Epilogue (BotAction):
     """
     Bot Action to be executed after every invocation of the solver with every
     test case
@@ -220,7 +223,7 @@ class Epilogue (autobot.BotAction):
         resultsdir, compress and placeholders (which is a dictionary with all
         variables used for filling the database)
         """
-        
+
         childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
         childlogger.addFilter (ContextFilter ())
         childlogger.debug (""" Epilogue:
@@ -241,7 +244,7 @@ class Epilogue (autobot.BotAction):
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
 
-    autobot.BotMain (module='testbot')
+    BotMain (module='testbot')
 
 
 # Local Variables:

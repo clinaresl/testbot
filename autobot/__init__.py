@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May 25 19:22:08 2013 Carlos Linares Lopez>
-# Last update <viernes, 03 enero 2014 21:13:55 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 04 enero 2014 02:41:13 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -57,7 +57,7 @@ __all__ = ["testbot",
            "parsetools",
            "dbtools",
            "dbparser",
-           "autobot"]
+           "bots"]
 
 
 # Local Variables:

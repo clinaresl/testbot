@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-# autobot.py
+# bots.py
 # Description: General framework for starting services from the testbot
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <viernes, 03 enero 2014 19:59:21 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 04 enero 2014 02:40:45 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -118,14 +118,12 @@ class BotAction (object):
 # BotTestCase
 #
 # Base class of all testbots. This class is equipped with an argument
-# parser that can be reused/extended and it also provides various
-# logging services
+# parser that can be reused/extended
 # -----------------------------------------------------------------------------
 class BotTestCase (object):
     """
     Base class of all testbots. This class is equipped with an
-    argument parser that can be reused/extended and it also provides
-    various logging services
+    argument parser that can be reused/extended
     """
 
     # how long to wait between SIGTERM and SIGKILL
@@ -848,7 +846,7 @@ class BotTestCase (object):
         # logger settings - if a logger has been passed, just create a child of
         # it
         if logger:
-            self._logger = logger.getChild ('autobot.BotTestCase')
+            self._logger = logger.getChild ('bots.BotTestCase')
 
             # in case a filter has been given add it and finally set the log level
             if logfilter:

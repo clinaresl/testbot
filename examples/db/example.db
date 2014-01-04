@@ -85,12 +85,6 @@ data_iterations {
 	IDA integer ?'iterations IDA' Error;
 }
 
-# files
-data_files {
-	id text :index;
-	solution text <'__init__.py' Warning;
-}
-
 data_limits {
 	id text :index;
 	tstspec  text    _'tests'   Error;

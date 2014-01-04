@@ -1,12 +1,12 @@
 #!/usr/bin/python2
 # -*- coding: utf-8 -*-
 #
-# autobot.py
+# setup.py
 # Description: distribution script
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 00:39:47 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 04 enero 2014 02:43:32 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -81,28 +81,18 @@ setup(name='testbot',
       url='http://www.plg.inf.uc3m.es/~clinares/investigacion.php',
       description='automates the tests of (hopefully) any executable under Linux OSs',
       long_description=read ('README'),
-      py_modules=['autobot',
-                  'dbparser',
-                  'dbtools',
-                  'parsetools',
-                  'sqltools',
-                  'systools',
-                  'tbparser',
-                  'timetools',
-                  'tsttools',
-                  'testbot',
-                  '__init__'],
+      packages = ['autobot'],
       scripts = ['testbot.py'],
       requires = ['ply (>=3.4)'],
-      provides = ['autobot'],
+      provides = ['autobot', 'testbot'],
       classifiers = [
           'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
           'Operating System :: POSIX :: Linux',
           'Topic :: Scientific/Engineering',
           'Topic :: System :: Monitoring'],
-      data_files=[('db', ['db/example.db']),
-                  ('tests', ['tests/8puzzle.tb']),
-                  ('solvers', ['solvers/eperimeter'])]
+      data_files=[('db', ['examples/db/example.db']),
+                  ('tests', ['examples/tests/8puzzle.tb']),
+                  ('solvers', ['examples/solvers/eperimeter'])]
      )
 
 
