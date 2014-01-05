@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 02:43:32 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 05 enero 2014 01:27:28 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -82,7 +82,7 @@ setup(name='testbot',
       description='automates the tests of (hopefully) any executable under Linux OSs',
       long_description=read ('README'),
       packages = ['autobot'],
-      scripts = ['testbot.py'],
+      scripts = ['scripts/testbot.py'],
       requires = ['ply (>=3.4)'],
       provides = ['autobot', 'testbot'],
       classifiers = [

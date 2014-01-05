@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May 25 19:22:08 2013 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 02:41:13 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 05 enero 2014 01:24:17 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -48,8 +48,7 @@
 __version__  = '1.0'
 __revision__ = '$Revision$'
 
-__all__ = ["testbot",
-           "tsttools",
+__all__ = ["tsttools",
            "timetools",
            "tbparser",
            "systools",
@@ -58,6 +57,13 @@ __all__ = ["testbot",
            "dbtools",
            "dbparser",
            "bots"]
+
+
+from bots import BotTestCase
+from bots import BotAction
+from bots import BotMain
+from . import parsetools
+
 
 
 # Local Variables:

@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 02:47:38 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 05 enero 2014 01:29:06 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -52,16 +52,16 @@ __date__     = '$Date:$'
 
 # imports
 # -----------------------------------------------------------------------------
-import datetime                 # date and time services
-import getpass                  # getuser
-import logging                  # loggers
-import os                       # path mgmt
-import socket                   # gethostname
+import datetime                         # date and time services
+import getpass                          # getuser
+import logging                          # loggers
+import os                               # path mgmt
+import socket                           # gethostname
 
-from autobot.bots import BotTestCase
-from autobot.bots import BotAction
-from autobot.bots import BotMain
-from autobot import parsetools
+from autobot.bots import BotMain        # main service 
+from autobot.bots import BotAction      # automated pre/post actions
+from autobot.bots import BotTestCase    # automated full execution
+from autobot import parsetools          # default argument parser
 
 
 # -----------------------------------------------------------------------------
