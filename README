@@ -72,14 +72,14 @@ services or to test whether the db/tb files are correctly parsed.
 
 This information can be accessed with:
 
-   $ testbot.py --help
+$ testbot.py --help
 
 Configuration files are provided under examples/ For instance, try:
 
-   $ testbot.py --solver examples/solvers/eperimeter 
-                --test examples/tests/8puzzle.tb 
-                --db examples/db/example.db 
-                --timeout 5 --memory 2 --check 0 --bz2
+$ testbot.py --solver examples/solvers/eperimeter 
+--test examples/tests/8puzzle.tb 
+--db examples/db/example.db 
+--timeout 5 --memory 2 --check 0 --bz2
 
 and examine the contents of the directory eperimeter/ just created
 
