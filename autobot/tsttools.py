@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 01:38:47 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 06 enero 2014 22:27:49 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -386,6 +386,29 @@ class TstSpec(object):
 
         return [(icase.get_id (), reduce (lambda x,y:x+' '+y, icase.get_args ())) 
                 for icase in self._tstdefs]
+
+
+# -----------------------------------------------------------------------------
+# TstVerbatim
+#
+# this class provides services for accessing and interpreting the contents of a
+# string ---it is just an alias of TstSpec
+# -----------------------------------------------------------------------------
+class TstVerbatim(TstSpec):
+
+    """
+    this class provides services for accessing and interpreting the contents of
+    a string ---it is just an alias of TstSpec
+    """
+
+    def __init__ (self, data):
+        """
+        decodes the contents given in data
+        """
+
+        # simply invoke the constructor of the base class with the contents
+        # given in data
+        super (TstVerbatim, self).__init__(spec=data)
 
 
 # -----------------------------------------------------------------------------

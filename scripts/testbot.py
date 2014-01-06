@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <domingo, 05 enero 2014 01:29:06 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 06 enero 2014 22:43:25 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -205,8 +205,6 @@ class Prologue (BotAction):
  * compress    : %s
  * placeholders: %s
 """ % (self.solver, self.itest, self.time, self.memory, self.output, self.check, self.resultsdir, self.compress, self.placeholders))
-
-        self.placeholders ['dummy'] = 'testing the prologue/epilogue'
 
 
 class Epilogue (BotAction):

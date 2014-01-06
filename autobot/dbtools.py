@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 01:39:38 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 06 enero 2014 22:28:20 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -166,6 +166,29 @@ class DBSpec(object):
 
 
 # -----------------------------------------------------------------------------
+# DBVerbatim
+#
+# this class provides services for accessing and interpreting the contents of a
+# string ---it is just an alias of DBSpec
+# -----------------------------------------------------------------------------
+class DBVerbatim(DBSpec):
+
+    """
+    this class provides services for accessing and interpreting the contents of
+    a string ---it is just an alias of DBSpec
+    """
+
+    def __init__ (self, data):
+        """
+        decodes the contents given in data
+        """
+
+        # simply invoke the constructor of the base class with the contents
+        # given in data
+        super (DBVerbatim, self).__init__(spec=data)
+
+
+# -----------------------------------------------------------------------------
 # DBFile
 #
 # this class provides services for accessing and interpreting the
@@ -183,21 +206,11 @@ class DBFile(DBSpec):
         decodes the contents of a database specification file
         """
 
-        self._filename = filename
-
         with open (filename) as stream:
 
             # simply invoke the constructor of the base class with the
             # contents of the file
             super (DBFile, self).__init__(spec=stream.read ())
-
-
-    def get_filename (self):
-        """
-        returns the filename of the database specification
-        """
-
-        return self._filename
 
 
 

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 02:40:45 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 06 enero 2014 22:37:04 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -161,18 +161,21 @@ class BotTestCase (object):
     """ % (isolver))
                 raise ValueError
 
-        # verify also that the test cases are accessible as well
-        if (tstfile and (not os.access (tstfile, os.F_OK) or
-                          not os.access (os.path.dirname (tstfile), os.R_OK))):
+        # verify also that the test cases (been given as a str) are accessible
+        # as well
+        if (tstfile and istype (tstfile, str) and
+            (not os.access (tstfile, os.F_OK) or
+             not os.access (os.path.dirname (tstfile), os.R_OK))):
             self._logger.critical ("""
      The test cases specification file does not exist or it resides in an unreachable location
      Use '--help' for more information
     """)
             raise ValueError
 
-        # and also the database specification
-        if (dbfile and (not os.access (dbfile, os.F_OK) or
-                        not os.access (os.path.dirname (dbfile), os.R_OK))):
+        # and perform the same validation with regard to the db file
+        if (dbfile and istype (dbfile, str) and
+            (not os.access (dbfile, os.F_OK) or
+             not os.access (os.path.dirname (dbfile), os.R_OK))):
             self._logger.critical ("""
      The database specification file does not exist or it resides in an unreachable location
      Use '--help' for more information
@@ -770,9 +773,14 @@ class BotTestCase (object):
     # applied in succession each one creating a different database according to
     # the specification in dbfile. All executions refer to the same test cases
     # defined in tstfile and are allotted the same computational resources (time
-    # and memory). The argnamespace is the Namespace of the parser used (which
-    # should be an instance of argparse or None). Other (optional) parameters
-    # are:
+    # and memory). To ease integration with other software, both the db and the
+    # tests specification file can be given in various formats: as a string
+    # (been interpreted as a path to the file to parse); as a verbatim
+    # specification (which is an instance of TstVerbatim/DBVerbatim) or as a
+    # file already parsed (TstFile/DBFile).
+    #
+    # The argnamespace is the Namespace of the parser used (which should be an
+    # instance of argparse or None). Other (optional) parameters are:
     #
     # output - prefix of the output files that capture the standard out and
     #          error
@@ -804,13 +812,18 @@ class BotTestCase (object):
         """
         main service provided by this class. It automates the whole execution
         according to the given parameters. Solver is a list of solvers that are
-        applied in succession each one creating a different database according to
-        the specification in dbfile. All executions refer to the same test cases
-        defined in tstfile and are allotted the same computational resources (time
-        and memory). The argnamespace is the Namespace of the parser used (which
-        should be an instance of argparse or None). Other (optional) parameters
-        are:
-        
+        applied in succession each one creating a different database according
+        to the specification in dbfile. All executions refer to the same test
+        cases defined in tstfile and are allotted the same computational
+        resources (time and memory). To ease integration with other software,
+        both the db and the tests specification file can be given in various
+        formats: as a string (been interpreted as a path to the file to parse);
+        as a verbatim specification (which is an instance of
+        TstVerbatim/DBVerbatim) or as a file already parsed (TstFile/DBFile).
+
+        The argnamespace is the Namespace of the parser used (which should be an
+        instance of argparse or None). Other (optional) parameters are:
+
         output - prefix of the output files that capture the standard out and
                  error
         check - time (in seconds) between successive pings to the executable
@@ -878,13 +891,35 @@ class BotTestCase (object):
             self.show_switches (solver, tstfile, dbfile, time, memory, check,
                                 directory, compress)
 
-        # and now, create the test case and database specifications from their
-        # filenames
-        self._logger.debug (" Parsing the tests specification file ...")
-        self._tstspec = tsttools.TstFile (self._tstfile)
+        # and now, create the test case and database specifications
 
-        self._logger.debug (" Parsing the database specification file ...")
-        self._dbspec  = dbtools.DBFile (self._dbfile)
+        # process the test cases either as a string with a path to the file to
+        # parse or just simply copy the specification in case it was given as a
+        # verbatim string or as a file already parsed
+        if type (self._tstfile) is str:
+            self._logger.debug (" Parsing the tests specification file ...")
+            self._tstspec = tsttools.TstFile (self._tstfile)
+        elif isinstance (self._tstfile, tsttools.TstVerbatim):
+            self._logger.debug (" The test cases were given as a verbatim specification")
+            self._tstspec = self._tstfile
+        elif isinstance (self._tstfile, tsttools.TstFile):
+            self._logger.debug (" The test cases were given as a file already parsed")
+            self._tstspec = self._tstfile
+        else:
+            raise ValueError (" Incorrect specification of the test cases")
+
+        # proceed similarly in case of the database specification file
+        if type (self._dbfile) is str:
+            self._logger.debug (" Parsing the database specification file ...")
+            self._dbspec  = dbtools.DBFile (self._dbfile)
+        elif isinstance (self._dbfile, dbtools.DBVerbatim):
+            self._logger.debug (" The database was given as a verbatim specification")
+            self._dbspec = self._dbfile
+        elif isinstance (self._dbfile, dbtools.DBFile):
+            self._logger.debug (" The database was given as a file already parsed")
+            self._dbspec = self._dbfile
+        else:
+            raise ValueError (" Incorrect specification of the database")
 
         # at last, run the experiments going through every solver
         for isolver in self._solver:
