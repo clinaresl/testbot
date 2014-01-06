@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <lunes, 06 enero 2014 22:37:04 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 06 enero 2014 23:50:14 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -163,7 +163,7 @@ class BotTestCase (object):
 
         # verify also that the test cases (been given as a str) are accessible
         # as well
-        if (tstfile and istype (tstfile, str) and
+        if (tstfile and type (tstfile) is str and
             (not os.access (tstfile, os.F_OK) or
              not os.access (os.path.dirname (tstfile), os.R_OK))):
             self._logger.critical ("""
@@ -173,7 +173,7 @@ class BotTestCase (object):
             raise ValueError
 
         # and perform the same validation with regard to the db file
-        if (dbfile and istype (dbfile, str) and
+        if (dbfile and type (dbfile) is str and
             (not os.access (dbfile, os.F_OK) or
              not os.access (os.path.dirname (dbfile), os.R_OK))):
             self._logger.critical ("""
@@ -769,15 +769,17 @@ class BotTestCase (object):
     # go
     #
     # main service provided by this class. It automates the whole execution
-    # according to the given parameters. Solver is a list of solvers that are
-    # applied in succession each one creating a different database according to
-    # the specification in dbfile. All executions refer to the same test cases
-    # defined in tstfile and are allotted the same computational resources (time
-    # and memory). To ease integration with other software, both the db and the
-    # tests specification file can be given in various formats: as a string
-    # (been interpreted as a path to the file to parse); as a verbatim
-    # specification (which is an instance of TstVerbatim/DBVerbatim) or as a
-    # file already parsed (TstFile/DBFile).
+    # according to the given parameters. Solver is either a list of strings that
+    # contain paths to a number of solvers that are applied in succession or
+    # just a single solver (given also as a string) each one creating a
+    # different database according to the specification in dbfile. All
+    # executions refer to the same test cases defined in tstfile and are
+    # allotted the same computational resources (time and memory). To ease
+    # integration with other software, both the db and the tests specification
+    # file can be given in various formats: as a string (been interpreted as a
+    # path to the file to parse); as a verbatim specification (which is an
+    # instance of TstVerbatim/DBVerbatim) or as a file already parsed
+    # (TstFile/DBFile).
     #
     # The argnamespace is the Namespace of the parser used (which should be an
     # instance of argparse or None). Other (optional) parameters are:
@@ -811,15 +813,17 @@ class BotTestCase (object):
             quiet=False):
         """
         main service provided by this class. It automates the whole execution
-        according to the given parameters. Solver is a list of solvers that are
-        applied in succession each one creating a different database according
-        to the specification in dbfile. All executions refer to the same test
-        cases defined in tstfile and are allotted the same computational
-        resources (time and memory). To ease integration with other software,
-        both the db and the tests specification file can be given in various
-        formats: as a string (been interpreted as a path to the file to parse);
-        as a verbatim specification (which is an instance of
-        TstVerbatim/DBVerbatim) or as a file already parsed (TstFile/DBFile).
+        according to the given parameters. Solver is either a list of strings
+        that contain paths to a number of solvers that are applied in succession
+        or just a single solver (given also as a string) each one creating a
+        different database according to the specification in dbfile. All
+        executions refer to the same test cases defined in tstfile and are
+        allotted the same computational resources (time and memory). To ease
+        integration with other software, both the db and the tests specification
+        file can be given in various formats: as a string (been interpreted as a
+        path to the file to parse); as a verbatim specification (which is an
+        instance of TstVerbatim/DBVerbatim) or as a file already parsed
+        (TstFile/DBFile).
 
         The argnamespace is the Namespace of the parser used (which should be an
         instance of argparse or None). Other (optional) parameters are:
@@ -881,15 +885,12 @@ class BotTestCase (object):
 
         self._logger.debug (" Starting automated execution ...")
 
-        # check that all parameters are valid
-        self.check_flags (solver, tstfile, dbfile, time,
-                          memory, check, directory)
-
-        # and now, unless quiet is enabled, show the flags
-        if (not self._quiet):
-
-            self.show_switches (solver, tstfile, dbfile, time, memory, check,
-                                directory, compress)
+        # make the specification of solvers to be a list of solvers even if just
+        # a single solver was given
+        if type (self._solver) is str:
+            self._solver = [self._solver]
+        if type (self._solver) is not list:
+            raise ValueError (" Incorrect specification of solvers")
 
         # and now, create the test case and database specifications
 
@@ -920,6 +921,16 @@ class BotTestCase (object):
             self._dbspec = self._dbfile
         else:
             raise ValueError (" Incorrect specification of the database")
+
+        # check that all parameters are valid
+        self.check_flags (solver, tstfile, dbfile, time,
+                          memory, check, directory)
+
+        # and now, unless quiet is enabled, show the flags
+        if (not self._quiet):
+
+            self.show_switches (solver, tstfile, dbfile, time, memory, check,
+                                directory, compress)
 
         # at last, run the experiments going through every solver
         for isolver in self._solver:
