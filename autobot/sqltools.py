@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <viernes, 03 enero 2014 19:58:49 Carlos Linares Lopez (clinares)>
+# Last update <martes, 07 enero 2014 23:26:31 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -72,7 +72,7 @@ class sqldb(object):
 
         # connect to this database
         self._conn = sqlite3.connect (dbname)
-        
+
         # and get a cursor
         self._cursor = self._conn.cursor ()
 
@@ -160,7 +160,7 @@ class dbtest(sqldb):
 
         # and now, create the table
         self._cursor.execute (cmdline)
-        
+
 
     def insert_data (self, dbtable, data):
         """
@@ -172,10 +172,11 @@ class dbtest(sqldb):
             # populate the table with the given data
             specline = "?, " * (len (data[0]) - 1)
             cmdline = "INSERT INTO %s VALUES (%s)" % (dbtable.get_name (), specline + '?')
+
             self._cursor.executemany (cmdline, data)
 
 
-        
+
 # Local Variables:
 # mode:python
 # fill-column:80

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <lunes, 06 enero 2014 22:27:49 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 08 enero 2014 16:57:21 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -91,7 +91,7 @@ def partition (string, sep="""\"[^\"]+\"|'[^']+'"""):
         # first item in groups or the first item in rest (which are known to contain
         # items)
         if re.match (groups[0], string):
-            return ([groups[0]] + 
+            return ([groups[0]] +
                     _partition_aux_ (string[len (groups[0]):], groups[1:], rest))
 
         if re.match (rest[0], string):
@@ -105,7 +105,7 @@ def partition (string, sep="""\"[^\"]+\"|'[^']+'"""):
  groups: %s
  rest: %s""" % (string, groups, rest)
         raise ValueError
-        
+
 
     # split the string in two different parts: groups matching the separators
     # and the rest
@@ -148,7 +148,7 @@ class TstIter(object):
 
         return self
 
-    
+
     def next (self):
         """
         returns the current test case
@@ -217,7 +217,7 @@ class TstCase(object):
 
         return self._index
 
-    
+
     def get_args (self):
         """
         returns the definition of this test case
@@ -248,9 +248,9 @@ class TstCase(object):
 
         # take all the occurrences of this directive in the list of arguments
         # along with their position
-        for iL in [jL for jL in zip (range(len(self._args)), self._args) 
+        for iL in [jL for jL in zip (range(len(self._args)), self._args)
                    if re.match ("\-+"+directive+'$', jL[1])]:
-            
+
             # while the next position is not a directive
             nextidx = iL[0]+1
             while (nextidx < len (self._args) and
@@ -279,9 +279,9 @@ class TstCase(object):
 
         # take all the occurrences of all directives in the list of arguments
         # along with their position
-        for iL in [jL for jL in zip (range(len(self._args)), self._args) 
+        for iL in [jL for jL in zip (range(len(self._args)), self._args)
                    if re.match ("\-+", jL[1])]:
-            
+
             # while the next position is not a directive
             nextidx = iL[0]+1
             while (nextidx < len (self._args) and
@@ -326,13 +326,16 @@ class TstSpec(object):
         decodes the contents of a test specification
         """
 
+        # copy the data
+        self.data = spec
+
         # parse the given string
         p = tbparser.VerbatimTBParser ()
         p.run (spec)
 
         # and now, create a TstCase for every command line parsed and qualify
         # them with a string that consits of three digits
-        self._tstdefs = zip (map (lambda x,y:x%y, 
+        self._tstdefs = zip (map (lambda x,y:x%y,
                                   ["%03d"] * len (p.cmds),      # identifiers
                                   range (0, len (p.cmds))),
                              p.cmds)                            # command lines
@@ -384,7 +387,7 @@ class TstSpec(object):
         for every test case
         """
 
-        return [(icase.get_id (), reduce (lambda x,y:x+' '+y, icase.get_args ())) 
+        return [(icase.get_id (), reduce (lambda x,y:x+' '+y, icase.get_args ()))
                 for icase in self._tstdefs]
 
 
@@ -429,6 +432,10 @@ class TstFile(TstSpec):
         decodes the contents of a test specification file
         """
 
+        # store the filename
+        self.filename = filename
+
+        # and now process its contents
         with open (filename) as stream:
 
             # simply invoke the constructor of the base class with the contents

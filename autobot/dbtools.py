@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <lunes, 06 enero 2014 22:28:20 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 08 enero 2014 16:57:27 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -82,7 +82,7 @@ class DBIter(object):
 
         return self
 
-    
+
     def next (self):
         """
         returns the current test case
@@ -119,6 +119,9 @@ class DBSpec(object):
         decodes the contents of a database specification
         """
 
+        # copy the data
+        self.data = spec
+
         # parse the given string
         p = dbparser.VerbatimDBParser ()
         p.run (spec)
@@ -145,7 +148,7 @@ class DBSpec(object):
 
         return DBIter (self)
 
-    
+
     def __len__ (self):
         """
         return the number of data tables in this instance
@@ -206,6 +209,10 @@ class DBFile(DBSpec):
         decodes the contents of a database specification file
         """
 
+        # store the filename
+        self.filename = filename
+
+        # and now process its contents
         with open (filename) as stream:
 
             # simply invoke the constructor of the base class with the

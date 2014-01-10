@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <lunes, 06 enero 2014 23:50:14 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 08 enero 2014 17:45:30 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -130,6 +130,11 @@ class BotTestCase (object):
     # -----------------------------------------------------------------------------
     kill_delay = 5
 
+    # default string used for tst/db files that are passed as verbatim strings
+    # and thus, have no name
+    # -----------------------------------------------------------------------------
+    defaultname = "<processed>"
+
     # regular epression for recognizing pairs (var, val) in the stdout
     # -----------------------------------------------------------------------------
     statregexp = " >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
@@ -159,42 +164,42 @@ class BotTestCase (object):
      The solver '%s' does not exist or it resides in an unreachable location
      Use '--help' for more information
     """ % (isolver))
-                raise ValueError
+                raise ValueError (" The solver is not accessible")
 
         # verify also that the test cases (been given as a str) are accessible
         # as well
-        if (tstfile and type (tstfile) is str and
+        if (tstfile and tstfile != BotTestCase.defaultname and
             (not os.access (tstfile, os.F_OK) or
              not os.access (os.path.dirname (tstfile), os.R_OK))):
             self._logger.critical ("""
      The test cases specification file does not exist or it resides in an unreachable location
      Use '--help' for more information
     """)
-            raise ValueError
+            raise ValueError (" The tests specification file is not accessible")
 
         # and perform the same validation with regard to the db file
-        if (dbfile and type (dbfile) is str and
+        if (dbfile and dbfile != BotTestCase.defaultname and
             (not os.access (dbfile, os.F_OK) or
              not os.access (os.path.dirname (dbfile), os.R_OK))):
             self._logger.critical ("""
      The database specification file does not exist or it resides in an unreachable location
      Use '--help' for more information
     """)
-            raise ValueError
+            raise ValueError (" The database specification file is not accessible")
 
         # verify that check is not negative
         if (check < 0):
             self._logger.critical (" The check flag should be non negative")
-            raise ValueError
+            raise ValueError (" Period between successive pings is negative")
 
         # finally, verify the time and memory bounds
         if (time <= 0):
             self._logger.critical (" The time param shall be positive!")
-            raise ValueError
+            raise ValueError (" Timeout is negative")
 
         if (memory <= 0):
             self._logger.critical (" The memory param shall be positive!")
-            raise ValueError
+            raise ValueError (" Memory allotted is negative")
 
 
     # -----------------------------------------------------------------------------
@@ -654,19 +659,35 @@ class BotTestCase (object):
     #
     # wrapup all the execution performing the last operations
     # -----------------------------------------------------------------------------
-    def wrapup (self, tstfile, dbfile, configdir):
+    def wrapup (self, tstspec, dbspec, configdir):
 
         """
         wrapup all the execution performing the last operations
         """
 
-        # copy the file with all the tests cases to the config dir
-        shutil.copy (tstfile,
-                     os.path.join (configdir, os.path.basename (tstfile)))
+        # copy the file with all the tests cases to the config dir. In case that
+        # an instance already processed was directly given then use default
+        # names for the tb and db files
+        if isinstance (tstspec, tsttools.TstVerbatim):
+            with open (os.path.join (configdir, 'tests.tb'), 'w') as tests:
+                tests.write (tstspec.data)
+
+        elif isinstance (tstspec, tsttools.TstFile):
+            shutil.copy (tstspec.filename,
+                         os.path.join (configdir, os.path.basename (tstspec.filename)))
+        else:
+            raise ValueError (" Incorrect tstspec in wrapup")
 
         # and also the file with the database specification to the config dir
-        shutil.copy (dbfile,
-                     os.path.join (configdir, os.path.basename (dbfile)))
+        if isinstance (dbspec, dbtools.DBVerbatim):
+            with open (os.path.join (configdir, 'database.db'), 'w') as database:
+                database.write (dbspec.data)
+
+        elif isinstance (dbspec, dbtools.DBFile):
+            shutil.copy (dbspec.filename,
+                         os.path.join (configdir, os.path.basename (dbfile.filename)))
+        else:
+            raise ValueError (" Incorrect dbspec in wrapup")
 
 
     # -----------------------------------------------------------------------------
@@ -903,9 +924,11 @@ class BotTestCase (object):
         elif isinstance (self._tstfile, tsttools.TstVerbatim):
             self._logger.debug (" The test cases were given as a verbatim specification")
             self._tstspec = self._tstfile
+            self._tstfile = BotTestCase.defaultname
         elif isinstance (self._tstfile, tsttools.TstFile):
             self._logger.debug (" The test cases were given as a file already parsed")
             self._tstspec = self._tstfile
+            self._tstfile = self._tstfile.filename
         else:
             raise ValueError (" Incorrect specification of the test cases")
 
@@ -916,21 +939,23 @@ class BotTestCase (object):
         elif isinstance (self._dbfile, dbtools.DBVerbatim):
             self._logger.debug (" The database was given as a verbatim specification")
             self._dbspec = self._dbfile
+            self._dbfile = BotTestCase.defaultname
         elif isinstance (self._dbfile, dbtools.DBFile):
             self._logger.debug (" The database was given as a file already parsed")
             self._dbspec = self._dbfile
+            self._dbfile = self._dbfile.filename
         else:
             raise ValueError (" Incorrect specification of the database")
 
         # check that all parameters are valid
-        self.check_flags (solver, tstfile, dbfile, time,
-                          memory, check, directory)
+        self.check_flags (solver, self._tstfile, self._dbfile,
+                          time, memory, check, directory)
 
         # and now, unless quiet is enabled, show the flags
         if (not self._quiet):
 
-            self.show_switches (solver, tstfile, dbfile, time, memory, check,
-                                directory, compress)
+            self.show_switches (solver, self._tstfile, self._dbfile, time, memory,
+                                check, directory, compress)
 
         # at last, run the experiments going through every solver
         for isolver in self._solver:
@@ -970,7 +995,7 @@ class BotTestCase (object):
             self._endtime = datetime.datetime.now ()
 
             # and wrapup
-            self.wrapup (self._tstfile, self._dbfile, configdir)
+            self.wrapup (self._tstspec, self._dbspec, configdir)
 
             # finally, write down all the information to a sqlite3 db
             databasename = os.path.join (self._directory, solvername, solvername)
