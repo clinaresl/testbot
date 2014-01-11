@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <miércoles, 08 enero 2014 17:45:30 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 10 enero 2014 22:01:29 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -161,9 +161,9 @@ class BotTestCase (object):
             if (not os.access (isolver, os.F_OK) or
                 not os.access (os.path.dirname (isolver), os.X_OK)):
                 self._logger.critical ("""
-     The solver '%s' does not exist or it resides in an unreachable location
-     Use '--help' for more information
-    """ % (isolver))
+ The solver '%s' does not exist or it resides in an unreachable location
+ Use '--help' for more information
+""" % isolver)
                 raise ValueError (" The solver is not accessible")
 
         # verify also that the test cases (been given as a str) are accessible
@@ -172,9 +172,9 @@ class BotTestCase (object):
             (not os.access (tstfile, os.F_OK) or
              not os.access (os.path.dirname (tstfile), os.R_OK))):
             self._logger.critical ("""
-     The test cases specification file does not exist or it resides in an unreachable location
-     Use '--help' for more information
-    """)
+ The test cases specification file does not exist or it resides in an unreachable location
+ Use '--help' for more information
+""")
             raise ValueError (" The tests specification file is not accessible")
 
         # and perform the same validation with regard to the db file
@@ -182,9 +182,9 @@ class BotTestCase (object):
             (not os.access (dbfile, os.F_OK) or
              not os.access (os.path.dirname (dbfile), os.R_OK))):
             self._logger.critical ("""
-     The database specification file does not exist or it resides in an unreachable location
-     Use '--help' for more information
-    """)
+ The database specification file does not exist or it resides in an unreachable location
+ Use '--help' for more information
+""")
             raise ValueError (" The database specification file is not accessible")
 
         # verify that check is not negative
@@ -958,6 +958,9 @@ class BotTestCase (object):
                                 check, directory, compress)
 
         # at last, run the experiments going through every solver
+        if not solver:
+            self._logger.warning (" No solver was given")
+
         for isolver in self._solver:
 
             # create an empty dictionary of stats
