@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <domingo, 12 enero 2014 02:32:15 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 12 enero 2014 23:14:30 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -410,7 +410,7 @@ class BotTestCase (object):
                                    dbspec=dbspec, time=time, memory=memory,
                                    output=outputprefix, check=check, basedir=self._directory,
                                    resultsdir=resultsdir, compress=compress,
-                                   placeholders=placeholders)
+                                   placeholders=placeholders, stats=stats)
                 action (self._logger)
 
             # invoke the execution of this test case
@@ -426,7 +426,7 @@ class BotTestCase (object):
                                    dbspec=dbspec, time=time, memory=memory,
                                    output=outputprefix, check=check, basedir=self._directory,
                                    resultsdir=resultsdir, compress=compress,
-                                   placeholders=placeholders)
+                                   placeholders=placeholders, stats=stats)
                 action (self._logger)
 
 
@@ -1027,7 +1027,7 @@ class BotTestCase (object):
                                 time=self._time, memory=self._memory,
                                 check=self._check, basedir=self._directory,
                                 resultsdir=resultsdir, compress=self._compress,
-                                placeholders=placeholders)
+                                placeholders=placeholders, stats=istats)
                 action (self._logger)
 
             # record the start time
@@ -1063,7 +1063,7 @@ class BotTestCase (object):
                 if not itable.datap () and not itable.sysp ():
                     self.insert_data (databasename, itable, istats[itable.get_name ()])
 
-            # user data and sys data
+            # populate user, data and sys tables
             for itable in self._dbspec:
                 if itable.datap () or itable.sysp ():
                     self.insert_data (databasename, itable, istats[itable.get_name ()])
@@ -1075,7 +1075,7 @@ class BotTestCase (object):
                                  time=self._time, memory=self._memory,
                                  check=self._check, basedir=self._directory,
                                  resultsdir=resultsdir, compress=self._compress,
-                                 placeholders=placeholders)
+                                 placeholders=placeholders, stats=istats)
                 action (self._logger)
 
         self._logger.debug (" Exiting from the automated execution ...")

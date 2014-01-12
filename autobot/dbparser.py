@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <viernes, 03 enero 2014 19:59:14 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 12 enero 2014 23:05:58 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -222,7 +222,8 @@ class DBTable:
 
     def sysp (self):
         """
-        returns True if this is a sys table
+        returns True if this is a sys table, ie., those that contain system
+        information that is computed at every ping
         """
 
         return self._name[0:4] == 'sys_'
@@ -230,10 +231,21 @@ class DBTable:
 
     def datap (self):
         """
-        returns True if this is a data table
+        returns True if this is a data table, ie., those that contain
+        information that is stored once a particular test case has been given to
+        a solver
         """
 
         return self._name[0:5] == 'data_'
+
+
+    def userp (self):
+        """
+        returns True if this is a user table, ie., a table that is filled
+        programatically by the client code of autobot
+        """
+
+        return self._name[0:5] == 'user_'
 
 
     def execute_action (self, column):
@@ -444,9 +456,9 @@ class DBParser :
         t.value = int (t.value[1:])
         return t
 
-    # tableid: a correct name for tables (either sys_ or data_)
+    # tableid: a correct name for tables (either sys_, data_ or user_)
     def t_TABLEID (self, t):
-        r'(sys\_|data\_)[a-zA-Z_][a-zA-Z_0-9]*'
+        r'(sys\_|data\_|user\_)[a-zA-Z_][a-zA-Z_0-9]*'
         return t
 
     # The following rule distinguishes automatically between reserved words and
