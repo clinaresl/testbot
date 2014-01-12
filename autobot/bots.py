@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <viernes, 10 enero 2014 22:01:29 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 12 enero 2014 02:32:15 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -74,39 +74,61 @@ import tsttools                 # test specification files
 # -----------------------------------------------------------------------------
 # BotAction
 #
-# It is feasible to invoke a prologue and an epilogue before and after every
-# invocation of the executable in the BotTestCase. To enable further flexibility
-# these actions are implemented as subclasses of BotAction which have to
-# implement __call__. If these functions are provided then the corresponding
-# subclass is invoked with all the variables that define the current environment
-# of the execution: solver, tstspec, itest, dbspec, time, memory, output (with
-# its placeholders substituted), check, resultsdir, compress and placeholders
+# autbot receives an arbitrary selection of solvers and test cases (the former
+# is given in the command line while the latter is specified in a test
+# specification file). With these input data it implements the following
+# execution flow: once a planner has been selected it first invokes an *enter*
+# action before executing the planner over the first test case and it invokes a
+# *windUp* action after the current solver has been applied over all test
+# cases. Similary, a *prologue* action is invoked before the execution of any
+# solver over any test case and an *epilogue* action is invoked immediately
+# after.
+#
+# To allow further flexibility these actions are implemented as subclasses of
+# BotAction which have to implement __call__. If these functions are provided
+# then the corresponding subclass is invoked with all the variables that define
+# the current environment of the execution. In general, any attributes can be
+# inhereted but the following attributes are considered for enter/windUp
+# actions: solver, tstspec, dbspec, time, memory, check, basedir, resultsdir,
+# compress and placeholders. For prologue/epilogue actions the following are
+# implemented: solver, tstspec, itest, dbspec, time, memory, output (with its
+# placeholders substituted), check, basedir, resultsdir, compress and
+# placeholders
 # -----------------------------------------------------------------------------
 class BotAction (object):
     """
-    It is feasible to invoke a prologue and an epilogue before and after every
-    invocation of the executable in the BotTestCase. To enable further
-    flexibility these actions are implemented as subclasses of BotAction which
-    have to implement __call__. If these functions are provided then the
-    corresponding subclass is invoked with all the variables that define the
-    current environment of the execution: solver, tstspec, itest, dbspec, time,
-    memory, output (with its placeholders substituted), check, resultsdir,
+    autbot receives an arbitrary selection of solvers and test cases (the former
+    is given in the command line while the latter is specified in a test
+    specification file). With these input data it implements the following
+    execution flow: once a planner has been selected it first invokes an *enter*
+    action before executing the planner over the first test case and it invokes
+    a *windUp* action after the current solver has been applied over all test
+    cases. Similary, a *prologue* action is invoked before the execution of any
+    solver over any test case and an *epilogue* action is invoked immediately
+    after.
+
+    To allow further flexibility these actions are implemented as subclasses of
+    BotAction which have to implement __call__. If these functions are provided
+    then the corresponding subclass is invoked with all the variables that
+    define the current environment of the execution. In general, any attributes
+    can be inhereted but the following attributes are considered for
+    enter/windUp actions: solver, tstspec, dbspec, time, memory, check, basedir,
+    resultsdir, compress and placeholders. For prologue/epilogue actions the
+    following are implemented: solver, tstspec, itest, dbspec, time, memory,
+    output (with its placeholders substituted), check, basedir, resultsdir,
     compress and placeholders
     """
 
-    def __init__ (self, solver, tstspec, itest, dbspec, time, memory, output,
-                  check, resultsdir, compress, placeholders):
+    def __init__ (self, **kws):
         """
-        stores the values of all variables that define the current environment
+        stores the values of all the given keywords in kws as attributes of this
+        class
         """
 
-        # copy the attributes
-        (self.solver, self.tstspec, self.itest, self.dbspec, self.time,
-         self.memory, self.output, self.check, self.resultsdir,
-         self.compress, self.placeholders) = \
-        (solver, tstspec, itest, dbspec, time,
-         memory, output, check, resultsdir,
-         compress, placeholders)
+        # set the attributes of this class according to the dictionary given in
+        # kws
+        for k in kws:
+            setattr (self, k, kws[k])
 
 
     def __call__(self, itest):
@@ -384,9 +406,11 @@ class BotTestCase (object):
 
             # if a prologue was given, execute it now
             if prologue:
-                action = prologue (solver, tstspec, itst, dbspec, time,
-                                   memory, outputprefix, check, resultsdir,
-                                   compress, placeholders)
+                action = prologue (solver=solver, tstspec=tstspec, itest=itst,
+                                   dbspec=dbspec, time=time, memory=memory,
+                                   output=outputprefix, check=check, basedir=self._directory,
+                                   resultsdir=resultsdir, compress=compress,
+                                   placeholders=placeholders)
                 action (self._logger)
 
             # invoke the execution of this test case
@@ -398,9 +422,11 @@ class BotTestCase (object):
 
             # finally, if an epilogue was given, execute it now
             if epilogue:
-                action = epilogue (solver, tstspec, itst, dbspec, time,
-                                   memory, outputprefix, check, resultsdir,
-                                   compress, placeholders)
+                action = epilogue (solver=solver, tstspec=tstspec, itest=itst,
+                                   dbspec=dbspec, time=time, memory=memory,
+                                   output=outputprefix, check=check, basedir=self._directory,
+                                   resultsdir=resultsdir, compress=compress,
+                                   placeholders=placeholders)
                 action (self._logger)
 
 
@@ -826,12 +852,16 @@ class BotTestCase (object):
     #            case. This class should be a subclass of BotAction so that it
     #            automatically inherits the same attributes described in
     #            prologue
+    # enter - much like prologue but __call__ is automatically invoked before
+    #         the execution of the solver over the first test case
+    # windUp - much like epilogue but __call__ is automatically invoked after
+    #          the execution of the current solver with the last test instance
     # quiet - if given, some additional information is skipped
     # -----------------------------------------------------------------------------
     def go (self, solver, tstfile, dbfile, time, memory, argnamespace=None,
             output='$index', check=5, directory=os.getcwd (), compress=False,
             logger=None, logfilter=None, prologue=None, epilogue=None,
-            quiet=False):
+            enter=None, windUp=None, quiet=False):
         """
         main service provided by this class. It automates the whole execution
         according to the given parameters. Solver is either a list of strings
@@ -870,6 +900,10 @@ class BotTestCase (object):
                    case. This class should be a subclass of BotAction so that it
                    automatically inherits the same attributes described in
                    prologue
+        enter - much like prologue but __call__ is automatically invoked before
+                the execution of the solver over the first test case
+        windUp - much like epilogue but __call__ is automatically invoked after
+                 the execution of the current solver with the last test instance
         quiet - if given, some additional information is skipped
         """
 
@@ -986,6 +1020,16 @@ class BotTestCase (object):
             # write all the log information in the logdir
             self.fetch (logdir)
 
+            # in case it is requested to execute an *enter* action do it now
+            # if a prologue was given, execute it now
+            if enter:
+                action = enter (solver=isolver, tstspec=self._tstspec, dbspec=self._dbspec,
+                                time=self._time, memory=self._memory,
+                                check=self._check, basedir=self._directory,
+                                resultsdir=resultsdir, compress=self._compress,
+                                placeholders=placeholders)
+                action (self._logger)
+
             # record the start time
             self._starttime = datetime.datetime.now ()
 
@@ -1023,6 +1067,16 @@ class BotTestCase (object):
             for itable in self._dbspec:
                 if itable.datap () or itable.sysp ():
                     self.insert_data (databasename, itable, istats[itable.get_name ()])
+
+            # similarly to *enter*, in case a *windUp* action is given, execute
+            # it now before moving to the next solver
+            if windUp:
+                action = windUp (solver=isolver, tstspec=self._tstspec, dbspec=self._dbspec,
+                                 time=self._time, memory=self._memory,
+                                 check=self._check, basedir=self._directory,
+                                 resultsdir=resultsdir, compress=self._compress,
+                                 placeholders=placeholders)
+                action (self._logger)
 
         self._logger.debug (" Exiting from the automated execution ...")
 
