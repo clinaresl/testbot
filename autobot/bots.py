@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <domingo, 12 enero 2014 23:14:30 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 13 enero 2014 22:06:41 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -89,9 +89,9 @@ import tsttools                 # test specification files
 # then the corresponding subclass is invoked with all the variables that define
 # the current environment of the execution. In general, any attributes can be
 # inhereted but the following attributes are considered for enter/windUp
-# actions: solver, tstspec, dbspec, time, memory, check, basedir, resultsdir,
+# actions: solver, tstspec, dbspec, timeout, memory, check, basedir, resultsdir,
 # compress and placeholders. For prologue/epilogue actions the following are
-# implemented: solver, tstspec, itest, dbspec, time, memory, output (with its
+# implemented: solver, tstspec, itest, dbspec, timeout, memory, output (with its
 # placeholders substituted), check, basedir, resultsdir, compress and
 # placeholders
 # -----------------------------------------------------------------------------
@@ -112,11 +112,11 @@ class BotAction (object):
     then the corresponding subclass is invoked with all the variables that
     define the current environment of the execution. In general, any attributes
     can be inhereted but the following attributes are considered for
-    enter/windUp actions: solver, tstspec, dbspec, time, memory, check, basedir,
-    resultsdir, compress and placeholders. For prologue/epilogue actions the
-    following are implemented: solver, tstspec, itest, dbspec, time, memory,
-    output (with its placeholders substituted), check, basedir, resultsdir,
-    compress and placeholders
+    enter/windUp actions: solver, tstspec, dbspec, timeout, memory, check,
+    basedir, resultsdir, compress and placeholders. For prologue/epilogue
+    actions the following are implemented: solver, tstspec, itest, dbspec,
+    timeout, memory, output (with its placeholders substituted), check, basedir,
+    resultsdir, compress and placeholders
     """
 
     def __init__ (self, **kws):
@@ -171,7 +171,7 @@ class BotTestCase (object):
     #
     # check the parameters given to the automated execution of this instance
     # -----------------------------------------------------------------------------
-    def check_flags (self, solver, tstfile, dbfile, time, memory, check, directory):
+    def check_flags (self, solver, tstfile, dbfile, timeout, memory, check, directory):
 
         """
         check the parameters given to the automated execution of this instance
@@ -214,9 +214,9 @@ class BotTestCase (object):
             self._logger.critical (" The check flag should be non negative")
             raise ValueError (" Period between successive pings is negative")
 
-        # finally, verify the time and memory bounds
-        if (time <= 0):
-            self._logger.critical (" The time param shall be positive!")
+        # finally, verify the timeout and memory bounds
+        if (timeout <= 0):
+            self._logger.critical (" The timeout param shall be positive!")
             raise ValueError (" Timeout is negative")
 
         if (memory <= 0):
@@ -229,7 +229,7 @@ class BotTestCase (object):
     #
     # show a somehow beautified view of the current params
     # -----------------------------------------------------------------------------
-    def show_switches (self, solver, tstfile, dbfile, time, memory, check, directory, compress):
+    def show_switches (self, solver, tstfile, dbfile, timeout, memory, check, directory, compress):
 
         """
         show a somehow beautified view of the current params
@@ -251,7 +251,7 @@ class BotTestCase (object):
   * Compression          : %s
   * Time limit           : %i seconds
   * Memory bound         : %i bytes
- -----------------------------------------------------------------------------""" % (__revision__[1:-1], __date__[1:-2], __version__, solvernames, tstfile, dbfile, check, directory, {False: 'disabled', True: 'enabled'}[compress], time, memory))
+ -----------------------------------------------------------------------------""" % (__revision__[1:-1], __date__[1:-2], __version__, solvernames, tstfile, dbfile, check, directory, {False: 'disabled', True: 'enabled'}[compress], timeout, memory))
 
 
     # -----------------------------------------------------------------------------
@@ -341,7 +341,7 @@ class BotTestCase (object):
     #
     # invokes the execution of the given solver *in the same directory where it
     # resides* for solving all cases specified in 'tstspec' using the allotted
-    # time and memory. The results are stored in 'resultsdir'; the solver is
+    # timeout and memory. The results are stored in 'resultsdir'; the solver is
     # sampled every 'check' seconds and different stats are stored in
     # 'stats'. Output files are named after 'output' and variable substitutions
     # specified in mainplaceholders are allwoed. 'dbspec' contains the database
@@ -350,12 +350,12 @@ class BotTestCase (object):
     # is invoked before/after the execution of the solver with regard to every
     # test case
     # -----------------------------------------------------------------------------
-    def test (self, solver, tstspec, dbspec, time, memory, output, check,
+    def test (self, solver, tstspec, dbspec, timeout, memory, output, check,
               resultsdir, compress, mainplaceholders, stats, prologue, epilogue):
         """
         invokes the execution of the given solver *in the same directory where
         it resides* for solving all cases specified in 'tstspec' using the
-        allotted time and memory. The results are stored in 'resultsdir'; the
+        allotted timeout and memory. The results are stored in 'resultsdir'; the
         solver is sampled every 'check' seconds and different stats are stored
         in 'stats'. Output files are named after 'output' and variable
         substitutions specified in mainplaceholders are allwoed. 'dbspec'
@@ -382,11 +382,11 @@ class BotTestCase (object):
         # now, for each test case
         for itst in tstspec:
 
-            # initialize the dictionary with the value of the placeholders
-            placeholders = {'index'   : itst.get_id (),
-                            'name'    : os.path.basename (solver),
-                            'date'    : datetime.datetime.now ().strftime ("%Y-%m-%d"),
-                            'time'    : datetime.datetime.now ().strftime ("%H:%M:%S")}
+            # initialize the dictionary with the value of some placeholders
+            placeholders = {'index'       : itst.get_id (),
+                            'name'        : os.path.basename (solver),
+                            'date'        : datetime.datetime.now ().strftime ("%Y-%m-%d"),
+                            'time'        : datetime.datetime.now ().strftime ("%H:%M:%S")}
 
             # and now, add the values of all the directives in this testcase and
             # all the arguments given to the main script
@@ -404,29 +404,36 @@ class BotTestCase (object):
             # if any was given there
             outputprefix = _sub (output, placeholders)
 
-            # if a prologue was given, execute it now
+            # if a prologue was given, execute it now passing all parameters
+            # (including the start run time which is computed right now)
+            startruntime=time.time ()
             if prologue:
                 action = prologue (solver=solver, tstspec=tstspec, itest=itst,
-                                   dbspec=dbspec, time=time, memory=memory,
+                                   dbspec=dbspec, timeout=timeout, memory=memory,
                                    output=outputprefix, check=check, basedir=self._directory,
                                    resultsdir=resultsdir, compress=compress,
-                                   placeholders=placeholders, stats=stats)
+                                   placeholders=placeholders, stats=stats,
+                                   startruntime=startruntime)
                 action (self._logger)
 
-            # invoke the execution of this test case
+            # invoke the execution of this test case and record the start run
+            # time and end run time
             self._logger.info ('\t%s' % itst)
+
             self.run (os.path.abspath (solver), resultsdir,
                       itst.get_id (), itst.get_args (), dbspec,
                       outputprefix, placeholders,
-                      stats, check, time, memory, compress)
+                      stats, check, timeout, memory, compress)
 
-            # finally, if an epilogue was given, execute it now
+            # finally, if an epilogue was given, execute it now passing by also
+            # the end run time
             if epilogue:
                 action = epilogue (solver=solver, tstspec=tstspec, itest=itst,
-                                   dbspec=dbspec, time=time, memory=memory,
+                                   dbspec=dbspec, timeout=timeout, memory=memory,
                                    output=outputprefix, check=check, basedir=self._directory,
                                    resultsdir=resultsdir, compress=compress,
-                                   placeholders=placeholders, stats=stats)
+                                   placeholders=placeholders, stats=stats,
+                                   startruntime=startruntime, endruntime=time.time ())
                 action (self._logger)
 
 
@@ -821,7 +828,7 @@ class BotTestCase (object):
     # just a single solver (given also as a string) each one creating a
     # different database according to the specification in dbfile. All
     # executions refer to the same test cases defined in tstfile and are
-    # allotted the same computational resources (time and memory). To ease
+    # allotted the same computational resources (timeout and memory). To ease
     # integration with other software, both the db and the tests specification
     # file can be given in various formats: as a string (been interpreted as a
     # path to the file to parse); as a verbatim specification (which is an
@@ -845,7 +852,7 @@ class BotTestCase (object):
     #            invoked before every execution of the solver with every test
     #            case. This class should be a subclass of BotAction so that it
     #            automatically inherits the following attributes: solver,
-    #            tstspec, itest, dbspec, time, memory, output, check,
+    #            tstspec, itest, dbspec, timeout, memory, output, check,
     #            resultsdir, compress, placeholders
     # epilogue - if a class is provided here then __call__ () is automatically
     #            invoked after every execution of the solver with every test
@@ -858,7 +865,7 @@ class BotTestCase (object):
     #          the execution of the current solver with the last test instance
     # quiet - if given, some additional information is skipped
     # -----------------------------------------------------------------------------
-    def go (self, solver, tstfile, dbfile, time, memory, argnamespace=None,
+    def go (self, solver, tstfile, dbfile, timeout, memory, argnamespace=None,
             output='$index', check=5, directory=os.getcwd (), compress=False,
             logger=None, logfilter=None, prologue=None, epilogue=None,
             enter=None, windUp=None, quiet=False):
@@ -869,7 +876,7 @@ class BotTestCase (object):
         or just a single solver (given also as a string) each one creating a
         different database according to the specification in dbfile. All
         executions refer to the same test cases defined in tstfile and are
-        allotted the same computational resources (time and memory). To ease
+        allotted the same computational resources (timeout and memory). To ease
         integration with other software, both the db and the tests specification
         file can be given in various formats: as a string (been interpreted as a
         path to the file to parse); as a verbatim specification (which is an
@@ -893,7 +900,7 @@ class BotTestCase (object):
                    invoked before every execution of the solver with every test
                    case. This class should be a subclass of BotAction so that it
                    automatically inherits the following attributes: solver,
-                   tstspec, itest, dbspec, time, memory, output, check,
+                   tstspec, itest, dbspec, timeout, memory, output, check,
                    resultsdir, compress, placeholders
         epilogue - if a class is provided here then __call__ () is automatically
                    invoked after every execution of the solver with every test
@@ -908,10 +915,10 @@ class BotTestCase (object):
         """
 
         # copy the attributes
-        (self._solver, self._tstfile, self._dbfile, self._time, self._memory,
+        (self._solver, self._tstfile, self._dbfile, self._timeout, self._memory,
          self._output, self._check, self._directory, self._compress,
          self._quiet) = \
-         (solver, tstfile, dbfile, time, memory,
+         (solver, tstfile, dbfile, timeout, memory,
           output, check, directory, compress,
           quiet)
 
@@ -983,12 +990,12 @@ class BotTestCase (object):
 
         # check that all parameters are valid
         self.check_flags (solver, self._tstfile, self._dbfile,
-                          time, memory, check, directory)
+                          timeout, memory, check, directory)
 
         # and now, unless quiet is enabled, show the flags
         if (not self._quiet):
 
-            self.show_switches (solver, self._tstfile, self._dbfile, time, memory,
+            self.show_switches (solver, self._tstfile, self._dbfile, timeout, memory,
                                 check, directory, compress)
 
         # at last, run the experiments going through every solver
@@ -1024,7 +1031,7 @@ class BotTestCase (object):
             # if a prologue was given, execute it now
             if enter:
                 action = enter (solver=isolver, tstspec=self._tstspec, dbspec=self._dbspec,
-                                time=self._time, memory=self._memory,
+                                timeout=self._timeout, memory=self._memory,
                                 check=self._check, basedir=self._directory,
                                 resultsdir=resultsdir, compress=self._compress,
                                 placeholders=placeholders, stats=istats)
@@ -1034,7 +1041,7 @@ class BotTestCase (object):
             self._starttime = datetime.datetime.now ()
 
             # now, invoke the execution of all tests with this solver
-            self.test (isolver, self._tstspec, self._dbspec, self._time, self._memory,
+            self.test (isolver, self._tstspec, self._dbspec, self._timeout, self._memory,
                        self._output, self._check, resultsdir, self._compress,
                        placeholders, istats, prologue, epilogue)
 
@@ -1051,28 +1058,22 @@ class BotTestCase (object):
             # admin tables are not populated using the poll method in every
             # dbtable. Instead, their contents are inserted manually in either
             # "run" or here
-            istats ['admin_params'] = [(isolver, self._tstfile, self._dbfile, self._check, self._time, self._memory)]
+            istats ['admin_params'] = [(isolver, self._tstfile, self._dbfile, self._check, self._timeout, self._memory)]
             istats ['admin_tests'] = self._tstspec.get_defs ()
             istats ['admin_time'] = [(self._starttime, self._endtime,
                                       (self._endtime - self._starttime).total_seconds ())]
             istats ['admin_version'] = [('autobot', __version__, __revision__[1:-1], __date__ [1:-1])]
 
-            # now, create and populate all the admin datatables
+            # now, create the admin tables and populate all data tables
             self.create_admin_tables ()
             for itable in self._dbspec:
-                if not itable.datap () and not itable.sysp ():
-                    self.insert_data (databasename, itable, istats[itable.get_name ()])
-
-            # populate user, data and sys tables
-            for itable in self._dbspec:
-                if itable.datap () or itable.sysp ():
-                    self.insert_data (databasename, itable, istats[itable.get_name ()])
+                self.insert_data (databasename, itable, istats[itable.get_name ()])
 
             # similarly to *enter*, in case a *windUp* action is given, execute
             # it now before moving to the next solver
             if windUp:
                 action = windUp (solver=isolver, tstspec=self._tstspec, dbspec=self._dbspec,
-                                 time=self._time, memory=self._memory,
+                                 timeout=self._timeout, memory=self._memory,
                                  check=self._check, basedir=self._directory,
                                  resultsdir=resultsdir, compress=self._compress,
                                  placeholders=placeholders, stats=istats)
