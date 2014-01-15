@@ -30,34 +30,34 @@ autobot parses two input files:
 
   In particular, the db language recognizes the following variables:
 
-    + Sys variables: these variables are computed at every cycle
-    (i.e., immediately after the underlying process is pinged). 
+	+ Sys variables: these variables are computed at every cycle
+	(i.e., immediately after the underlying process is pinged). 
 
-    They are preceded by the character `:`
+	They are preceded by the character `:`
 
-    + Data variables: strings (either single or doubled quoted just in
-    case they contain blank characters) that are matched in the
-    standard output of the process. In case they are found the value
-    appearing immediately after is used as its value. 
+	+ Data variables: strings (either single or doubled quoted just in
+	case they contain blank characters) that are matched in the
+	standard output of the process. In case they are found the value
+	appearing immediately after is used as its value. 
 
-    They are preceded by the character `?`
+	They are preceded by the character `?`
 
-    + Directive variables: the value of any directive passed to the
-    executable (which are specified in the test specification
-    file). 
+	+ Directive variables: the value of any directive passed to the
+	executable (which are specified in the test specification
+	file). 
 
-    They are preceded by the character `@`
+	They are preceded by the character `@`
 
-    + File variables: strings (either single or doubled quoted just in
-    case they contain blank characters) that identify files whose
-    contents are copied as their value.
+	+ File variables: strings (either single or doubled quoted just in
+	case they contain blank characters) that identify files whose
+	contents are copied as their value.
 
-    They are preceded by the character `<`
+	They are preceded by the character `<`
 
-    + Main variables: the value of any directive passed to the testbot
-    script.
+	+ Main variables: the value of any directive passed to the testbot
+	script.
 
-    They are preceded by the character `_`
+	They are preceded by the character `_`
 
 Autobot accepts an arbitrary selection of *solvers* specified with
 regular expressions. This is useful to compare algorithms. Every
@@ -107,9 +107,8 @@ Other optional parameters that affect the behaviour of testbot are:
 
 * output: prefix used in the name of the files that record the
   standard output and standard error of every execution. Placeholders
-  can be used.
-
-  To see a comprehensive list of the available placeholders type:
+  can be used. To see a comprehensive list of the available
+  placeholders type:
 
     $ testbot.py --show-placeholders
 
