@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <lunes, 13 enero 2014 22:06:41 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 15 enero 2014 23:03:47 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -718,7 +718,7 @@ class BotTestCase (object):
 
         elif isinstance (dbspec, dbtools.DBFile):
             shutil.copy (dbspec.filename,
-                         os.path.join (configdir, os.path.basename (dbfile.filename)))
+                         os.path.join (configdir, os.path.basename (dbspec.filename)))
         else:
             raise ValueError (" Incorrect dbspec in wrapup")
 

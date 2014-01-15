@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <lunes, 06 enero 2014 22:43:25 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 15 enero 2014 23:00:27 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -163,7 +163,6 @@ class TestBot (BotTestCase):
                  output=self.args.output, check=self.args.check,
                  directory=self.args.directory, compress=self.args.bz2,
                  logger=self.logger, logfilter=ContextFilter (),
-                 prologue = Prologue, epilogue= Epilogue,
                  quiet=self.args.quiet)
 
 
@@ -175,68 +174,7 @@ class TestBot (BotTestCase):
 
         self.logger.debug (" Exiting from the testbot ...")
 
-
-
-class Prologue (BotAction):
-    """
-    Bot Action to be executed before every invocation of the solver with every
-    test case
-    """
-
-    def __call__ (self, logger):
-        """
-        Method invoked before the execution of the solver with regard to every
-        test case. It automatically inherits the values of the following
-        attributes: solver, tstspec, itest, dbspec, time, memory, output, check,
-        resultsdir, compress and placeholders (which is a dictionary with all
-        variables used for filling the database)
-        """
-
-        childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
-        childlogger.addFilter (ContextFilter ())
-        childlogger.debug (""" Prologue:
- * solver      : %s
- * itest       : %s
- * time        : %d seconds
- * memory      : %d bytes
- * output      : %s
- * check       : %d seconds
- * resultsdir  : %s
- * compress    : %s
- * placeholders: %s
-""" % (self.solver, self.itest, self.time, self.memory, self.output, self.check, self.resultsdir, self.compress, self.placeholders))
-
-
-class Epilogue (BotAction):
-    """
-    Bot Action to be executed after every invocation of the solver with every
-    test case
-    """
-
-    def __call__ (self, logger):
-        """
-        Method invoked before the execution of the solver with regard to every
-        test case. It automatically inherits the values of the following
-        attributes: solver, tstspec, itest, dbspec, time, memory, output, check,
-        resultsdir, compress and placeholders (which is a dictionary with all
-        variables used for filling the database)
-        """
-
-        childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
-        childlogger.addFilter (ContextFilter ())
-        childlogger.debug (""" Epilogue:
- * solver      : %s
- * itest       : %s
- * time        : %d seconds
- * memory      : %d bytes
- * output      : %s
- * check       : %d seconds
- * resultsdir  : %s
- * compress    : %s
- * placeholders: %s
-""" % (self.solver, self.itest, self.time, self.memory, self.output, self.check, self.resultsdir, self.compress, self.placeholders))
-
-
+        
 
 # main
 # -----------------------------------------------------------------------------

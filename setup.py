@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <domingo, 05 enero 2014 01:27:28 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 15 enero 2014 23:02:22 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -80,7 +80,7 @@ setup(name='testbot',
       platforms=['Linux'],
       url='http://www.plg.inf.uc3m.es/~clinares/investigacion.php',
       description='automates the tests of (hopefully) any executable under Linux OSs',
-      long_description=read ('README'),
+      long_description=read ('README.md'),
       packages = ['autobot'],
       scripts = ['scripts/testbot.py'],
       requires = ['ply (>=3.4)'],

@@ -1,7 +1,7 @@
 testbot Version 2.0
 
-Introduction
-============
+
+# Introduction #
 
 testbot is a Python package that aids in the automated execution of
 (hopefully) any executable under OSs that provide a /proc
@@ -34,8 +34,8 @@ executable generates a different sqlite3 database that can be used
 later to access data or to plot figures directly (e.g., using
 pipelines in gnuplot).
 
-How to use
-==========
+
+# How to use #
 
 The simplest usage of autobot is exemplified with the script
 testbot. It takes the following mandatory arguments:
@@ -72,14 +72,14 @@ services or to test whether the db/tb files are correctly parsed.
 
 This information can be accessed with:
 
-$ testbot.py --help
+    $ testbot.py --help
 
 Configuration files are provided under examples/ For instance, try:
 
-$ testbot.py --solver examples/solvers/eperimeter 
---test examples/tests/8puzzle.tb 
---db examples/db/example.db 
---timeout 5 --memory 2 --check 0 --bz2
+    $ testbot.py --solver examples/solvers/eperimeter 
+    --test examples/tests/8puzzle.tb 
+    --db examples/db/example.db 
+    --timeout 5 --memory 2 --check 0 --bz2
 
 and examine the contents of the directory eperimeter/ just created
 
@@ -87,15 +87,13 @@ Further information is offered at the User's Manual and the
 Programmer's Guide of testbot
 
 
-Requirements
-============
+# Requirements #
 
 autobot requires PLY 3.4 or greater. It is currently designed for
 Python 2.7.
 
 
-License
-========
+# License #
 
 testbot is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -111,8 +109,6 @@ You should have received a copy of the GNU General Public License
 along with testbot.  If not, see <http://www.gnu.org/licenses/>.
 
 
-Author
-======
+# Author #
 
-Carlos Linares Lopez
-carlos.linares@uc3m.es
+Carlos Linares Lopez <carlos.linares@uc3m.es>
