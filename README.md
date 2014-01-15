@@ -26,9 +26,8 @@ autobot parses two input files:
   as a result of the experimentation. These tables can contain a bunch
   of data including data retrieved from the standard output generated
   by the executable or other particular data accessed by other Python
-  modules.
-
-  In particular, the db language recognizes the following variables:
+  modules. In particular, the db language recognizes the following
+  variables:
 
 	+ Sys variables: these variables are computed at every cycle
 	(i.e., immediately after the underlying process is pinged). 
