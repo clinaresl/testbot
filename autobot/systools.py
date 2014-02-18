@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 09:26:14 2011 Carlos Linares Lopez>
-# Last update <viernes, 03 enero 2014 19:58:37 Carlos Linares Lopez (clinares)>
+# Last update <martes, 18 febrero 2014 15:37:51 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: systools.py 306 2011-11-11 22:25:37Z clinares                        $
@@ -86,11 +86,11 @@ def read_processes (pgrp):
     """
 
     # compute the list of processes currently running in the system
-    processes = [Process (int (filename)) for filename in os.listdir ("/proc") 
+    processes = [Process (int (filename)) for filename in os.listdir ("/proc")
                  if filename.isdigit ()]
 
     # initialize a dictionary that maps every pgrp selected to the process ids
-    # that belong to it 
+    # that belong to it
     pgrps = defaultdict (set)
     pgrps[pgrp] = set ()        # annotate this pgrp for further tracking
 
@@ -115,7 +115,7 @@ def read_processes (pgrp):
     # finally, filter the original list of processes and retain only those whose
     # pgrp has been selected. Take care to remove the process whose pid=pgrp
     # since that the testbot itself
-    return filter (lambda iprocess:iprocess.pgrp in pgrps and iprocess.pid != pgrp, 
+    return filter (lambda iprocess:iprocess.pgrp in pgrps and iprocess.pid != pgrp,
                    processes)
 
 
@@ -137,7 +137,8 @@ class Process(object):
         identified by its process id (PID) in the :file:`/proc` filesystem. The
         parameters read are the following: ppid, pgrp, utime, stime, cutime,
         cstime, num_threads and vsize. For a comprehensive description of this
-        parameters see ``man /proc``
+        parameters see ``man /proc`` In case that these files cannot be
+        accessed, it returns immediately with a pid, ppid and pgrp equal to -1
 
         It also processes the entries in the /proc/<pid>/fd and stat its
         contents in the form of instances of FileInfo
@@ -148,16 +149,16 @@ class Process(object):
 
         # avoid race conditions by verifying that there is still information
         # available about this process
-        if (not os.path.exists ("/proc/%d/stat" % pid) or
-            not os.path.exists ("/proc/%d/cmdline" % pid)):
+        try:
+            stat = open("/proc/%d/stat" % pid).read()
+            cmdline = open("/proc/%d/cmdline" % pid).read()
 
+        except:
+            
             self.pid = self.ppid = self.pgrp = -1
             self.cmdline = '<Invalid cmdline>'
 
             return
-
-        stat = open("/proc/%d/stat" % pid).read()
-        cmdline = open("/proc/%d/cmdline" % pid).read()
 
         # Don't use stat.split(): the command can contain spaces
         # Be careful which "()" to match: the command name can contain
@@ -222,7 +223,7 @@ class Process(object):
         """
         returns the start time of this process
         """
-        
+
         return self.pid
 
 
@@ -238,7 +239,7 @@ class Process(object):
         """
         returns the start time of this process
         """
-        
+
         return self.starttime
 
 
@@ -246,7 +247,7 @@ class Process(object):
         """
         returns the end time of this process
         """
-        
+
         return self.endtime
 
 
@@ -254,7 +255,7 @@ class Process(object):
         """
         sets the end time of this process
         """
-        
+
         self.endtime = value
 
 
@@ -333,7 +334,7 @@ class ProcessGroup(object):
 
           In [3]: group.pids ()
           Out[3]: [3075]
-          
+
         :returns: list of ints
         """
 
@@ -357,10 +358,10 @@ class ProcessGroup(object):
 
         :returns: int
         """
-        
+
         total_jiffies = sum([p.total_time() for p in self.processes])
         return total_jiffies / float(JIFFIES_PER_SECOND)
-                
+
     def total_vsize(self):
         """
         cumulated virtual memory for this process group, in MB
@@ -378,7 +379,7 @@ class ProcessGroup(object):
 
         :returns: int
         """
-        
+
         total_bytes = sum([p.vsize for p in self.processes])
         return total_bytes / float(2 ** 20)
 
@@ -458,14 +459,14 @@ class ProcessTimeline(object):
         # time of the processes. Its accuracy depends on the number of times
         # that the services of this class are invoked
         currtime = time.time ()
-        
+
         # for all processes currently in the timeline that are not in the other
         # process group and whose end time is not set, specify their end time
         oldprocs = filter (lambda x:x not in other.get_processes () and x.get_end_time () < 0,
                            self.processes)
         for iproc in oldprocs:
             iproc.set_end_time (currtime)
-            
+
         # second, add to this timeline all processes in the other process group:
         # those appearing in both places are inserted in this timeline in order
         # to record the latest instance so that they are removed first in the
@@ -545,16 +546,16 @@ class ProcessTimeline(object):
         """
         cumulated CPU time for all processes in this timeline
         """
-        
+
         total_jiffies = sum([p.total_time() for p in self.processes])
         return total_jiffies / float(JIFFIES_PER_SECOND)
-                
-                
+
+
     def total_vsize(self):
         """
         cumulated virtual memory for all processes in this timeline, in MB
         """
-        
+
         total_bytes = sum([p.vsize for p in self.processes])
         return total_bytes / float(2 ** 20)
 
@@ -585,7 +586,7 @@ class ProcessTimeline(object):
                  iproc.get_cmdline (),
                  str (datetime.datetime.fromtimestamp (iproc.get_start_time ())),
                  str (datetime.datetime.fromtimestamp (iproc.get_end_time ())),
-                 iproc.get_end_time () - iproc.get_start_time ()] 
+                 iproc.get_end_time () - iproc.get_start_time ()]
                 for iproc in self.processes]
 
 
