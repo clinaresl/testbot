@@ -115,8 +115,10 @@ def read_processes (pgrp):
     # finally, filter the original list of processes and retain only those whose
     # pgrp has been selected. Take care to remove the process whose pid=pgrp
     # since that the testbot itself
-    return filter (lambda iprocess:iprocess.pgrp in pgrps and iprocess.pid != pgrp,
-                   processes)
+    #return filter (lambda iprocess:iprocess.pgrp in pgrps and iprocess.pid != pgrp, processes)
+    # atorralba: Changed to address issue #20. Now, the testbot itself is in
+    # another process group, so the group leader must not be removed. 
+    return filter (lambda iprocess:iprocess.pgrp in pgrps, processes)
 
 
 # -----------------------------------------------------------------------------

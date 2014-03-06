@@ -558,11 +558,16 @@ class BotTestCase (object):
                                        0666))
 
             # create the child and record its process identifier
+            # atorralba: Added parameter preexec_fn=os.setsid to address issue
+            # #20. This ensures the execution of os.setsid after fork() so that
+            # the new process has its own process group and it is not anymore in
+            # the same process group than invokeplanner
             try:
                 child = subprocess.Popen ([solver] + spec,
                                           stdout = fdlog,
                                           stderr = fderr,
-                                          cwd=os.path.dirname (solver))
+                                          cwd=os.path.dirname (solver), 
+                                          preexec_fn=os.setsid)
             except OSError:
                 self._logger.critical (" OSError raised when invoking the subprocess")
                 raise OSError
