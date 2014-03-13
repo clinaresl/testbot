@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <domingo, 12 enero 2014 23:05:58 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 12 marzo 2014 16:04:22 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -269,12 +269,12 @@ class DBTable:
         return None
 
 
-    def poll (self, D):
+    def poll (self, N):
         """
-        returns a tuple of values according to the definition of
-        columns of this table and the values specified in D. In case
-        the value requested for a particular column is not found, the
-        specified action is executed.
+        returns a tuple of values according to the definition of columns of this
+        table and the values specified in namespace N. In case the value
+        requested for a particular column is not found, the specified action is
+        executed.
         """
 
         def _neutral (ctype):
@@ -312,7 +312,7 @@ class DBTable:
 
             # in case the variable requested for this column is not
             # available, ...
-            if icolumn.get_variable () not in D:
+            if icolumn.get_variable () not in N:
 
                 # then execute the specified action
                 value = self.execute_action (icolumn)
@@ -323,7 +323,7 @@ class DBTable:
 
             # otherwise
             else:
-                t += (_cast_value (icolumn.get_type (), D[icolumn.get_variable ()]),)
+                t += (_cast_value (icolumn.get_type (), N[icolumn.get_variable ()]),)
 
         # and finally return the tuple
         return t
