@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <jueves, 13 marzo 2014 23:42:43 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 14 marzo 2014 18:42:58 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -158,7 +158,8 @@ class BotTestCase (object):
     # namespaces - a common place to exchange data in the form of single and
     # multi key attributes
     # -----------------------------------------------------------------------------
-    _namespace = namespace.Namespace ()
+    _namespace = namespace.Namespace ()         # internal to the autobot
+    _user      = namespace.Namespace ()         # external to the autobot
 
     # -----------------------------------------------------------------------------
     # check_flags
@@ -431,7 +432,8 @@ class BotTestCase (object):
                                    dbspec=dbspec, timeout=timeout, memory=memory,
                                    output=outputprefix, check=check, basedir=self._directory,
                                    resultsdir=resultsdir, compress=compress,
-                                   namespace=BotTestCase._namespace, stats=stats,
+                                   namespace=BotTestCase._namespace,
+                                   user=BotTestCase._user, stats=stats,
                                    startruntime=startruntime)
                 action (self._logger)
 
@@ -439,17 +441,11 @@ class BotTestCase (object):
             # time and end run time
             self._logger.info ('\t%s' % itst)
 
-            self._logger.info (" Contents of the namespace before execution: ")
-            print BotTestCase._namespace
-
             self.run_single_case (os.path.abspath (solver), resultsdir,
                                   itst.get_id (), itst.get_args (),
                                   dbspec, outputprefix, stats, check,
                                   timeout, memory, compress)
 
-            self._logger.info (" Contents of the namespace after execution: ")
-            print BotTestCase._namespace
-            
             # finally, if an epilogue was given, execute it now passing by also
             # the end run time
             if epilogue:
@@ -457,7 +453,8 @@ class BotTestCase (object):
                                    dbspec=dbspec, timeout=timeout, memory=memory,
                                    output=outputprefix, check=check, basedir=self._directory,
                                    resultsdir=resultsdir, compress=compress,
-                                   namespace=BotTestCase._namespace, stats=stats,
+                                   namespace=BotTestCase._namespace,
+                                   user=BotTestCase._user, stats=stats,
                                    startruntime=startruntime, endruntime=time.time ())
                 action (self._logger)
 
@@ -1058,7 +1055,8 @@ class BotTestCase (object):
                                 timeout=self._timeout, memory=self._memory,
                                 check=self._check, basedir=self._directory,
                                 resultsdir=resultsdir, compress=self._compress,
-                                namespace=BotTestCase._namespace, stats=istats)
+                                namespace=BotTestCase._namespace,
+                                user=BotTestCase._user, stats=istats)
                 action (self._logger)
 
             # record the start time
@@ -1101,7 +1099,8 @@ class BotTestCase (object):
                                  timeout=self._timeout, memory=self._memory,
                                  check=self._check, basedir=self._directory,
                                  resultsdir=resultsdir, compress=self._compress,
-                                 namespace=BotTestCase._namespace, stats=istats)
+                                 namespace=BotTestCase._namespace,
+                                 user=BotTestCase._user, stats=istats)
                 action (self._logger)
 
         self._logger.debug (" Exiting from the automated execution ...")
