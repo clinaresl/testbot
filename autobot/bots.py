@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <sábado, 15 marzo 2014 16:15:43 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 15 marzo 2014 22:21:01 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -384,7 +384,7 @@ class BotTestCase (object):
 
             # and return the result now return result
             return result
-        
+
 
         # now, for each test case
         for itst in self._tstspec:
@@ -1067,12 +1067,18 @@ class BotTestCase (object):
             # in case it is requested to execute an *enter* action do it now
             # if a prologue was given, execute it now
             if enter:
-                action = enter (solver=isolver, tstspec=self._tstspec, dbspec=self._dbspec,
-                                timeout=self._timeout, memory=self._memory,
-                                check=self._check, basedir=self._directory,
-                                resultsdir=resultsdir, compress=self._compress,
+                action = enter (solver=isolver,
+                                tstspec=self._tstspec,
+                                dbspec=self._dbspec,
+                                timeout=self._timeout,
+                                memory=self._memory,
+                                check=self._check,
+                                basedir=self._directory,
+                                resultsdir=resultsdir,
+                                compress=self._compress,
                                 namespace=BotTestCase._namespace,
-                                user=BotTestCase._user, stats=istats)
+                                user=BotTestCase._user,
+                                stats=istats)
                 action (self._logger)
 
             # record the start time
@@ -1108,12 +1114,18 @@ class BotTestCase (object):
             # similarly to *enter*, in case a *windUp* action is given, execute
             # it now before moving to the next solver
             if windUp:
-                action = windUp (solver=isolver, tstspec=self._tstspec, dbspec=self._dbspec,
-                                 timeout=self._timeout, memory=self._memory,
-                                 check=self._check, basedir=self._directory,
-                                 resultsdir=resultsdir, compress=self._compress,
+                action = windUp (solver=isolver,
+                                 tstspec=self._tstspec,
+                                 dbspec=self._dbspec,
+                                 timeout=self._timeout,
+                                 memory=self._memory,
+                                 check=self._check,
+                                 basedir=self._directory,
+                                 resultsdir=resultsdir,
+                                 compress=self._compress,
                                  namespace=BotTestCase._namespace,
-                                 user=BotTestCase._user, stats=istats)
+                                 user=BotTestCase._user,
+                                 stats=istats)
                 action (self._logger)
 
         self._logger.debug (" Exiting from the automated execution ...")
