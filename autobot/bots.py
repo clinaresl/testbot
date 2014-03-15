@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <viernes, 14 marzo 2014 18:42:58 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 15 marzo 2014 16:15:43 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -335,31 +335,33 @@ class BotTestCase (object):
     # run_all_cases
     #
     # invokes the execution of the given solver *in the same directory where it
-    # resides* for solving all cases specified in 'tstspec' using the allotted
-    # timeout and memory. The results are stored in 'resultsdir'; the solver is
-    # sampled every 'check' seconds and different stats are stored in
-    # 'stats'. Output files are named after 'output' and variable substitutions
-    # specified in the current namespace are allowed. 'dbspec' contains the
-    # database specification used to store different data. If a
-    # prologue/epilogue is given (they should be a subclass of BotAction ) then
-    # its __call__ method is invoked before/after the execution of the solver
-    # with regard to every test case
+    # resides* for solving all cases specified in the current test specification
+    # using the allotted timeout and memory. The results are stored in
+    # 'resultsdir' and different stats are stored in 'stats'.
+    #
+    # This method computes the name given to all the output files which are
+    # named after the given user specifcation where variable substitutions
+    # specified in the current namespace are allowed.
+    #
+    # If a prologue/epilogue is given (they should be a subclass of BotAction )
+    # then its __call__ method is invoked before/after the execution of the
+    # solver with every test case
     # -----------------------------------------------------------------------------
-    def run_all_cases (self, solver, tstspec, dbspec, timeout, memory, output, check,
-                       resultsdir, compress, stats, prologue, epilogue):
+    def run_all_cases (self, solver, resultsdir, stats):
         """
         invokes the execution of the given solver *in the same directory where
-        it resides* for solving all cases specified in 'tstspec' using the
-        allotted timeout and memory. The results are stored in 'resultsdir'; the
-        solver is sampled every 'check' seconds and different stats are stored
-        in 'stats'. Output files are named after 'output' and variable
-        substitutions specified in the current namespace are allowed. 'dbspec'
-        contains the database specification used to store different data. If a
-        prologue/epilogue is given (they should be a subclass of BotAction )
-        then its __call__ method is invoked before/after the execution of the
-        solver with regard to every test case
-        """
+        it resides* for solving all cases specified in the current test
+        specification using the allotted timeout and memory. The results are
+        stored in 'resultsdir' and different stats are stored in 'stats'.
 
+        This method computes the name given to all the output files which are
+        named after the given user specifcation where variable substitutions
+        specified in the current namespace are allowed.
+
+        If a prologue/epilogue is given (they should be a subclass of BotAction
+        ) then its __call__ method is invoked before/after the execution of the
+        solver with every test case
+        """
         def _sub (string):
             """
             substitute in string the ocurrence of every keyword in the namespace
@@ -377,17 +379,15 @@ class BotTestCase (object):
             for ikey in [jkey for jkey in BotTestCase._namespace
                          if not isinstance (BotTestCase._namespace [jkey], dict)]:
 
-                # consider performing the substitution in case the value is a
-                # string, otherwise just ignore it
-                if type (BotTestCase._namespace [ikey]) == str:
-                    result = re.sub ('\$' + ikey, BotTestCase._namespace [ikey], result)
+                # perform the substitution enforcing the type of value to be str
+                result = re.sub ('\$' + ikey, str (BotTestCase._namespace [ikey]), result)
 
-            # and return the result now
+            # and return the result now return result
             return result
-
+        
 
         # now, for each test case
-        for itst in tstspec:
+        for itst in self._tstspec:
 
             # initialize the contents of the namespace
             BotTestCase._namespace.clear ()
@@ -422,73 +422,85 @@ class BotTestCase (object):
 
             # compute the right name of the output file using the information in
             # the current namespace
-            outputprefix = _sub (output)
+            outputprefix = _sub (self._output)
 
             # if a prologue was given, execute it now passing all parameters
             # (including the start run time which is computed right now)
             startruntime=time.time ()
-            if prologue:
-                action = prologue (solver=solver, tstspec=tstspec, itest=itst,
-                                   dbspec=dbspec, timeout=timeout, memory=memory,
-                                   output=outputprefix, check=check, basedir=self._directory,
-                                   resultsdir=resultsdir, compress=compress,
-                                   namespace=BotTestCase._namespace,
-                                   user=BotTestCase._user, stats=stats,
-                                   startruntime=startruntime)
+            if self._prologue:
+                action = self._prologue (solver=solver,
+                                         tstspec=self._tstspec,
+                                         itest=itst,
+                                         dbspec=self._dbspec,
+                                         timeout=self._timeout,
+                                         memory=self._memory,
+                                         output=outputprefix,
+                                         check=self._check,
+                                         basedir=self._directory,
+                                         resultsdir=resultsdir,
+                                         compress=self._compress,
+                                         namespace=BotTestCase._namespace,
+                                         user=BotTestCase._user,
+                                         stats=stats,
+                                         startruntime=startruntime)
                 action (self._logger)
 
             # invoke the execution of this test case and record the start run
             # time and end run time
             self._logger.info ('\t%s' % itst)
-
-            self.run_single_case (os.path.abspath (solver), resultsdir,
-                                  itst.get_id (), itst.get_args (),
-                                  dbspec, outputprefix, stats, check,
-                                  timeout, memory, compress)
+            self.run_single_case (os.path.abspath (solver),
+                                  resultsdir, itst, outputprefix, stats)
 
             # finally, if an epilogue was given, execute it now passing by also
             # the end run time
-            if epilogue:
-                action = epilogue (solver=solver, tstspec=tstspec, itest=itst,
-                                   dbspec=dbspec, timeout=timeout, memory=memory,
-                                   output=outputprefix, check=check, basedir=self._directory,
-                                   resultsdir=resultsdir, compress=compress,
-                                   namespace=BotTestCase._namespace,
-                                   user=BotTestCase._user, stats=stats,
-                                   startruntime=startruntime, endruntime=time.time ())
+            if self._epilogue:
+                action = self._epilogue (solver=solver,
+                                         tstspec=self._tstspec,
+                                         itest=itst,
+                                         dbspec=self._dbspec,
+                                         timeout=self._timeout,
+                                         memory=self._memory,
+                                         output=outputprefix,
+                                         check=self._check,
+                                         basedir=self._directory,
+                                         resultsdir=resultsdir,
+                                         compress=self._compress,
+                                         namespace=BotTestCase._namespace,
+                                         user=BotTestCase._user,
+                                         stats=stats,
+                                         startruntime=startruntime,
+                                         endruntime=time.time ())
                 action (self._logger)
 
 
     # -----------------------------------------------------------------------------
     # run_single_case
     #
-    # executes the specified 'solver' *in the same directory where it resides*
-    # (this is fairly convenient in case the solver needs additional input files
-    # which are then extracted from a directory relative to the current
-    # location) for solving the particular test case (qualified by index). It
-    # copies the stdout and stderr of the solver in files named after output
-    # (plus either .log or .err) which are then moved to the specified results
-    # directory. The forked process is pinged every 'check' seconds and it is
-    # launched with computational resources 'timeout' and 'memory'. 'dbspec'
-    # contains the database specification used to store sys and data information
-    # where the current namespace specify the variable substitutions to be
-    # performed
+    # executes the specified 'solver' (qualified with its full path) *in the
+    # same directory where it resides* (this is fairly convenient in case the
+    # solver needs additional input files which are then extracted from a
+    # directory relative to the current location) for solving the particular
+    # test case qualified by itst. It copies the stdout and stderr of the solver
+    # in files named after output (plus either .log or .err) which are then
+    # moved to the specified results directory 'resultsdir'. The data generated
+    # is stored in 'stats'
+    #
+    # The forked process is pinged every 'check' seconds and it is launched with
+    # computational resources 'timeout' and 'memory'
     # -----------------------------------------------------------------------------
-    def run_single_case (self, solver, resultsdir, index, spec, dbspec, output, stats,
-                         check, timeout, memory, compress):
-
+    def run_single_case (self, solver, resultsdir, itst, output, stats):
         """
-        executes the specified 'solver' *in the same directory where it resides*
-        (this is fairly convenient in case the solver needs additional input
-        files which are then extracted from a directory relative to the current
-        location) for solving the particular test case (qualified by index). It
-        copies the stdout and stderr of the solver in files named after output
-        (plus either .log or .err) which are then moved to the specified results
-        directory. The forked process is pinged every 'check' seconds and it is
-        launched with computational resources 'timeout' and 'memory'. 'dbspec'
-        contains the database specification used to store sys and data
-        information where the current namespace specify the variable
-        substitutions to be performed
+        executes the specified 'solver' (qualified with its full path) *in the
+        same directory where it resides* (this is fairly convenient in case the
+        solver needs additional input files which are then extracted from a
+        directory relative to the current location) for solving the particular
+        test case qualified by itst. It copies the stdout and stderr of the
+        solver in files named after output (plus either .log or .err) which are
+        then moved to the specified results directory 'resultsdir'. The data
+        generated is stored in 'stats'
+
+        The forked process is pinged every 'check' seconds and it is launched
+        with computational resources 'timeout' and 'memory'
         """
 
         def _bz2 (filename, remove=False):
@@ -538,7 +550,7 @@ class BotTestCase (object):
             # the new process has its own process group and it is not anymore in
             # the same process group than invokeplanner
             try:
-                child = subprocess.Popen ([solver] + spec,
+                child = subprocess.Popen ([solver] + itst.get_args (),
                                           stdout = fdlog,
                                           stderr = fderr,
                                           cwd=os.path.dirname (solver),
@@ -563,7 +575,7 @@ class BotTestCase (object):
 
             while True:
 
-                time.sleep(check)
+                time.sleep(self._check)
 
                 # get info of all the processes executed with the process group id
                 # of the child and its children and add them to the timeline
@@ -593,7 +605,7 @@ class BotTestCase (object):
                 BotTestCase._namespace.numthreads = timeline.total_threads ()
 
                 # poll all sys tables with information from the namespace
-                for itable in dbspec:
+                for itable in self._dbspec:
                     if itable.sysp ():
                         stats [itable.get_name ()].append (itable.poll (BotTestCase._namespace))
 
@@ -601,12 +613,12 @@ class BotTestCase (object):
                 max_mem = max (max_mem, total_vsize)
 
                 # decide whether to kill the group or not
-                try_term = (total_time > timeout or
-                            real_time >= 1.5 * timeout or
-                            max_mem > memory)
-                try_kill = (total_time > timeout + self.kill_delay or
-                            real_time >= 1.5 * timeout + self.kill_delay or
-                            max_mem > memory)
+                try_term = (total_time > self._timeout or
+                            real_time >= 1.5 * self._timeout or
+                            max_mem > self._memory)
+                try_kill = (total_time > self._timeout + self.kill_delay or
+                            real_time >= 1.5 * self._timeout + self.kill_delay or
+                            max_mem > self._memory)
 
                 if try_term and not term_attempted:
                     self._logger.debug (""" aborting children with SIGTERM ...
@@ -619,7 +631,7 @@ class BotTestCase (object):
                     timeline.terminate ()
 
             # record the exit status of this process
-            stats ['admin_status'].append ((index, status))
+            stats ['admin_status'].append ((itst.get_id (), status))
 
             # Even if we got here, there may be orphaned children or something we
             # may have missed due to a race condition. Check for that and kill
@@ -630,11 +642,11 @@ class BotTestCase (object):
 
             # add the timeline of this execution to the stats
             stats ['admin_timeline'] += (map (lambda x,y:tuple (x+y),
-                                              [[index]]*len (timeline.get_processes ()),
+                                              [[itst.get_id ()]]*len (timeline.get_processes ()),
                                               timeline.get_processes ()))
 
             # process the contents of the standard output
-            self.process_results (os.getcwd (), output + ".log", dbspec, stats)
+            self.process_results (os.getcwd (), output + ".log", stats)
 
             # once it has been processed move the .log and .err files to the results
             # directory
@@ -645,7 +657,7 @@ class BotTestCase (object):
 
                 # first, if compression was explicitly requested, then proceed to
                 # compress data
-                if (compress):
+                if (self._compress):
                     self._logger.debug (" Compressing the contents of file '%s'" % ifilename)
 
                     _bz2 (ifilename, remove=True)
@@ -670,21 +682,25 @@ class BotTestCase (object):
     # -----------------------------------------------------------------------------
     # process_results
     #
-    # it processes the given resultsfile (which is expected to have the standard
-    # output of the process) which resides at the given directory and updates
-    # the dictionary stats with the value of all variables found in all the data
-    # tables in dbspec (either appearing in the standard output file or the
-    # contents of files). This is done by updating the current namespace and
-    # then invoking the 'poll' method in every data table
+    # it processes the standard output generated by the executable which is
+    # saved in 'resultsfile' at the given 'directory' and updates the dictionary
+    # 'stats' with the value of all variables found in the current database
+    # specification (either appearing in the standard output file or the
+    # contents of files).
+    #
+    # This is done by updating the current namespace and then invoking the
+    # 'poll' method in every data table
     # -----------------------------------------------------------------------------
-    def process_results (self, directory, resultsfile, dbspec, stats):
+    def process_results (self, directory, resultsfile, stats):
         """
-        it processes the given resultsfile (which is expected to have the
-        standard output of the process) which resides at the given directory and
-        updates the dictionary stats with the value of all variables found in
-        all the data tables in dbspec (either appearing in the standard output
-        file or the contents of files). This is done by updating the current
-        namespace and then invoking the 'poll' method in every data table
+        it processes the standard output generated by the executable which is
+        saved in 'resultsfile' at the given 'directory' and updates the
+        dictionary 'stats' with the value of all variables found in the current
+        database specification (either appearing in the standard output file or
+        the contents of files).
+
+        This is done by updating the current namespace and then invoking the
+        'poll' method in every data table
         """
 
         # populate the namespace with the information retrieved from the
@@ -705,14 +721,14 @@ class BotTestCase (object):
 
         # also, populate the current namespace with the contents of files if
         # requested by any database table
-        for itable in [jtable for jtable in dbspec if jtable.datap ()]:
+        for itable in [jtable for jtable in self._dbspec if jtable.datap ()]:
             for icolumn in [jcolumn for jcolumn in itable if jcolumn.get_vartype () == 'FILEVAR']:
                 with open (icolumn.get_variable (), 'r') as stream:
                     BotTestCase._namespace [icolumn.get_variable ()] = stream.read ()
 
         # now, compute the next row to write in all the data tables, if any with
         # information from the namespace
-        for itable in dbspec:
+        for itable in self._dbspec:
             if itable.datap ():
                 stats [itable.get_name ()].append (itable.poll (BotTestCase._namespace))
 
@@ -947,10 +963,10 @@ class BotTestCase (object):
         # copy the attributes
         (self._solver, self._tstfile, self._dbfile, self._timeout, self._memory,
          self._argnamespace, self._output, self._check, self._directory, self._compress,
-         self._quiet) = \
+         self._prologue, self._epilogue, self._quiet) = \
          (solver, tstfile, dbfile, timeout, memory,
           argnamespace, output, check, directory, compress,
-          quiet)
+          prologue, epilogue, quiet)
 
         # logger settings - if a logger has been passed, just create a child of
         # it
@@ -1063,10 +1079,7 @@ class BotTestCase (object):
             self._starttime = datetime.datetime.now ()
 
             # now, invoke the execution of all tests with this solver
-            self.run_all_cases (isolver, self._tstspec, self._dbspec,
-                                self._timeout, self._memory,
-                                self._output, self._check, resultsdir, self._compress,
-                                istats, prologue, epilogue)
+            self.run_all_cases (isolver, resultsdir, istats)
 
             # record the end time of this solver
             self._endtime = datetime.datetime.now ()
