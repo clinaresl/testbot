@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <sábado, 15 marzo 2014 22:21:01 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 12 junio 2014 01:29:41 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -156,10 +156,14 @@ class BotTestCase (object):
     _loglevel = logging.INFO            # default logging level
 
     # namespaces - a common place to exchange data in the form of single and
-    # multi key attributes
+    # multi key attributes. The following namespaces are mapped (in the
+    # comments) with the type of variables recognized by the dbparser (see
+    # dbparser.py)
     # -----------------------------------------------------------------------------
-    _namespace = namespace.Namespace ()         # internal to the autobot
-    _user      = namespace.Namespace ()         # external to the autobot
+    _namespace = namespace.Namespace ()         # sysvar, go params
+    _data      = namespace.Namespace ()         # datavar, filevar
+    _user      = namespace.Namespace ()         # mainvar
+    _param     = namespace.Namespace ()         # param, dirvar
 
     # -----------------------------------------------------------------------------
     # check_flags
@@ -594,7 +598,7 @@ class BotTestCase (object):
 
                 # get some stats such as total cpu time, memory, ...
                 total_time = timeline.total_time()
-                total_vsize = timeline.total_vsize()
+                total_vsize = group.total_vsize()
                 num_processes = timeline.total_processes ()
                 num_threads = timeline.total_threads ()
 

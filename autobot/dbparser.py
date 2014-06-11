@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <miércoles, 12 marzo 2014 16:04:22 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 17 marzo 2014 15:25:46 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -124,12 +124,12 @@ class DBColumn:
 # -----------------------------------------------------------------------------
 # DBTableIter
 #
-# returns an iterator of all the columns in the given table
+# returns an iterator over all columns of the given table
 # -----------------------------------------------------------------------------
 class DBTableIter(object):
 
     """
-    returns an iterator of all the columns in the given table
+    returns an iterator over all columns of the given table
     """
 
     def __init__ (self, dbtable):
@@ -308,7 +308,7 @@ class DBTable:
         t=()
 
         # for all columns in this table
-        for icolumn in self._columns:
+        for icolumn in self:
 
             # in case the variable requested for this column is not
             # available, ...
@@ -450,7 +450,8 @@ class DBParser :
         return t
 
     # param: any number preceded by the dollar sign. They stand for the
-    # particular parameter passed to the solver
+    # particular parameter passed to the solver identified by its
+    # location. Examples are $0, $1, ...
     def t_PARAM (self, t):
         r"\$\d+"
         t.value = int (t.value[1:])
