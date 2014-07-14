@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <jueves, 12 junio 2014 01:29:41 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 14 julio 2014 15:33:50 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -79,8 +79,8 @@ import pdb
 # autbot receives an arbitrary selection of solvers and test cases (the former
 # is given in the command line while the latter is specified in a test
 # specification file). With these input data it implements the following
-# execution flow: once a planner has been selected it first invokes an *enter*
-# action before executing the planner over the first test case and it invokes a
+# execution flow: once a solver has been selected it first invokes an *enter*
+# action before executing the solver over the first test case and it invokes a
 # *windUp* action after the current solver has been applied over all test
 # cases. Similary, a *prologue* action is invoked before the execution of any
 # solver over any test case and an *epilogue* action is invoked immediately
@@ -96,9 +96,9 @@ class BotAction (object):
     autbot receives an arbitrary selection of solvers and test cases (the former
     is given in the command line while the latter is specified in a test
     specification file). With these input data it implements the following
-    execution flow: once a planner has been selected it first invokes an *enter*
-    action before executing the planner over the first test case and it invokes
-    a *windUp* action after the current solver has been applied over all test
+    execution flow: once a solver has been selected it first invokes an *enter*
+    action before executing the solver over the first test case and it invokes a
+    *windUp* action after the current solver has been applied over all test
     cases. Similary, a *prologue* action is invoked before the execution of any
     solver over any test case and an *epilogue* action is invoked immediately
     after.
@@ -129,13 +129,11 @@ class BotAction (object):
 # -----------------------------------------------------------------------------
 # BotTestCase
 #
-# Base class of all testbots. This class is equipped with an argument
-# parser that can be reused/extended
+# Base class of all testbots
 # -----------------------------------------------------------------------------
 class BotTestCase (object):
     """
-    Base class of all testbots. This class is equipped with an
-    argument parser that can be reused/extended
+    Base class of all testbots
     """
 
     # how long to wait between SIGTERM and SIGKILL
@@ -159,10 +157,70 @@ class BotTestCase (object):
     # multi key attributes. The following namespaces are mapped (in the
     # comments) with the type of variables recognized by the dbparser (see
     # dbparser.py)
+    #
+    # the purpose of every namespace is described below:
+    #
+    # * namespace: denoted also as the main namespace. It contains sys
+    #              information and main variables
+    # * data: It contains datavar and filevar
+    # * user: this namespace is never used by autobot and it is created only for
+    #         user specifics
+    # * param: it stores param and dirvar
+    #
+    # These namespaces automatically use the different variables (most of them
+    # defined in the dbparser) whose purpose is defined below:
+    #
+    # * sysvar: these are variables computed by autobot at every cycle of the
+    #           execution of the solver. Every 'check' seconds the new contents
+    #           of these variables is computed
+    #
+    # * mainvar: these are the flags given to the main script using autobot
+    #            (ie., testbot) These variables can be used to create a template
+    #            for the 'output' file
+    #
+    # * datavar: data processed from the stdout of the executable. These data is
+    #            retrieved using different regular expressions and they are
+    #            processed only once after the execution of the solver over
+    #            every test case
+    #
+    # * filevar: these variables are given as filenames whose value are the
+    #            contents of the file
+    #
+    # * param: these are the flags given to the executable. They are retrieved
+    #          from the specification of the current test case under execution
+    #
+    # * dirvar: these are also the flags given to the executable but they are
+    #           named after their position
+    #
+    # to make these relationships more apparent, the variables given in the
+    # database specification file can be preceded by a prefix that provide
+    # information abou the namespace they are written to:
+    #
+    # type of variable   prefix
+    # -----------------+-----------
+    # sysvar           | 'sys.'
+    # datavar          | 'data.'
+    # dirvar           | 'dir.'
+    # filevar          | 'file.'
+    # mainvar          | "main.'
+    # param            | 'param.'
+    # -----------------+-----------
+    #
+    # so that namespaces are filled with information with the following prefixes
+    #
+    # namespace   preffixes
+    # ----------+-----------------
+    # namespace | sysvar mainvar
+    # data      | datavar filevar
+    # user      | --
+    # param     | param, dirvar
+    # ----------+-----------------
+    #
+    # This association is implemented in the poll method of the dbparser
     # -----------------------------------------------------------------------------
-    _namespace = namespace.Namespace ()         # sysvar, go params
+    _namespace = namespace.Namespace ()         # sysvar, mainvar
     _data      = namespace.Namespace ()         # datavar, filevar
-    _user      = namespace.Namespace ()         # mainvar
+    _user      = namespace.Namespace ()         # user space
     _param     = namespace.Namespace ()         # param, dirvar
 
     # -----------------------------------------------------------------------------
@@ -374,6 +432,10 @@ class BotTestCase (object):
             str. Similar to Template.substitute but it also allows the
             substitution of strings which do not follow the convention of python
             variable names
+
+            Of course, other namespaces can be used but _sub is used only to
+            compute the name of the output file so that only static information
+            is used
             """
 
             result = string                                 # initialization
@@ -393,27 +455,37 @@ class BotTestCase (object):
         # now, for each test case
         for itst in self._tstspec:
 
-            # initialize the contents of the namespace
+            # initialize the contents of the main namespace and also the data
+            # namespace
             BotTestCase._namespace.clear ()
+            BotTestCase._data.clear ()
 
             # initialize the namespace with the parameters passed to the main
-            # script. These are given in self._argnamespace. Since the argparser
-            # automatically casts type according to their type field, they are
-            # all converted into strings here to allow a uniform treatment
+            # script (ie., the testbot), mainvars. These are given in
+            # self._argnamespace. Since the argparser automatically casts type
+            # according to their type field, they are all converted into strings
+            # here to allow a uniform treatment
             if self._argnamespace:
                 for index, value in self._argnamespace.__dict__.items ():
                     BotTestCase._namespace [index] = str (value)
 
-            # initialize the namespace with the value of some single attributes
+            # initialize the namespace with the value of some sysvar attributes
+            # (thse are catalogued as sysvar though they are not computed at
+            # every cycle of the execution of the solver)
             BotTestCase._namespace.index = itst.get_id ()
             BotTestCase._namespace.name  = os.path.basename (solver)
             BotTestCase._namespace.date  = datetime.datetime.now ().strftime ("%Y-%m-%d")
             BotTestCase._namespace.time  = datetime.datetime.now ().strftime ("%H:%M:%S")
 
-            # and now, add the values of all the directives in this testcase and
-            # all the arguments given to the main script
+            # compute the right name of the output file using the information in
+            # the current namespace
+            outputprefix = _sub (self._output)
+
+            # and now, add the values of all the directives in this testcase in
+            # the namespace param. These are automatically casted to string for
+            # the convenience of other functions
             for idirective, ivalue in itst.get_values ().items ():
-                BotTestCase._namespace [idirective] = str (ivalue)
+                BotTestCase._param [idirective] = str (ivalue)
 
             # and also with the position of every argument (so that $1 can be
             # interpreted as the first parameter, $2 as the second, and so on)
@@ -421,12 +493,8 @@ class BotTestCase (object):
             # convenience of other functions
             counter = 0
             for iarg in itst.get_args ():
-                BotTestCase._namespace [str (counter)] = str (iarg)
+                BotTestCase._param [str (counter)] = str (iarg)
                 counter += 1
-
-            # compute the right name of the output file using the information in
-            # the current namespace
-            outputprefix = _sub (self._output)
 
             # if a prologue was given, execute it now passing all parameters
             # (including the start run time which is computed right now)
@@ -445,6 +513,7 @@ class BotTestCase (object):
                                          compress=self._compress,
                                          namespace=BotTestCase._namespace,
                                          user=BotTestCase._user,
+                                         param=BotTestCase._param,
                                          stats=stats,
                                          startruntime=startruntime)
                 action (self._logger)
@@ -470,7 +539,9 @@ class BotTestCase (object):
                                          resultsdir=resultsdir,
                                          compress=self._compress,
                                          namespace=BotTestCase._namespace,
+                                         data=BotTestCase._data,
                                          user=BotTestCase._user,
+                                         param=BotTestCase._param,
                                          stats=stats,
                                          startruntime=startruntime,
                                          endruntime=time.time ())
@@ -596,22 +667,28 @@ class BotTestCase (object):
                 if ((pid, status) != (0, 0)):
                     break
 
-                # get some stats such as total cpu time, memory, ...
+                # get the value of some sysvars such as total cpu time,
+                # memory...
                 total_time = timeline.total_time()
                 total_vsize = group.total_vsize()
                 num_processes = timeline.total_processes ()
                 num_threads = timeline.total_threads ()
 
+                # and store them in the corresponding namespace
                 BotTestCase._namespace.cputime = timeline.total_time ()
                 BotTestCase._namespace.wctime = real_time
                 BotTestCase._namespace.vsize = timeline.total_vsize ()
                 BotTestCase._namespace.numprocs = timeline.total_processes ()
                 BotTestCase._namespace.numthreads = timeline.total_threads ()
 
-                # poll all sys tables with information from the namespace
+                # poll all sys tables with information from the namespace ---sys
+                # tables shall be filled *only* with sys information which is
+                # stored in the main namespace
                 for itable in self._dbspec:
                     if itable.sysp ():
-                        stats [itable.get_name ()].append (itable.poll (BotTestCase._namespace))
+                        stats [itable.get_name ()].append (itable.poll (namespace=BotTestCase._namespace,
+                                                                        data=BotTestCase._data,
+                                                                        param=BotTestCase._param))
 
                 # update the maximum memory usage
                 max_mem = max (max_mem, total_vsize)
@@ -719,22 +796,24 @@ class BotTestCase (object):
 
                 if (restat):
 
-                    # add this variable to the dictionary
-                    BotTestCase._namespace [restat.group ('varname').rstrip (" ")] = \
+                    # add this variable to the data namespace
+                    BotTestCase._data [restat.group ('varname').rstrip (" ")] = \
                       restat.group ('value')
 
-        # also, populate the current namespace with the contents of files if
-        # requested by any database table
+        # also, populate the data namespace with the contents of files
+        # (filevars) if requested by any database table
         for itable in [jtable for jtable in self._dbspec if jtable.datap ()]:
             for icolumn in [jcolumn for jcolumn in itable if jcolumn.get_vartype () == 'FILEVAR']:
                 with open (icolumn.get_variable (), 'r') as stream:
-                    BotTestCase._namespace [icolumn.get_variable ()] = stream.read ()
+                    BotTestCase._data [icolumn.get_variable ()] = stream.read ()
 
         # now, compute the next row to write in all the data tables, if any with
         # information from the namespace
         for itable in self._dbspec:
             if itable.datap ():
-                stats [itable.get_name ()].append (itable.poll (BotTestCase._namespace))
+                stats [itable.get_name ()].append (itable.poll (namespace=BotTestCase._namespace,
+                                                                data=BotTestCase._data,
+                                                                param=BotTestCase._param))
 
 
     # -----------------------------------------------------------------------------
@@ -1128,6 +1207,7 @@ class BotTestCase (object):
                                  resultsdir=resultsdir,
                                  compress=self._compress,
                                  namespace=BotTestCase._namespace,
+                                 data=BotTestCase._data,
                                  user=BotTestCase._user,
                                  stats=istats)
                 action (self._logger)

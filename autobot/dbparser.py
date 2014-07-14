@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <lunes, 17 marzo 2014 15:25:46 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 14 julio 2014 15:34:53 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -67,6 +67,44 @@ class DBColumn:
         """
         creates a column identified by the identifier, type, variable
         and action given in the arguments
+
+        * identifier: it is a valid identifier which is represented with a
+                      string that starts with a letter and can contain an
+                      arbitrary number of digits and letters. The character '_'
+                      is also allowed. Identifiers are implemented in the
+                      grammar rule 'ID'
+
+        * type: specifies the type of this database column (integer, real or
+                string). It is implemented in the grammar rule 'type'
+
+        * vartype: type of variable. It provides an indication of the namespace
+                   that will hold its value. There are up to six different
+                   vartypes: sysvar, datavar, dirvar, filevar, mainvar and
+                   param. All of them are implemented as terminal symbols of the
+                   grammar with the same name
+
+        * variable: internal name of the variable as it is known by autobot. The
+                    internal names are computed in different ways depending upon
+                    the vartype:
+
+                    vartype   variable                  examples
+                    sysvar    hard-coded in autobot     cputime, vsize
+                    datavar   read from the stdout      cost, 'number of nodes'
+                    dirvar    ordinal refs to params    0, 1, ...
+                    filevar   filenames                 plan.soln
+                    mainvar   flags given to testbot    quiet, test, db
+                    param     params given to exec      beam-width, domain
+
+        * action: specifies what to do in case the variable was not found. The
+                  following can be defined:
+
+                  None - Do nothing
+                  Warning - Just issue a warning
+                  Error - Raise an execption
+
+                  In the first two cases execution is resumed and the value of
+                  the variable is computed with their "neutral" value (0 or 0.0
+                  for numbers and the empty string for strings)
         """
 
         (self._identifier, self._type, self._vartype, self._variable , self._action) = \
@@ -258,9 +296,9 @@ class DBTable:
 
         # execute the action specified for this column
         if column.get_action () == 'Warning':
-            print " The variable '%s' was not available!" % column.get_variable ()
+            print " Warning [%s]: The variable '%s' was not available!" % (self._name, column.get_variable ())
         elif column.get_action () == 'Error':
-            print " The variable '%s' was not available!" % column.get_variable ()
+            print " Error [%s]: The variable '%s' was not available!" % (self._name, column.get_variable ())
             raise ValueError
         elif column.get_action () != 'None':
             return column.get_action ()
@@ -269,12 +307,14 @@ class DBTable:
         return None
 
 
-    def poll (self, N):
+    def poll (self, namespace, data, param):
         """
         returns a tuple of values according to the definition of columns of this
-        table and the values specified in namespace N. In case the value
-        requested for a particular column is not found, the specified action is
-        executed.
+        table and the values specified in the given namespaces: namespace, data
+        and param.
+
+        In case the value requested for a particular column is not found, the
+        specified action is executed.
         """
 
         def _neutral (ctype):
@@ -303,6 +343,18 @@ class DBTable:
                 print " Unknown type '%s'" % ctype
                 raise TypeError
 
+        def _get_namespace (vartype):
+            """
+            return the namespace that should contain the values of a variable of
+            the given vartype. This function actually implements the logic that
+            associates variable types as specified by the user with namespaces
+            as handled internally by autobot
+            """
+
+            if vartype == "SYS" or vartype == "MAINVAR": return namespace
+            elif vartype == "DATA" or vartype == "FILEVAR": return data
+            elif vartype == "PARAM" or vartype == "DIR": return param
+            else: return namespace
 
         # initialization
         t=()
@@ -311,8 +363,10 @@ class DBTable:
         for icolumn in self:
 
             # in case the variable requested for this column is not
-            # available, ...
-            if icolumn.get_variable () not in N:
+            # available in its corresponding namespace
+            nspace = _get_namespace (icolumn.get_vartype ())
+
+            if icolumn.get_variable () not in nspace:
 
                 # then execute the specified action
                 value = self.execute_action (icolumn)
@@ -323,7 +377,7 @@ class DBTable:
 
             # otherwise
             else:
-                t += (_cast_value (icolumn.get_type (), N[icolumn.get_variable ()]),)
+                t += (_cast_value (icolumn.get_type (), nspace[icolumn.get_variable ()]),)
 
         # and finally return the tuple
         return t
@@ -363,7 +417,7 @@ class DBParser :
         'DATAVAR',
         'DIRVAR',
         'FILEVAR',
-        'MAINVAR', 
+        'MAINVAR',
         'PARAM',
         'ID',
         'TABLEID'
@@ -408,8 +462,11 @@ class DBParser :
     # system variables: any variable preceded by a colon. They stand for
     # variables computed at every cycle
     def t_SYSVAR (self, t):
-        r":[a-zA-Z_][a-zA-Z_0-9]*"
-        t.value = t.value[1:]
+        r"(:|sys.)[a-zA-Z_][a-zA-Z_0-9]*"
+        if t.value[0]==':':
+            t.value = t.value[1:]
+        else:
+            t.value = t.value[4:]
         return t
 
     # data variables: strings (either single|double quoted that might contain
@@ -417,16 +474,27 @@ class DBParser :
     # characters). They stand for information processed from the standard output
     # once the execution is over
     def t_DATAVAR (self, t):
-        r"""\?([a-zA-Z_][a-zA-Z_0-9]*|'[^']+'|\"[^\"]+\")"""
-        if t.value[1]=='"' or t.value[1]=="'": t.value = t.value [2:-1]
-        else: t.value = t.value[1:]
+        r"""(\?|data\.)([a-zA-Z_][a-zA-Z_0-9]*|'[^']+'|\"[^\"]+\")"""
+        if t.value[0]=='?':
+            if t.value[1]=='"' or t.value[1]=="'":
+                t.value = t.value [2:-1]
+            else:
+                t.value = t.value[1:]
+        else:
+            if t.value[5]=='"' or t.value[5]=="'":
+                t.value = t.value [6:-1]
+            else:
+                t.value = t.value[5:]
         return t
 
     # directive variables: the value of any directive passed to the
     # executable. They stand for the value of directives given to the solver
     def t_DIRVAR (self, t):
-        r"@[a-zA-Z_][a-zA-Z_0-9\-]*"
-        t.value = t.value[1:]
+        r"(@|dir\.)[a-zA-Z_][a-zA-Z_0-9\-]*"
+        if t.value[0]=='@':
+            t.value = t.value[1:]
+        else:
+            t.value = t.value[4:]
         return t
 
     # file variables: strings (either single|double quoted that might contain
@@ -434,27 +502,46 @@ class DBParser :
     # preceded by <. They stand for files whose content is copied once the
     # execution is over
     def t_FILEVAR (self, t):
-        r"""\<([0-9a-zA-Z_/\.~]+|\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?')"""
-        if t.value[1]=='"' or t.value[1]=="'": t.value = t.value [2:-1]
-        else: t.value = t.value[1:]
+        r"""(\<|file\.)([0-9a-zA-Z_/\.~]+|\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?')"""
+        if t.value[0]=='<':
+            if t.value[1]=='"' or t.value[1]=="'":
+                t.value = t.value [2:-1]
+            else:
+                t.value = t.value[1:]
+        else:
+            if t.value[5]=='"' or t.value[5]=="'":
+                t.value = t.value [6:-1]
+            else:
+                t.value = t.value[5:]
         return t
 
     # main variables: strings (either single|double quoted that might contain
     # blank characters or just ordinary variables without any blank characters)
     # preceded by _. They stand for parameters passed to the testbot that
-    # invokes the executable
+    # invokes executable
     def t_MAINVAR (self, t):
-        r"""_([0-9a-zA-Z_/\.~]+|\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?')"""
-        if t.value[1]=='"' or t.value[1]=="'": t.value = t.value [2:-1]
-        else: t.value = t.value[1:]
+        r"""(_|main\.)([0-9a-zA-Z_/\.~]+|\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?')"""
+        if t.value[0]=='_':
+            if t.value[1]=='"' or t.value[1]=="'":
+                t.value = t.value [2:-1]
+            else:
+                t.value = t.value[1:]
+        else:
+            if t.value[5]=='"' or t.value[5]=="'":
+                t.value = t.value [6:-1]
+            else:
+                t.value = t.value[5:]
         return t
 
     # param: any number preceded by the dollar sign. They stand for the
     # particular parameter passed to the solver identified by its
     # location. Examples are $0, $1, ...
     def t_PARAM (self, t):
-        r"\$\d+"
-        t.value = int (t.value[1:])
+        r"(\$|param\.)\d+"
+        if t.value[0]=='$':
+            t.value = int (t.value[1:])
+        else:
+            t.value = int (t.value[6:])
         return t
 
     # tableid: a correct name for tables (either sys_, data_ or user_)

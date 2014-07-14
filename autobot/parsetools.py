@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Dec 14 00:04:20 2013 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 01:39:20 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 13 julio 2014 22:20:54 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -73,18 +73,34 @@ class ShowPlaceHolders (argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         print """
+ In general, any variable used in the main namespace can be used as a
+ placeholder. The following are a subset which are expected to be particularly
+ useful:
+
  placeholder   description
  %s+%s""" % ('-'*12, '-'*65)
 
         print """ $name       | name of the solver
  $index      | index of the current test case (defined in the test file)
  $date       | current date
- $time       | current time"""
+ $time       | current time
+ $tests      | test specification file given to testbot
+ $db         | database specification file given to testbot
+ $bz2        | whether compression was requested or not
+ $level      | level information
+ $timeout    | maximum time allotted to every execution
+ $memory     | maximum memory allotted to every execution
+ $check      | delay between successive pings to the executable"""
 
         print """ %s+%s
- Also, every directive specified in the tests file can be used as a placeholder
- For example, if '--argument value' is used in the test file then
- 'argument' can be used in '--output' to include its 'value' in the output file
+
+ The variables in the main namespace are given to the following BotActions:
+ 
+    + Enter/WindUp
+    + Prologue/Epilogue
+
+ so that they can be overloaded also to inspect the value of these variables and
+ others
 """ % ('-'*12, '-'*65)
 
         # and finally exit

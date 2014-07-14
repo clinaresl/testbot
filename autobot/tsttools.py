@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <miércoles, 08 enero 2014 16:57:21 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 09 julio 2014 22:01:17 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -105,7 +105,6 @@ def partition (string, sep="""\"[^\"]+\"|'[^']+'"""):
  groups: %s
  rest: %s""" % (string, groups, rest)
         raise ValueError
-
 
     # split the string in two different parts: groups matching the separators
     # and the rest

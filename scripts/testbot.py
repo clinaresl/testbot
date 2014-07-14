@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <miércoles, 15 enero 2014 23:00:27 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 14 julio 2014 15:34:34 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -58,7 +58,7 @@ import logging                          # loggers
 import os                               # path mgmt
 import socket                           # gethostname
 
-from autobot.bots import BotMain        # main service 
+from autobot.bots import BotMain        # main service
 from autobot.bots import BotAction      # automated pre/post actions
 from autobot.bots import BotTestCase    # automated full execution
 from autobot import parsetools          # default argument parser
@@ -119,11 +119,11 @@ class ContextFilter(logging.Filter):
 # -----------------------------------------------------------------------------
 # TestBot
 #
-# Execution of a particular test case that can inivolve various executions
+# Execution of a particular test case that can involve various executions
 # -----------------------------------------------------------------------------
 class TestBot (BotTestCase):
     """
-    Execution of a particular test case that can inivolve various executions
+    Execution of a particular test case that can involve various executions
     """
 
     def setUp (self):
@@ -158,11 +158,22 @@ class TestBot (BotTestCase):
         """
 
         # invoke the main service provided by autobot
-        self.go (self.args.solver, self.args.tests, self.args.db, self.args.timeout,
-                 self.args.memory, argnamespace=self.args,
-                 output=self.args.output, check=self.args.check,
-                 directory=self.args.directory, compress=self.args.bz2,
-                 logger=self.logger, logfilter=ContextFilter (),
+        self.go (self.args.solver,
+                 self.args.tests,
+                 self.args.db,
+                 self.args.timeout,
+                 self.args.memory,
+                 argnamespace=self.args,
+                 output=self.args.output,
+                 check=self.args.check,
+                 directory=self.args.directory,
+                 compress=self.args.bz2,
+                 logger=self.logger,
+                 logfilter=ContextFilter (),
+                 prologue=Prologue,
+                 epilogue=Epilogue,
+                 enter=Enter,
+                 windUp=WindUp,
                  quiet=self.args.quiet)
 
 
@@ -174,7 +185,180 @@ class TestBot (BotTestCase):
 
         self.logger.debug (" Exiting from the testbot ...")
 
-        
+
+class Enter (BotAction):
+    """
+    Bot Action to be executed before every invocation of the solver with the
+    very first test case
+    """
+
+    def __call__ (self, logger):
+        """
+        Method invoked before the execution of the solver with the very first
+        test case. It automatically inherits the values of the following
+        attributes: solver, tstspec, dbspec, timeout, memory, check, basedir,
+        resultsdir, compress, namespace, user namespace and stats.
+
+        This method provides additional information in case the debug level is
+        requested
+        """
+
+        childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
+        childlogger.addFilter (ContextFilter ())
+        childlogger.debug ("""
+ %s:
+ * solver      : %s
+ * timeout     : %d seconds
+ * memory      : %d bytes
+ * check       : %d seconds
+ * basedir     : %s
+ * resultsdir  : %s
+ * compress    : %s
+ * namespace   :
+
+%s
+
+ * user namespace:
+
+%s""" % (self.__class__.__name__, self.solver, self.timeout, self.memory, self.check, self.basedir, self.resultsdir, self.compress, self.namespace, self.user))
+
+
+class Prologue (BotAction):
+    """
+    Bot Action to be executed before every invocation of the solver with every
+    test case
+    """
+
+    def __call__ (self, logger):
+        """
+        Method invoked before the execution of the solver with regard to every
+        test case. It automatically inherits the values of the following
+        attributes: solver, tstspec, itest, dbspec, timeout, memory, output,
+        check, basedir, resultsdir, compress, namespace, user namespace, param
+        namespace, stats and startruntime.
+
+        The Prologue is in charge of providing additional information in case
+        the debug information level is requested
+        """
+
+        childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
+        childlogger.addFilter (ContextFilter ())
+        childlogger.debug ("""
+ %s:
+ * solver      : %s
+ * itest       : %s
+ * timeout     : %d seconds
+ * memory      : %d bytes
+ * output      : %s
+ * check       : %d seconds
+ * basedir     : %s
+ * resultsdir  : %s
+ * compress    : %s
+ * startruntime: %i
+ * namespace   :
+
+%s
+
+ * user namespace:
+
+%s
+
+ * param namespace:
+
+%s""" % (self.__class__.__name__, self.solver, self.itest, self.timeout, self.memory, self.output, self.check, self.basedir, self.resultsdir, self.compress, self.startruntime, self.namespace, self.user, self.param))
+
+
+class Epilogue (BotAction):
+    """
+    Bot Action to be executed after every invocation of the solver with every
+    test case
+    """
+
+    def __call__ (self, logger):
+        """
+        Method invoked after the execution of the solver with regard to every
+        test case. It automatically inherits the values of the following
+        attributes: solver, tstspec, itest, dbspec, timeout, memory, output,
+        check, basedir, resultsdir, compress, namespace, data namespace, user
+        namespace, param namespace, stats, startruntime and endruntime.
+
+        The Epilogue provides additional information in case the debug level is
+        requested
+        """
+
+        childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
+        childlogger.addFilter (ContextFilter ())
+        childlogger.debug ("""
+ %s:
+ * solver      : %s
+ * itest       : %s
+ * timeout     : %d seconds
+ * memory      : %d bytes
+ * output      : %s
+ * check       : %d seconds
+ * basedir     : %s
+ * resultsdir  : %s
+ * compress    : %s
+ * startruntime: %i
+ * endruntime  : %i
+ * namespace   :
+
+%s
+
+ * data namespace:
+
+%s
+
+ * user namespace:
+
+%s
+
+ * param namespace:
+
+%s""" % (self.__class__.__name__, self.solver, self.itest, self.timeout, self.memory, self.output, self.check, self.basedir, self.resultsdir, self.compress, self.startruntime, self.endruntime, self.namespace, self.data, self.user, self.param))
+
+
+class WindUp (BotAction):
+    """
+    Bot Action to be executed after the execution of the current solver on the
+    last test case
+    """
+
+    def __call__ (self, logger):
+        """
+        Method invoked after the execution of the current solver with the last
+        test case. It automatically inherits the values of the following
+        attributes: solver, tstspec, dbspec, timeout, memory, check, basedir,
+        resultsdir, compress, namespace, data namespace, user namespace and
+        stats.
+
+        This method provides additional information in case the debug level has
+        been requested.
+        """
+
+        childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
+        childlogger.addFilter (ContextFilter ())
+        childlogger.debug ("""
+ %s:
+ * solver      : %s
+ * timeout     : %d seconds
+ * memory      : %d bytes
+ * check       : %d seconds
+ * basedir     : %s
+ * resultsdir  : %s
+ * compress    : %s
+ * namespace   :
+
+%s
+
+ * data namespace:
+
+%s
+
+ * user namespace:
+
+%s""" % (self.__class__.__name__, self.solver, self.timeout, self.memory, self.check, self.basedir, self.resultsdir, self.compress, self.namespace, self.data, self.user))
+
 
 # main
 # -----------------------------------------------------------------------------
