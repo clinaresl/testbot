@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <lunes, 14 julio 2014 15:34:53 Carlos Linares Lopez (clinares)>
+# Last update <martes, 15 julio 2014 08:13:12 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -307,11 +307,11 @@ class DBTable:
         return None
 
 
-    def poll (self, namespace, data, param):
+    def poll (self, namespace, data, user, param):
         """
         returns a tuple of values according to the definition of columns of this
-        table and the values specified in the given namespaces: namespace, data
-        and param.
+        table and the values specified in the given namespaces: namespace, data,
+        user and param.
 
         In case the value requested for a particular column is not found, the
         specified action is executed.
@@ -349,11 +349,16 @@ class DBTable:
             the given vartype. This function actually implements the logic that
             associates variable types as specified by the user with namespaces
             as handled internally by autobot
+
+            Note that, by default, the main namespace is used instead of raising
+            an error (and, instead, if there is an action set to Error and the
+            value is not find anywhere an error is finally raised)
             """
 
             if vartype == "SYS" or vartype == "MAINVAR": return namespace
             elif vartype == "DATA" or vartype == "FILEVAR": return data
             elif vartype == "PARAM" or vartype == "DIR": return param
+            elif vartype == "USERVAR": return user
             else: return namespace
 
         # initialization
@@ -419,6 +424,7 @@ class DBParser :
         'FILEVAR',
         'MAINVAR',
         'PARAM',
+        'USERVAR',
         'ID',
         'TABLEID'
         ) + tuple(reserved_words.values ())
@@ -544,6 +550,23 @@ class DBParser :
             t.value = int (t.value[6:])
         return t
 
+    # user variables: strings (either single|double quoted that might contain
+    # blank characters or just ordinary variables without any blank characters)
+    # preceded by ~. They stand for variables created and managed by the user
+    def t_USERVAR (self, t):
+        r"""(~|user\.)([0-9a-zA-Z_/\.~]+|\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?')"""
+        if t.value[0]=='~':
+            if t.value[1]=='"' or t.value[1]=="'":
+                t.value = t.value [2:-1]
+            else:
+                t.value = t.value[1:]
+        else:
+            if t.value[5]=='"' or t.value[5]=="'":
+                t.value = t.value [6:-1]
+            else:
+                t.value = t.value[5:]
+        return t
+
     # tableid: a correct name for tables (either sys_, data_ or user_)
     def t_TABLEID (self, t):
         r'(sys\_|data\_|user\_)[a-zA-Z_][a-zA-Z_0-9]*'
@@ -636,6 +659,10 @@ class DBParser :
     def p_variable_main (self, p):
         '''variable : MAINVAR'''
         p[0] = ('MAINVAR', p[1])
+
+    def p_variable_user (self, p):
+        '''variable : USERVAR'''
+        p[0] = ('USERVAR', p[1])
 
     def p_action (self, p):
         '''action : NONE

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <lunes, 14 julio 2014 15:33:50 Carlos Linares Lopez (clinares)>
+# Last update <martes, 15 julio 2014 08:04:32 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -686,9 +686,10 @@ class BotTestCase (object):
                 # stored in the main namespace
                 for itable in self._dbspec:
                     if itable.sysp ():
-                        stats [itable.get_name ()].append (itable.poll (namespace=BotTestCase._namespace,
-                                                                        data=BotTestCase._data,
-                                                                        param=BotTestCase._param))
+                        stats [itable.get_name ()].append (itable.poll (BotTestCase._namespace,
+                                                                        BotTestCase._data,
+                                                                        BotTestCase._user,
+                                                                        BotTestCase._param))
 
                 # update the maximum memory usage
                 max_mem = max (max_mem, total_vsize)
@@ -811,9 +812,10 @@ class BotTestCase (object):
         # information from the namespace
         for itable in self._dbspec:
             if itable.datap ():
-                stats [itable.get_name ()].append (itable.poll (namespace=BotTestCase._namespace,
-                                                                data=BotTestCase._data,
-                                                                param=BotTestCase._param))
+                stats [itable.get_name ()].append (itable.poll (BotTestCase._namespace,
+                                                                BotTestCase._data,
+                                                                BotTestCase._user,
+                                                                BotTestCase._param))
 
 
     # -----------------------------------------------------------------------------
