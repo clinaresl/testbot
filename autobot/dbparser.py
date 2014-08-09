@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <sábado, 09 agosto 2014 21:57:29 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 10 agosto 2014 01:42:01 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -54,6 +54,7 @@ import string                           # split
 import ply.lex as lex
 import ply.yacc as yacc
 
+import colors                           # tty colors
 
 # -----------------------------------------------------------------------------
 # DBColumn
@@ -324,9 +325,9 @@ class DBTable:
 
         # execute the action specified for this column
         if column.get_action () == 'Warning':
-            print " Warning [%s]: The variable '%s' was not available!" % (self._name, column.get_variable ())
+            print "%s Warning [%s]: The variable '%s' was not available!" % (colors.yellow, self._name, column.get_variable ())
         elif column.get_action () == 'Error':
-            print " Error [%s]: The variable '%s' was not available!" % (self._name, column.get_variable ())
+            print "%s Error [%s]: The variable '%s' was not available!" % (colors.red, self._name, column.get_variable ())
             raise ValueError
         elif column.get_action () != 'None':
             return column.get_action ()

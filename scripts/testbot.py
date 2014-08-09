@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <lunes, 14 julio 2014 15:34:34 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 10 agosto 2014 01:39:24 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -58,6 +58,7 @@ import logging                          # loggers
 import os                               # path mgmt
 import socket                           # gethostname
 
+from autobot import colors              # tty colors
 from autobot.bots import BotMain        # main service
 from autobot.bots import BotAction      # automated pre/post actions
 from autobot.bots import BotTestCase    # automated full execution
@@ -91,7 +92,7 @@ def configure_logger (directory, logfile, level):
     else:
         logfilename = ''
         logging.basicConfig (level=level,
-                             format="[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s\n")
+                             format="%(color)s[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s\n")
 
 
 # -----------------------------------------------------------------------------
@@ -107,12 +108,26 @@ class ContextFilter(logging.Filter):
 
     def filter(self, record):
         """
-        Defines the additional information (node and user) that is set up in the
-        logger configuration
+        Defines the additional information (color, node and user) that is set up
+        in the logger configuration
         """
 
         record.node = socket.gethostname ()
         record.user = getpass.getuser ()
+
+        if record.levelname == 'DEBUG':
+            record.color = colors.darkwhite
+        elif record.levelname == 'INFO':
+            record.color = colors.bluesea
+        elif record.levelname == 'WARNING':
+            record.color = colors.yellow
+        elif record.levelname == 'ERROR':
+            record.color = colors.red
+        elif record.levelname == 'CRITICAL':
+            record.color = colors.red
+        else:
+            record.color = colors.white
+
         return True
 
 
