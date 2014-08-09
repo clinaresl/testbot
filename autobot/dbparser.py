@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <martes, 15 julio 2014 08:13:12 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 09 agosto 2014 21:57:29 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -49,6 +49,8 @@ __revision__ = '$Revision$'
 
 # imports
 # -----------------------------------------------------------------------------
+import string                           # split
+
 import ply.lex as lex
 import ply.yacc as yacc
 
@@ -78,14 +80,15 @@ class DBColumn:
                 string). It is implemented in the grammar rule 'type'
 
         * vartype: type of variable. It provides an indication of the namespace
-                   that will hold its value. There are up to six different
-                   vartypes: sysvar, datavar, dirvar, filevar, mainvar and
-                   param. All of them are implemented as terminal symbols of the
-                   grammar with the same name
+                   that will hold its value. There are up to seven different
+                   vartypes: sysvar, datavar, dirvar, filevar, mainvar, param
+                   and regexp. All of them are implemented as terminal symbols
+                   of the grammar with the same name
 
-        * variable: internal name of the variable as it is known by autobot. The
-                    internal names are computed in different ways depending upon
-                    the vartype:
+        * variable: internal name of the variable as it is known by autobot (for
+                    the first six types) or as it is defined in a regexp (in the
+                    last case). The internal names are computed in different
+                    ways depending upon the vartype:
 
                     vartype   variable                  examples
                     sysvar    hard-coded in autobot     cputime, vsize
@@ -94,6 +97,10 @@ class DBColumn:
                     filevar   filenames                 plan.soln
                     mainvar   flags given to testbot    quiet, test, db
                     param     params given to exec      beam-width, domain
+                    regexp    regular expression        cost.value
+
+                    In the last case, the user provided a regexp called 'cost'
+                    with a group named 'value'
 
         * action: specifies what to do in case the variable was not found. The
                   following can be defined:
@@ -104,7 +111,8 @@ class DBColumn:
 
                   In the first two cases execution is resumed and the value of
                   the variable is computed with their "neutral" value (0 or 0.0
-                  for numbers and the empty string for strings)
+                  for numbers and the empty string for strings). In the last
+                  case, execution is stopped and an error is raised
         """
 
         (self._identifier, self._type, self._vartype, self._variable , self._action) = \
@@ -203,13 +211,25 @@ class DBTableIter(object):
 
 
 # -----------------------------------------------------------------------------
+# The db specification language acknowledges two different types of objets:
+#
+#       1. Database specification tables
+#       2. Regular expressions
+#
+# These are created as instances of DBTable and DBRegexp
+# -----------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------
 # DBTable
 #
-# Definition of an individual table
+# Definition of an individual database table. It also includes services for
+# populating it from data in various namespaces
 # -----------------------------------------------------------------------------
 class DBTable:
     """
-    Definition of an individiual table
+    Definition of an individual database table. It also includes services for
+    populating it from data in various namespaces
     """
 
     def __init__ (self, name, columns):
@@ -258,10 +278,18 @@ class DBTable:
         return self._name
 
 
+    def get_columns (self):
+        """
+        return the columns of this database table
+        """
+
+        return self._columns
+
+
     def sysp (self):
         """
         returns True if this is a sys table, ie., those that contain system
-        information that is computed at every ping
+        information that is computed at every cycle
         """
 
         return self._name[0:4] == 'sys_'
@@ -389,6 +417,48 @@ class DBTable:
 
 
 # -----------------------------------------------------------------------------
+# DBRegexp
+#
+# Definition of an individual regular expression
+# -----------------------------------------------------------------------------
+class DBRegexp:
+    """
+    Definition of an individiual regular expression
+    """
+
+    def __init__ (self, name, specification):
+        """
+        creates a regular expression with the given name and specification
+        """
+
+        (self._name, self._specification) = (name, specification)
+
+
+    def __str__ (self):
+        """
+        output formatting
+        """
+
+        return " regexp %s : %s" % (self._name, self._specification)
+
+
+    def get_name (self):
+        """
+        return the name of this regular expression
+        """
+
+        return self._name
+
+
+    def get_specification (self):
+        """
+        return the specification of this regular expression
+        """
+
+        return self._specification
+
+
+# -----------------------------------------------------------------------------
 # DBParser
 #
 # Class used to define the lex and grammar rules necessary for
@@ -402,6 +472,7 @@ class DBParser :
 
     # reserved words
     reserved_words = {
+        'regexp'  : 'REGEXP',
         'integer' : 'INTEGER',
         'real'    : 'REAL',
         'text'    : 'TEXT',
@@ -567,6 +638,15 @@ class DBParser :
                 t.value = t.value[5:]
         return t
 
+    # regexp variables: any variable preceded by the name of a regexp. They
+    # stand for namespaces whose contents can be accessed with the groups
+    # defined in the regexp with the format <regexp-name>.<group-name>
+    def t_REGEXP (self, t):
+        r"[a-zA-Z][a-zA-Z_0-9]*\.[a-zA-Z_][a-zA-Z_0-9]*"
+
+        # just return the string
+        return t
+
     # tableid: a correct name for tables (either sys_, data_ or user_)
     def t_TABLEID (self, t):
         r'(sys\_|data\_|user\_)[a-zA-Z_][a-zA-Z_0-9]*'
@@ -602,9 +682,14 @@ class DBParser :
 
     # definition of legal statements
     # -----------------------------------------------------------------------------
+
+    # a valid db specification consists of tables which might contain regexp
+    # anywhere between the table definitions
     def p_definitions (self, p):
         '''definitions : table
-                       | table definitions'''
+                       | regexp
+                       | table definitions
+                       | regexp definitions'''
         if len (p) == 2:
             p[0] = [p[1]]
         elif len (p) == 3:
@@ -664,6 +749,10 @@ class DBParser :
         '''variable : USERVAR'''
         p[0] = ('USERVAR', p[1])
 
+    def p_variable_regexp (self, p):
+        '''variable : REGEXP'''
+        p[0] = ('REGEXP', p[1])
+
     def p_action (self, p):
         '''action : NONE
                   | WARNING
@@ -677,6 +766,9 @@ class DBParser :
                    | STRING'''
         p[0] = p[1]
 
+    def p_regexp (self, p):
+        '''regexp : REGEXP ID STRING'''
+        p[0] = DBRegexp (p[2], p[3])
 
     # error handling
     # -----------------------------------------------------------------------------

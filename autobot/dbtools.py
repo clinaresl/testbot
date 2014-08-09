@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <miércoles, 08 enero 2014 16:57:27 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 09 agosto 2014 21:55:18 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -47,20 +47,23 @@ __revision__ = '$Revision$'
 
 # imports
 # -----------------------------------------------------------------------------
+import re               # compile, groups
+import string           # split
+
 import dbparser         # testbot parser utilities (lex and yacc)
 
 
 # -----------------------------------------------------------------------------
 # DBIter
 #
-# returns an iterator of all tables found in the given DBSpec, even if
+# returns an iterator of all tables/regexps found in the given DBSpec, even if
 # it is empty
 # -----------------------------------------------------------------------------
 class DBIter(object):
 
     """
-    returns an iterator of all tables found in the given DBSpec, even
-    if it is empty
+    returns an iterator of all tables/regexps found in the given DBSpec, even if
+    it is empty
     """
 
     def __init__ (self, dbspec):
@@ -126,15 +129,35 @@ class DBSpec(object):
         p = dbparser.VerbatimDBParser ()
         p.run (spec)
 
-        # and copy all tables
+        # and copy all definitions found by the parser
         self._tables = p._tables
+
+        # create different lists for storing regexps and database tables
+        self._regexp = []
+        self._db = []
+        for itable in self._tables:
+            if isinstance (itable, dbparser.DBRegexp):
+                self._regexp.append (itable)
+            elif isinstance (itable, dbparser.DBTable):
+                self._db.append (itable)
+            else:
+                raise NotImplementedError ('Unknown table type')
 
 
     def __iadd__ (self, itable):
         """
-        adds a new table to this specification
+        adds a new table/regexp to this specification
         """
 
+        # first, add it to the right list of tables
+        if isinstance (itable, dbparser.DBRegexp):
+            self._regexp.append (itable)
+        elif isinstance (itable, dbparser.DBTable):
+            self._db.append (itable)
+        else:
+            raise NotImplementedError ('Unknown table type')
+
+        # second, add it also to the generic list of tables
         self._tables.append (itable)
 
         return self
@@ -142,7 +165,7 @@ class DBSpec(object):
 
     def __iter__ (self):
         """
-        return an iterator over the tables defined for this database
+        return an iterator over the tables/regexps defined for this database
         specification
         """
 
@@ -151,7 +174,7 @@ class DBSpec(object):
 
     def __len__ (self):
         """
-        return the number of data tables in this instance
+        return the number of data tables/regexp in this instance
         """
 
         return len (self._tables)
@@ -162,10 +185,116 @@ class DBSpec(object):
         Informal string of this instance
         """
 
-        # just insert a newline char between two successive string
-        # representations
-        return reduce (lambda x,y:x+'\n'+y,
-                       [dbparser.DBTable.__str__ (z) for z in self._tables])
+        # this instance might containt database table and/or regexp
+        # specifications. Other cases should raise a not implemented error
+        stregexp = str ()
+        stdb = str ()
+
+        # database tables and regexps are processed separately to be shown
+        # altogether in different groups: first, regexp; next, database tables
+        for itable in self._tables:
+            if isinstance (itable, dbparser.DBRegexp):
+                stregexp += str (itable) + '\n'
+            elif isinstance (itable, dbparser.DBTable):
+                stdb += str (itable) + '\n'
+            else:
+                raise NotImplementedError ('Unknown table type')
+
+        # finally, return the regexp and database specs one after the other. In
+        # case there are regexps, then show them before. Otherwise, skip that
+        # part (this is just to prevent that two newlines are shown when
+        # printing the contents of this session)
+        if (stregexp):
+            return '\n' + stregexp + '\n' + stdb
+
+        return '\n' + stdb
+
+
+    def get_regexp (self):
+        """
+        return a list with all regexp found in this instance. Every regexp is an
+        instance of dbparser.DBRegexp
+        """
+
+        return self._regexp
+
+
+    def get_db (self):
+        """
+        return a list with all database tables found in this instance. Every
+        database table is an instance of dbparser.DBTable
+        """
+
+        return self._db
+
+
+    def verify_regexps (self):
+        """
+        Verify that all regexps referenced within different database tables
+        exist and have the specified groups. It returns true if everything went
+        fine and an exception is raised otherwise
+        """
+
+        def _seek_regexp (name):
+            """
+            returns an instance of DBRegexp if there is one with the specified
+            name and None otherwise
+            """
+
+            # in case the regexp is found within the current collection of
+            # regexps, return it
+            for iregexp in self._regexp:
+                if iregexp.get_name () == name:
+                    return iregexp
+
+            # otherwise, return None
+            return None
+
+
+        def _seek_group (regexp, group):
+            """
+            returns the index to the specified group in the given regexp if it
+            exists and -1 otherwise
+            """
+
+            # compile this regular expression and go over all its groups. If the
+            # specified one exists, return its index
+            m = re.compile (regexp.get_specification ())
+            if group in m.groupindex:
+                return m.groupindex [group]
+
+            # otherwise, return -1
+            return -1
+
+
+        # go over all columns of all database tables in this instance
+        for itable in self._db:
+
+            for icolumn in itable:
+
+                # in case this is a regexp
+                if icolumn.get_vartype () == 'REGEXP':
+
+                    # split the constituents of the variable field of this
+                    # column into two different parts: the regexp name and the
+                    # group
+                    (name, group) = string.split (icolumn.get_variable (), '.')
+
+                    # first, is there a regexp named after 'name'?
+                    regexp = _seek_regexp (name)
+                    if regexp:
+
+                        # check if the given group exists in this regular
+                        # expression
+                        groupidx = _seek_group (regexp, group)
+                        if groupidx < 0:
+                            raise ValueError (" There is no group named '%s' in regexp '%s' but it is used in the specification of column '%s' in table '%s'" % (group, name, icolumn.get_identifier (), itable.get_name ()))
+
+                    else:
+                        raise ValueError (" There is no regexp named '%s' but it was found in the specification of column '%s' in table '%s'" % (name, icolumn.get_identifier (), itable.get_name ()))
+
+        # return true if everything went fine
+        return True
 
 
 # -----------------------------------------------------------------------------
