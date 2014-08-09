@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <sábado, 09 agosto 2014 22:07:46 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 10 agosto 2014 00:04:59 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -147,6 +147,19 @@ class BotTestCase (object):
 
     # regular epression for recognizing pairs (var, val) in the stdout
     # -----------------------------------------------------------------------------
+    # the following regexp is used by default: first, the user can provide its
+    # own regexps (see below) or it can overwrite the current regexp which is
+    # distinguished with the special name 'data'
+    #
+    # the following regexp correctly matches strings with two groups 'varname'
+    # and 'value' such as:
+    #
+    # > Cost     : 359
+    # > CPU time : 16.89311
+    #
+    # since these fields are written into the data namespace (see below) they
+    # can be accessed by the user in the database specification file with the
+    # format data.Cost and data.'CPU time'
     statregexp = " >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
 
     # logging services
@@ -166,6 +179,8 @@ class BotTestCase (object):
     # * user: this namespace is never used by autobot and it is created only for
     #         user specifics
     # * param: it stores param and dirvar
+    # * regexp : it stores the results of processing the standard output with
+    #            the regexps found in the database specification
     #
     # These namespaces automatically use the different variables (most of them
     # defined in the dbparser) whose purpose is defined below:
@@ -192,6 +207,10 @@ class BotTestCase (object):
     # * dirvar: these are also the flags given to the executable but they are
     #           named after their position
     #
+    # * regexp: regexps are defined separately in the database specification
+    #           file and can be used in the specification of database tables to
+    #           refer to the various groups that are contained therein.
+    #
     # to make these relationships more apparent, the variables given in the
     # database specification file can be preceded by a prefix that provide
     # information abou the namespace they are written to:
@@ -206,22 +225,35 @@ class BotTestCase (object):
     # param            | 'param.'
     # -----------------+-----------
     #
-    # so that namespaces are filled with information with the following prefixes
+    # the case of regexp variables is a bit particular. They have their own
+    # statements of the form:
     #
-    # namespace   preffixes
+    # regexp <name> <specification-string>
+    #
+    # where <specification-string> should contain at least one <group> defined
+    # with the directive (?P<group>...). This way, any column in the
+    # specification of a database can use the format <name>.<group> to refer to
+    # the value parsed in group <group> with regexp <name>
+    #
+    # Namespaces are populated with information with the following variable
+    # types:
+    #
+    # namespace   variable type
     # ----------+-----------------
     # namespace | sysvar mainvar
     # data      | datavar filevar
     # user      | --
     # param     | param, dirvar
+    # regexp    | regexp
     # ----------+-----------------
     #
-    # This association is implemented in the poll method of the dbparser
+    # These associations are implemented in the poll method of the dbparser
     # -----------------------------------------------------------------------------
     _namespace = namespace.Namespace ()         # sysvar, mainvar
     _data      = namespace.Namespace ()         # datavar, filevar
     _user      = namespace.Namespace ()         # user space
     _param     = namespace.Namespace ()         # param, dirvar
+    _regexp    = namespace.Namespace ()         # regexp
 
     # -----------------------------------------------------------------------------
     # check_flags
@@ -1126,6 +1158,14 @@ class BotTestCase (object):
 
             self.show_switches (solver, self._tstfile, self._dbfile, timeout, memory,
                                 check, directory, compress)
+
+        # is the user overridden the definition of the data regexp?
+        for iregexp in self._dbspec.get_regexp ():
+
+            # if so, override the current definition and show an info message
+            if iregexp.get_name () == 'data':
+                statregexp = iregexp.get_specification ()
+                self._logger.info (" The data regexp has been overridden to '%s'" % iregexp.get_specification ())
 
         # at last, run the experiments going through every solver
         if not solver:
