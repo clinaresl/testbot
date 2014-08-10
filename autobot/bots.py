@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <domingo, 10 agosto 2014 02:41:30 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 11 agosto 2014 00:16:36 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -58,6 +58,7 @@ import os                       # os services
 import re                       # regular expressions
 import shutil                   # shell utitilies such as copying files
 import socket                   # gethostname
+import string                   # rstrip
 import subprocess               # subprocess management
 import time                     # time management
 
@@ -487,10 +488,11 @@ class BotTestCase (object):
         # now, for each test case
         for itst in self._tstspec:
 
-            # initialize the contents of the main namespace and also the data
+            # initialize the contents of the main namespace, data and regexp
             # namespace
             BotTestCase._namespace.clear ()
             BotTestCase._data.clear ()
+            BotTestCase._regexp.clear ()
 
             # initialize the namespace with the parameters passed to the main
             # script (ie., the testbot), mainvars. These are given in
@@ -574,6 +576,7 @@ class BotTestCase (object):
                                          data=BotTestCase._data,
                                          user=BotTestCase._user,
                                          param=BotTestCase._param,
+                                         regexp=BotTestCase._regexp,
                                          stats=stats,
                                          startruntime=startruntime,
                                          endruntime=time.time ())
@@ -826,10 +829,6 @@ class BotTestCase (object):
                 # -------------------------------------------------------------
                 # check whether this line contains a stat
                 restat = re.match (self.statregexp, iline)
-                self._logger.warning ("""
- statregexp: %s
- line      : %s restat    : %s
-""" % (self.statregexp, iline, restat))
                 if (restat):
 
                     # add this variable to the data namespace
@@ -839,14 +838,47 @@ class BotTestCase (object):
                 # regexp namespace
                 # -------------------------------------------------------------
                 # for every regexp defined by the user
-                # for iregexp in self._dbspec.get_regexp ():
+                for iregexp in self._dbspec.get_regexp ():
 
-                #     # check whether this line matches it
-                #     m = re.match (iregexp.get_specification (), iline)
-                #     if (m):
+                    # check whether this line matches it
+                    m = re.match (iregexp.get_specification (), iline)
+                    if (m):
 
-                #         # add this variable to the regexp namespace
-                #         pass
+                        # add this variable to the regexp namespace as a
+                        # multi-key attribute with as many keys as groups there
+                        # are in the regexp. The multi-attribute should be named
+                        # to allow projections later on. The key names are the
+                        # group names themselves
+                        keys = tuple ([igroup for igroup in m.groupdict ()])
+                        BotTestCase._regexp.setkeynames (iregexp.get_name (), *keys)
+
+                        # now, compute the value of this multi-key attribute
+                        # which is a tuple with the matches of the regexp. Note
+                        # that blank spaces are stripped of at the right of the
+                        # match. This makes it easier for users to define
+                        # regexps that can include the blank space in between
+                        # without worrying for the trailing blank spaces
+                        values = [string.rstrip (m.group (igroup), ' ')
+                                  for igroup in m.groupdict ()]
+
+                        # the policy is to accumulate values so that read the
+                        # current value of this multi-key attribute in case it
+                        # exists
+                        if iregexp.get_name () in BotTestCase._regexp:
+
+                            currvalues = BotTestCase._regexp.getattr (iregexp.get_name (),
+                                                                      key = dict (zip (keys, keys)))
+                            BotTestCase._regexp.setattr (iregexp.get_name (),
+                                                         key = dict (zip (keys, keys)),
+                                                         value = currvalues + [tuple (values)])
+
+                        # otherwise, initialize the contents of this multi-key
+                        # attribute to a list which contains a single tuple with
+                        # the values of this match
+                        else:
+                            BotTestCase._regexp.setattr (iregexp.get_name (),
+                                                         key = dict (zip (keys, keys)),
+                                                         value = [tuple (values)])
 
         # also, populate the data namespace with the contents of files
         # (filevars) if requested by any database table
@@ -1266,6 +1298,7 @@ class BotTestCase (object):
                                  namespace=BotTestCase._namespace,
                                  data=BotTestCase._data,
                                  user=BotTestCase._user,
+                                 regexp=BotTestCase._regexp,
                                  stats=istats)
                 action (self._logger)
 

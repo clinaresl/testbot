@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <domingo, 10 agosto 2014 01:39:24 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 10 agosto 2014 16:52:33 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -295,7 +295,8 @@ class Epilogue (BotAction):
         test case. It automatically inherits the values of the following
         attributes: solver, tstspec, itest, dbspec, timeout, memory, output,
         check, basedir, resultsdir, compress, namespace, data namespace, user
-        namespace, param namespace, stats, startruntime and endruntime.
+        namespace, param namespace, regexp namespace, stats, startruntime and
+        endruntime.
 
         The Epilogue provides additional information in case the debug level is
         requested
@@ -330,7 +331,11 @@ class Epilogue (BotAction):
 
  * param namespace:
 
-%s""" % (self.__class__.__name__, self.solver, self.itest, self.timeout, self.memory, self.output, self.check, self.basedir, self.resultsdir, self.compress, self.startruntime, self.endruntime, self.namespace, self.data, self.user, self.param))
+%s
+
+ * regexp namespace:
+
+%s""" % (self.__class__.__name__, self.solver, self.itest, self.timeout, self.memory, self.output, self.check, self.basedir, self.resultsdir, self.compress, self.startruntime, self.endruntime, self.namespace, self.data, self.user, self.param, self.regexp))
 
 
 class WindUp (BotAction):
@@ -344,8 +349,8 @@ class WindUp (BotAction):
         Method invoked after the execution of the current solver with the last
         test case. It automatically inherits the values of the following
         attributes: solver, tstspec, dbspec, timeout, memory, check, basedir,
-        resultsdir, compress, namespace, data namespace, user namespace and
-        stats.
+        resultsdir, compress, namespace, data namespace, user namespace regexp
+        namespace and stats.
 
         This method provides additional information in case the debug level has
         been requested.
@@ -372,7 +377,11 @@ class WindUp (BotAction):
 
  * user namespace:
 
-%s""" % (self.__class__.__name__, self.solver, self.timeout, self.memory, self.check, self.basedir, self.resultsdir, self.compress, self.namespace, self.data, self.user))
+%s
+
+ * regexp namespace:
+
+%s""" % (self.__class__.__name__, self.solver, self.timeout, self.memory, self.check, self.basedir, self.resultsdir, self.compress, self.namespace, self.data, self.user, self.regexp))
 
 
 # main

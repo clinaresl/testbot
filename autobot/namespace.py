@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Feb 19 18:17:04 2014 Carlos Linares Lopez>
-# Last update <lunes, 10 marzo 2014 12:58:45 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 10 agosto 2014 17:37:12 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -319,8 +319,29 @@ class Namespace (MutableMapping):
             if attribute not in self._fields or not len (self._fields [attribute]):
                 raise IndexError (attribute)
 
+            # there are here two distinct cases: either the key has length 1 or
+            # strictly greater than 1
+
+            # if the key has length strictly greater than 1, then the key should
+            # be represented as a tuple
             tuplekey = tuple ([key [i] for i in self._fields [attribute]])
-            self.__dict__ [attribute] [tuplekey] = value
+
+            # otherwise, it should be represented with a scalar
+            if len (tuplekey) == 1:
+                index = tuplekey [0]
+            else:
+                index = tuplekey
+
+            # secondly, it is highly desired to use setattr even if the index
+            # does not exist ---this would ease the usage of namespaces from
+            # other code
+            if attribute not in self.__dict__:
+
+                # initialize this multi-key entry
+                self.__getattr__ (attribute)
+
+            # and finally store the data
+            self.__dict__ [attribute] [index] = value
 
 
     def getattr (self, attribute, key=None):
@@ -363,9 +384,20 @@ class Namespace (MutableMapping):
             raise IndexError (attribute)
 
         # process all keys and access then the right position of the dictionary,
-        # if anyone is missing Python will naturally raise an exception
-        return self.__dict__ [attribute] [tuple ([key [ikey]
-                                                  for ikey in self.getkeynames (attribute)])]
+        # if anyone is missing Python will naturally raise an exception. There
+        # are two different cases here to deal with: either the length of the
+        # key is 1 or it is strictly greater than 1
+        tuplekey = tuple ([key [ikey] for ikey in self.getkeynames (attribute)])
+
+        # if the key has length 1, then the index should be represented with a
+        # scalar
+        if len (tuplekey) == 1:
+            index = tuplekey [0]
+        else:
+            index = tuplekey
+
+        # and finally return the requested data
+        return self.__dict__ [attribute] [index]
 
 
     def clear (self):
