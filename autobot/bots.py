@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <domingo, 10 agosto 2014 01:25:55 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 10 agosto 2014 02:41:30 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -160,7 +160,7 @@ class BotTestCase (object):
     # since these fields are written into the data namespace (see below) they
     # can be accessed by the user in the database specification file with the
     # format data.Cost and data.'CPU time'
-    statregexp = " >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
+    statregexp = r" >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
 
     # logging services
     # -----------------------------------------------------------------------------
@@ -800,8 +800,8 @@ class BotTestCase (object):
     # specification (either appearing in the standard output file or the
     # contents of files).
     #
-    # This is done by updating the 'data' namespace and then invoking the 'poll'
-    # method in every data table
+    # This is done by updating the 'data' and 'regexp' namespaces and then
+    # invoking the 'poll' method in every data table
     # -----------------------------------------------------------------------------
     def process_results (self, directory, resultsfile, stats):
         """
@@ -811,8 +811,8 @@ class BotTestCase (object):
         database specification (either appearing in the standard output file or
         the contents of files).
 
-        This is done by updating the 'data' namespace and then invoking the
-        'poll' method in every data table
+        This is done by updating the 'data' and 'regexp' namespaces and then
+        invoking the 'poll' method in every data table
         """
 
         # populate the namespace with the information retrieved from the
@@ -822,14 +822,31 @@ class BotTestCase (object):
             # now, for each line in the output file
             for iline in stream.readlines ():
 
+                # data namespace
+                # -------------------------------------------------------------
                 # check whether this line contains a stat
                 restat = re.match (self.statregexp, iline)
-
+                self._logger.warning ("""
+ statregexp: %s
+ line      : %s restat    : %s
+""" % (self.statregexp, iline, restat))
                 if (restat):
 
                     # add this variable to the data namespace
                     BotTestCase._data [restat.group ('varname').rstrip (" ")] = \
                       restat.group ('value')
+
+                # regexp namespace
+                # -------------------------------------------------------------
+                # for every regexp defined by the user
+                # for iregexp in self._dbspec.get_regexp ():
+
+                #     # check whether this line matches it
+                #     m = re.match (iregexp.get_specification (), iline)
+                #     if (m):
+
+                #         # add this variable to the regexp namespace
+                #         pass
 
         # also, populate the data namespace with the contents of files
         # (filevars) if requested by any database table
@@ -1164,8 +1181,8 @@ class BotTestCase (object):
 
             # if so, override the current definition and show an info message
             if iregexp.get_name () == 'data':
-                statregexp = iregexp.get_specification ()
-                self._logger.info (" The data regexp has been overridden to '%s'" % iregexp.get_specification ())
+                self.statregexp = iregexp.get_specification ()
+                self._logger.warning (" The data regexp has been overridden to '%s'" % iregexp.get_specification ())
 
         # at last, run the experiments going through every solver
         if not solver:

@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <domingo, 10 agosto 2014 01:42:01 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 10 agosto 2014 02:51:33 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -432,7 +432,10 @@ class DBRegexp:
         creates a regular expression with the given name and specification
         """
 
-        (self._name, self._specification) = (name, specification)
+        # just copy the name and specification of this regexp. Note that the
+        # specification automatically eliminates the quotes (either double or
+        # single)
+        (self._name, self._specification) = (name, specification[1:-1])
 
 
     def __str__ (self):
@@ -645,7 +648,7 @@ class DBParser :
     def t_REGEXP (self, t):
         r"[a-zA-Z][a-zA-Z_0-9]*\.[a-zA-Z_][a-zA-Z_0-9]*"
 
-        # just return the string
+        # just return the string 
         return t
 
     # tableid: a correct name for tables (either sys_, data_ or user_)
