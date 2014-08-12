@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <domingo, 10 agosto 2014 02:51:33 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 11 agosto 2014 01:42:22 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -543,7 +543,7 @@ class DBParser :
     # system variables: any variable preceded by a colon. They stand for
     # variables computed at every cycle
     def t_SYSVAR (self, t):
-        r"(:|sys.)[a-zA-Z_][a-zA-Z_0-9]*"
+        r"(:|sys\.)[a-zA-Z_][a-zA-Z_0-9]*"
         if t.value[0]==':':
             t.value = t.value[1:]
         else:
@@ -648,12 +648,12 @@ class DBParser :
     def t_REGEXP (self, t):
         r"[a-zA-Z][a-zA-Z_0-9]*\.[a-zA-Z_][a-zA-Z_0-9]*"
 
-        # just return the string 
+        # just return the string
         return t
 
     # tableid: a correct name for tables (either sys_, data_ or user_)
     def t_TABLEID (self, t):
-        r'(sys\_|data\_|user\_)[a-zA-Z_][a-zA-Z_0-9]*'
+        r'(sys|data|user)\_[a-zA-Z_][a-zA-Z_0-9]*'
         return t
 
     # The following rule distinguishes automatically between reserved words and

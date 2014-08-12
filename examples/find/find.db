@@ -1,0 +1,30 @@
+# database tables
+# -----------------------------------------------------------------------------
+
+# admin tables including 'admin', 'tests', 'time', 'timeline', 'status'
+# and 'version' are created systematically
+#
+# there are three different types of tables:
+#
+#    sys tables: they should start with 'sys_'. They are polled after
+#                every cycle
+#
+#    data tables: they should start with 'data_'. They are polled after
+#                 every execution
+#
+#    user tables: they should start with 'user_'. They are out of reach
+#                 of autobot and they are polled instead by third-party 
+#                 software using the services of autobot
+
+# overall running time
+sys_time {
+      id text sys.index Error;
+      cputime real sys.cputime Error;
+      wctime real sys.wctime Error;
+}
+
+sys_memory {
+      id text sys.index Error;
+      cputime real sys.cputime Error;
+      memory real sys.vsize Error;
+}

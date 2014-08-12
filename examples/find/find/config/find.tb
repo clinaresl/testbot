@@ -1,0 +1,4 @@
+# the directive exec explicitly informs autobot of the directives
+# passed to the solver
+exec ["/home/clinares -name namespace.py -type f -print",
+      "/home/clinares -type f -name namespace.py -print"];
