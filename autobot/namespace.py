@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Feb 19 18:17:04 2014 Carlos Linares Lopez>
-# Last update <domingo, 10 agosto 2014 17:37:12 Carlos Linares Lopez (clinares)>
+# Last update <martes, 12 agosto 2014 23:10:56 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -510,6 +510,47 @@ class Namespace (MutableMapping):
         for (ikey, ival) in sorted (self.__dict__ [attribute].items ()):
             result.append ((tuple ([ikey[i] for i in
                                     [self._fields [attribute].index(j) for j in keys]]), ival))
+
+        return result
+
+
+    def projection (self, attribute, *keys):
+        """
+        this method is similar to items. The difference is that values are also
+        projected over the specified keys.
+
+        returns a list of tuples (key+, value+) where key+/value+ is the
+        projection of the keys of the attribute over the specified 'keys'. Every
+        value should be either a list or a tuple with the same length than the
+        key. This service assumes that the i-th value corresponds to the i-th
+        key so that:
+
+           1. key+ contains a key if it is given in the specified keys
+           2. value+ contains the i-th item if and only if the i-th key is
+              included in key+
+
+        If no keys are provided then all are used by default. If the given
+        attribute is not indexed by a named multi key an AttributeError is
+        raised
+
+        projection (f) is order-preserving
+        """
+
+        # check that attribute is a multi key attribute
+        if attribute not in self._fields:
+            raise AttributeError (attribute)
+
+        # use all keys by default is none is specified
+        if not keys: keys = self._fields [attribute]
+
+        # note that items are sorted so that they are always traversed in the
+        # same order in spite of the component requested at different methods
+        result = list ()
+        for (ikey, ival) in sorted (self.__dict__ [attribute].items ()):
+            result.append ((tuple ([ikey[i] for i in
+                                    [self._fields [attribute].index(j) for j in keys]]),
+                            tuple ([ival[i] for i in
+                                    [self._fields [attribute].index (j) for j in keys]])))
 
         return result
 
