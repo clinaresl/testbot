@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <lunes, 11 agosto 2014 00:16:36 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 13 agosto 2014 01:45:26 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -719,10 +719,11 @@ class BotTestCase (object):
                 # poll all sys tables
                 for itable in self._dbspec.get_db ():
                     if itable.sysp ():
-                        stats [itable.get_name ()].append (itable.poll (BotTestCase._namespace,
-                                                                        BotTestCase._data,
-                                                                        BotTestCase._user,
-                                                                        BotTestCase._param))
+                        stats [itable.get_name ()] += itable.poll (BotTestCase._namespace,
+                                                                   BotTestCase._data,
+                                                                   BotTestCase._user,
+                                                                   BotTestCase._param,
+                                                                   BotTestCase._regexp)
 
                 # update the maximum memory usage
                 max_mem = max (max_mem, total_vsize)
@@ -891,10 +892,11 @@ class BotTestCase (object):
         # information from the namespace
         for itable in self._dbspec.get_db ():
             if itable.datap ():
-                stats [itable.get_name ()].append (itable.poll (BotTestCase._namespace,
-                                                                BotTestCase._data,
-                                                                BotTestCase._user,
-                                                                BotTestCase._param))
+                stats [itable.get_name ()] += itable.poll (BotTestCase._namespace,
+                                                           BotTestCase._data,
+                                                           BotTestCase._user,
+                                                           BotTestCase._param,
+                                                           BotTestCase._regexp)
 
 
     # -----------------------------------------------------------------------------

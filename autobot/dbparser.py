@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <lunes, 11 agosto 2014 01:42:22 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 13 agosto 2014 01:53:38 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -55,6 +55,7 @@ import ply.lex as lex
 import ply.yacc as yacc
 
 import colors                           # tty colors
+
 
 # -----------------------------------------------------------------------------
 # DBColumn
@@ -317,17 +318,18 @@ class DBTable:
 
     def execute_action (self, column):
         """
-        executes the action associated to the given column
+        executes the action associated to the given column. An action can be
+        either "Error", "Warning", "None" or anything else which is then
+        returned
         """
-
-        # value to return
-        value = None
 
         # execute the action specified for this column
         if column.get_action () == 'Warning':
-            print "%s Warning [%s]: The variable '%s' was not available!" % (colors.yellow, self._name, column.get_variable ())
+            print """%s Warning [%s]: The variable '%s' was not available!
+""" % (colors.yellow, self._name, column.get_variable ())
         elif column.get_action () == 'Error':
-            print "%s Error [%s]: The variable '%s' was not available!" % (colors.red, self._name, column.get_variable ())
+            print """%s Error [%s]: The variable '%s' was not available!
+""" % (colors.red, self._name, column.get_variable ())
             raise ValueError
         elif column.get_action () != 'None':
             return column.get_action ()
@@ -336,11 +338,11 @@ class DBTable:
         return None
 
 
-    def poll (self, namespace, data, user, param):
+    def poll (self, namespace, data, user, param, regexp):
         """
         returns a tuple of values according to the definition of columns of this
         table and the values specified in the given namespaces: namespace, data,
-        user and param.
+        user, param and regexp.
 
         In case the value requested for a particular column is not found, the
         specified action is executed.
@@ -349,7 +351,7 @@ class DBTable:
         def _neutral (ctype):
             """
             returns the neutral element of the given column type:
-            text, integer or real
+            text (''), integer (0) or real (0.0)
             """
 
             if ctype == 'text': return ''
@@ -388,33 +390,123 @@ class DBTable:
             elif vartype == "DATA" or vartype == "FILEVAR": return data
             elif vartype == "PARAM" or vartype == "DIR": return param
             elif vartype == "USERVAR": return user
+            elif vartype == "REGEXP": return regexp
             else: return namespace
 
+        def _replicate (t, cardinality):
+            """
+            it returns a list of tuples with length equal to cardinality such
+            that the i-th tuple contains the i-th item of t if it is a list and
+            the item itself otherwise. It effectively replicates the specified t
+            generating up to 'cardinality' tuples where 'cardinality' has to be
+            equal to the maximum length of all lists if any or 1 otherwise.
+            """
+
+            return [tuple (map (lambda x:x[i] if isinstance (x, list) else x, t))
+                    for i in range(cardinality)]
+
+
         # initialization
-        t=()
+        t=()                    # raw description of the tuples to return
+        cardinality = 1         # default cardinality of every column
 
         # for all columns in this table
         for icolumn in self:
 
-            # in case the variable requested for this column is not
-            # available in its corresponding namespace
-            nspace = _get_namespace (icolumn.get_vartype ())
+            # in case this is not the regexp namespace (the cardinality is
+            # always fixed to one)
+            if icolumn.get_vartype () != "REGEXP":
 
-            if icolumn.get_variable () not in nspace:
+                # get the right namespace for retrieving the value of this
+                # variable
+                nspace = _get_namespace (icolumn.get_vartype ())
 
-                # then execute the specified action
-                value = self.execute_action (icolumn)
+                # if this variable does not exist in this namespace
+                if icolumn.get_variable () not in nspace:
 
-                # and include the pertinent value
-                if value: t += (value,)
-                else: t+=(_neutral (icolumn.get_type ()),)
+                    # then execute the specified action
+                    value = self.execute_action (icolumn)
 
-            # otherwise
+                    # and include the pertinent value
+                    if value: t += (value,)
+                    else: t+=(_neutral (icolumn.get_type ()),)
+
+                # otherwise, add it after coercing the desired type
+                else:
+                    t += (_cast_value (icolumn.get_type (), nspace[icolumn.get_variable ()]),)
+
+            # otherwise, in case this is the regexp namespace (the cardinality
+            # can be any arbitrary number greater or equal than one)
             else:
-                t += (_cast_value (icolumn.get_type (), nspace[icolumn.get_variable ()]),)
 
-        # and finally return the tuple
-        return t
+                # compute the name of the regexp and the group within this
+                # regexp from the variable name
+                (name, group) = string.split (icolumn.get_variable (), '.')
+
+                # in case this regexp does not exist in the regexp namespace
+                if name not in regexp:
+
+                    # then execute the specified action
+                    value = self.execute_action (icolumn)
+
+                    # and include the pertinent value
+                    if value: t += (value,)
+                    else: t+=(_neutral (icolumn.get_type ()),)
+
+                # otherwise, compute the value of this regexp which is stored in
+                # the namespace as a list of tuples of the same length than the
+                # key
+                else:
+
+                    # if this group does not exist in this attribute then this
+                    # is an error most likely due to the fact that the user
+                    # accidentally mistyped the right name
+                    if group not in regexp.getkeynames (name):
+                        print """%s
+ Error: while processing the table
+
+%s
+
+ the group '%s' was not found in the regexp '%s'
+""" % (colors.red, self, group, name)
+                        raise ValueError
+
+                    # the following statement is simple (in spite of its fierce
+                    # looking). It just return the i-th content of every tuple where
+                    # the location (i) is computed as the position of the group in
+                    # the keys of this attribute
+                    vals = [jval [regexp._fields [name].index (group)]
+                            for jval in regexp.getattr (name,
+                                                        key=dict (zip (regexp.getkeynames (name),
+                                                                       regexp.getkeynames (name))))]
+
+                    # and add it to this tuple
+                    t += (vals,)
+
+                    # and check the cardinality ---if no column has been found
+                    # with more than one item, then this one sets the maximum
+                    # cardinality found so far
+                    if cardinality == 1: cardinality = len (vals)
+
+                    # otherwise, if the cardinality of this one is greater than
+                    # one and it does not match the current max cardinality,
+                    # then an error has been found
+                    elif len (vals) > 1 and cardinality != len (vals):
+                        print """%s
+ Error: while processing the table
+
+%s
+
+ a cardinality mismatch has been found
+
+ cardinality : %s
+ vals        : %s
+ t           : %s
+""" % (colors.red, self, cardinality, vals, t)
+                        raise ValueError
+
+        # and finally replicate this tuple and return the result
+        return _replicate (t, cardinality)
 
 
 # -----------------------------------------------------------------------------
