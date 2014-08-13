@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <miércoles, 13 agosto 2014 01:53:38 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 13 agosto 2014 02:06:08 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -316,20 +316,21 @@ class DBTable:
         return self._name[0:5] == 'user_'
 
 
-    def execute_action (self, column):
+    def execute_action (self, column, logger):
         """
         executes the action associated to the given column. An action can be
         either "Error", "Warning", "None" or anything else which is then
-        returned
+        returned.
+
+        In case an error or a warning are issued, the specified logger is used
+        to show up the messages
         """
 
         # execute the action specified for this column
         if column.get_action () == 'Warning':
-            print """%s Warning [%s]: The variable '%s' was not available!
-""" % (colors.yellow, self._name, column.get_variable ())
+            logger.warning ("%s Warning [%s]: The variable '%s' was not available!" % (colors.yellow, self._name, column.get_variable ()))
         elif column.get_action () == 'Error':
-            print """%s Error [%s]: The variable '%s' was not available!
-""" % (colors.red, self._name, column.get_variable ())
+            logger.error ("%s Error [%s]: The variable '%s' was not available!" % (colors.red, self._name, column.get_variable ()))
             raise ValueError
         elif column.get_action () != 'None':
             return column.get_action ()
@@ -338,7 +339,7 @@ class DBTable:
         return None
 
 
-    def poll (self, namespace, data, user, param, regexp):
+    def poll (self, namespace, data, user, param, regexp, logger):
         """
         returns a tuple of values according to the definition of columns of this
         table and the values specified in the given namespaces: namespace, data,
@@ -346,6 +347,9 @@ class DBTable:
 
         In case the value requested for a particular column is not found, the
         specified action is executed.
+
+        this method is likely to raise warnings and errors (along with an
+        exception). Therefore, it receives also a logger to show messages
         """
 
         def _neutral (ctype):
@@ -358,7 +362,7 @@ class DBTable:
             elif ctype == 'integer': return 0
             elif ctype == 'real': return 0.0
             else:
-                print " Unknown type '%s'" % ctype
+                logger.error (" Unknown type '%s'" % ctype)
                 raise TypeError
 
 
@@ -371,7 +375,7 @@ class DBTable:
             elif ctype == 'integer': return int (cvalue)
             elif ctype == 'real': return float (cvalue)
             else:
-                print " Unknown type '%s'" % ctype
+                logger.error (" Unknown type '%s'" % ctype)
                 raise TypeError
 
         def _get_namespace (vartype):
@@ -425,7 +429,7 @@ class DBTable:
                 if icolumn.get_variable () not in nspace:
 
                     # then execute the specified action
-                    value = self.execute_action (icolumn)
+                    value = self.execute_action (icolumn, logger)
 
                     # and include the pertinent value
                     if value: t += (value,)
@@ -447,7 +451,7 @@ class DBTable:
                 if name not in regexp:
 
                     # then execute the specified action
-                    value = self.execute_action (icolumn)
+                    value = self.execute_action (icolumn, logger)
 
                     # and include the pertinent value
                     if value: t += (value,)
@@ -462,13 +466,13 @@ class DBTable:
                     # is an error most likely due to the fact that the user
                     # accidentally mistyped the right name
                     if group not in regexp.getkeynames (name):
-                        print """%s
+                        logger.error ("""%s
  Error: while processing the table
 
 %s
 
  the group '%s' was not found in the regexp '%s'
-""" % (colors.red, self, group, name)
+""" % (colors.red, self, group, name))
                         raise ValueError
 
                     # the following statement is simple (in spite of its fierce
@@ -492,7 +496,7 @@ class DBTable:
                     # one and it does not match the current max cardinality,
                     # then an error has been found
                     elif len (vals) > 1 and cardinality != len (vals):
-                        print """%s
+                        logger.error ("""%s
  Error: while processing the table
 
 %s
@@ -502,7 +506,7 @@ class DBTable:
  cardinality : %s
  vals        : %s
  t           : %s
-""" % (colors.red, self, cardinality, vals, t)
+""" % (colors.red, self, cardinality, vals, t))
                         raise ValueError
 
         # and finally replicate this tuple and return the result

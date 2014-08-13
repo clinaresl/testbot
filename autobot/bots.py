@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <miércoles, 13 agosto 2014 01:45:26 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 13 agosto 2014 02:02:18 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -723,7 +723,8 @@ class BotTestCase (object):
                                                                    BotTestCase._data,
                                                                    BotTestCase._user,
                                                                    BotTestCase._param,
-                                                                   BotTestCase._regexp)
+                                                                   BotTestCase._regexp,
+                                                                   self._logger)
 
                 # update the maximum memory usage
                 max_mem = max (max_mem, total_vsize)
@@ -896,7 +897,8 @@ class BotTestCase (object):
                                                            BotTestCase._data,
                                                            BotTestCase._user,
                                                            BotTestCase._param,
-                                                           BotTestCase._regexp)
+                                                           BotTestCase._regexp,
+                                                           self._logger)
 
 
     # -----------------------------------------------------------------------------
