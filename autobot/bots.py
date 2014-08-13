@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <miércoles, 13 agosto 2014 02:02:18 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 13 agosto 2014 12:02:34 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -1216,7 +1216,7 @@ class BotTestCase (object):
         for iregexp in self._dbspec.get_regexp ():
 
             # if so, override the current definition and show an info message
-            if iregexp.get_name () == 'data':
+            if iregexp.get_name () == 'default':
                 self.statregexp = iregexp.get_specification ()
                 self._logger.warning (" The data regexp has been overridden to '%s'" % iregexp.get_specification ())
 
