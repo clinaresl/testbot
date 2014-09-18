@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <domingo, 10 agosto 2014 16:52:33 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 18 septiembre 2014 13:41:39 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -225,7 +225,7 @@ class Enter (BotAction):
  * solver      : %s
  * timeout     : %d seconds
  * memory      : %d bytes
- * check       : %d seconds
+ * check       : %.2f seconds
  * basedir     : %s
  * resultsdir  : %s
  * compress    : %s
@@ -265,7 +265,7 @@ class Prologue (BotAction):
  * timeout     : %d seconds
  * memory      : %d bytes
  * output      : %s
- * check       : %d seconds
+ * check       : %.2f seconds
  * basedir     : %s
  * resultsdir  : %s
  * compress    : %s
@@ -311,7 +311,7 @@ class Epilogue (BotAction):
  * timeout     : %d seconds
  * memory      : %d bytes
  * output      : %s
- * check       : %d seconds
+ * check       : %.2f seconds
  * basedir     : %s
  * resultsdir  : %s
  * compress    : %s
@@ -363,7 +363,7 @@ class WindUp (BotAction):
  * solver      : %s
  * timeout     : %d seconds
  * memory      : %d bytes
- * check       : %d seconds
+ * check       : %.2f seconds
  * basedir     : %s
  * resultsdir  : %s
  * compress    : %s

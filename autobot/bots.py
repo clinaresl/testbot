@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <miércoles, 13 agosto 2014 12:02:34 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 18 septiembre 2014 13:42:39 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -335,7 +335,7 @@ class BotTestCase (object):
   * Tests                : %s
   * Database             : %s
 
-  * Check flag           : %i seconds
+  * Check flag           : %.2f seconds
 
   * Directory            : %s
   * Compression          : %s
@@ -956,7 +956,7 @@ class BotTestCase (object):
                                                               'tstfile', 'None'),
                                            dbparser.DBColumn ('db', 'text', 'ADMINVAR',
                                                               'dbfile', 'None'),
-                                           dbparser.DBColumn ('delay', 'integer', 'ADMINVAR',
+                                           dbparser.DBColumn ('delay', 'real', 'ADMINVAR',
                                                               'check', 'None'),
                                            dbparser.DBColumn ('time', 'integer', 'ADMINVAR',
                                                               'time', 'None'),
