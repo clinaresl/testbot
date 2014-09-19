@@ -1,3 +1,0 @@
-# prefix
-cmd = "domain.pddl problem.pddl plan.soln";
-exec cmd;

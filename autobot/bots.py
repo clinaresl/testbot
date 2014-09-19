@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <jueves, 18 septiembre 2014 13:42:39 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 20 septiembre 2014 01:44:59 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -77,32 +77,40 @@ import pdb
 # -----------------------------------------------------------------------------
 # BotAction
 #
-# autbot receives an arbitrary selection of solvers and test cases (the former
-# is given in the command line while the latter is specified in a test
-# specification file). With these input data it implements the following
-# execution flow: once a solver has been selected it first invokes an *enter*
-# action before executing the solver over the first test case and it invokes a
-# *windUp* action after the current solver has been applied over all test
-# cases. Similary, a *prologue* action is invoked before the execution of any
-# solver over any test case and an *epilogue* action is invoked immediately
-# after.
+# autbot receives either an arbitrary selection of solvers and test cases (the
+# former is given in the command line while the latter is specified in a test
+# specification file) or an arbitrary specification of text files to
+# parse. Let "experiment" denote the execution of a particular solver (among
+# an arbitrary large collection of them) over its tests cases or the parsing
+# process of all text files. Similarly, let "run" denote a particular
+# execution of a solver over a given test case or the parsing process of a
+# single text file.
+#
+# autobot implements the following execution flow: before an experiment is
+# started it first invokes an *enter* action and it invokes a *windUp* action
+# when the experiment is over. Similary, a *prologue* action is invoked before
+# every run and an *epilogue* action is invoked immediately after.
 #
 # To allow further flexibility these actions are implemented as subclasses of
 # BotAction which have to implement __call__. If these functions are provided
-# then the corresponding subclass is invoked with all the variables that define
-# the current environment of the execution.
+# then the corresponding subclass is invoked with all the variables that
+# define the current environment of the execution.
 # -----------------------------------------------------------------------------
 class BotAction (object):
     """
-    autbot receives an arbitrary selection of solvers and test cases (the former
-    is given in the command line while the latter is specified in a test
-    specification file). With these input data it implements the following
-    execution flow: once a solver has been selected it first invokes an *enter*
-    action before executing the solver over the first test case and it invokes a
-    *windUp* action after the current solver has been applied over all test
-    cases. Similary, a *prologue* action is invoked before the execution of any
-    solver over any test case and an *epilogue* action is invoked immediately
-    after.
+    autbot receives either an arbitrary selection of solvers and test cases (the
+    former is given in the command line while the latter is specified in a test
+    specification file) or an arbitrary specification of text files to
+    parse. Let "experiment" denote the execution of a particular solver (among
+    an arbitrary large collection of them) over its tests cases or the parsing
+    process of all text files. Similarly, let "run" denote a particular
+    execution of a solver over a given test case or the parsing process of a
+    single text file.
+
+    autobot implements the following execution flow: before an experiment is
+    started it first invokes an *enter* action and it invokes a *windUp* action
+    when the experiment is over. Similary, a *prologue* action is invoked before
+    every run and an *epilogue* action is invoked immediately after.
 
     To allow further flexibility these actions are implemented as subclasses of
     BotAction which have to implement __call__. If these functions are provided
@@ -146,7 +154,7 @@ class BotTestCase (object):
     # -----------------------------------------------------------------------------
     defaultname = "<processed>"
 
-    # regular epression for recognizing pairs (var, val) in the stdout
+    # regular epression for recognizing pairs (var, val)
     # -----------------------------------------------------------------------------
     # the following regexp is used by default: first, the user can provide its
     # own regexps (see below) or it can overwrite the current regexp which is
@@ -320,7 +328,6 @@ class BotTestCase (object):
     # show a somehow beautified view of the current params
     # -----------------------------------------------------------------------------
     def show_switches (self, solver, tstfile, dbfile, timeout, memory, check, directory, compress):
-
         """
         show a somehow beautified view of the current params
         """
@@ -1168,6 +1175,10 @@ class BotTestCase (object):
         if type (self._solver) is not list:
             raise ValueError (" Incorrect specification of solvers")
 
+        # check that all parameters are valid
+        self.check_flags (self._solver, self._tstfile, self._dbfile,
+                          timeout, memory, check, directory)
+
         # and now, create the test case and database specifications
 
         # process the test cases either as a string with a path to the file to
@@ -1201,10 +1212,6 @@ class BotTestCase (object):
             self._dbfile = self._dbfile.filename
         else:
             raise ValueError (" Incorrect specification of the database")
-
-        # check that all parameters are valid
-        self.check_flags (solver, self._tstfile, self._dbfile,
-                          timeout, memory, check, directory)
 
         # and now, unless quiet is enabled, show the flags
         if (not self._quiet):
@@ -1241,7 +1248,6 @@ class BotTestCase (object):
             self.fetch (logdir)
 
             # in case it is requested to execute an *enter* action do it now
-            # if a prologue was given, execute it now
             if enter:
                 action = enter (solver=isolver,
                                 tstspec=self._tstspec,
@@ -1310,25 +1316,264 @@ class BotTestCase (object):
 
 
 # -----------------------------------------------------------------------------
+# BotParser
+#
+# Base class of all parsebots
+# -----------------------------------------------------------------------------
+class BotParser (object):
+    """
+    Base class of all parsebots
+    """
+
+    # regular epression for recognizing pairs (var, val)
+    # -----------------------------------------------------------------------------
+    # the following regexp is used by default: first, the user can provide its
+    # own regexps (see below) or it can overwrite the current regexp which is
+    # distinguished with the special name 'data'
+    #
+    # the following regexp correctly matches strings with two groups 'varname'
+    # and 'value' such as:
+    #
+    # > Cost     : 359
+    # > CPU time : 16.89311
+    #
+    # since these fields are written into the data namespace (see below) they
+    # can be accessed by the user in the database specification file with the
+    # format data.Cost and data.'CPU time'
+    statregexp = r" >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
+
+    # logging services
+    # -----------------------------------------------------------------------------
+    _loglevel = logging.INFO            # default logging level
+
+
+    # -----------------------------------------------------------------------------
+    # check_flags
+    #
+    # check the parameters given
+    # -----------------------------------------------------------------------------
+    def check_flags (self, txtfile, dbfile, directory):
+
+        """
+        check the parameters given
+        """
+
+        # verify that all text files are accessible
+        for itxtfile in txtfile:
+
+            if not os.access (itxtfile, os.F_OK):
+                self._logger.critical ("""
+ The text file '%s' is not accessible
+ Use '--help' for more information
+""" % itxtfile)
+                raise ValueError (" The text file is not accessible")
+
+        # verify also that the db file is accessible
+        if not os.access (dbfile, os.F_OK):
+            self._logger.critical ("""
+ The database specification file does not exist or it resides in an unreachable location
+ Use '--help' for more information
+""")
+            raise ValueError (" The database specification file is not accessible")
+
+
+    # -----------------------------------------------------------------------------
+    # show_switches
+    #
+    # show a somehow beautified view of the current params
+    # -----------------------------------------------------------------------------
+    def show_switches (self, txtfile, dbfile, directory):
+        """
+        show a somehow beautified view of the current params
+        """
+
+        self._logger.info ("""
+  %s %s %s
+ -----------------------------------------------------------------------------
+  * Files                : %s
+  * Database             : %s
+
+  * Directory            : %s
+ -----------------------------------------------------------------------------""" % (__revision__[1:-1], __date__[1:-2], __version__, txtfile, dbfile, directory))
+
+
+    # -----------------------------------------------------------------------------
+    # go
+    #
+    # main service provided by this class. It automates the whole parsing
+    # process.
+    #
+    # Other (optional) parameters are:
+    #
+    # directory - target directory where all output is recorded
+    # logger - if a logger is given, autobot uses a child of it. Otherwise, it
+    #          creates its own logger
+    # logfilter - if the client code uses a logger that requires additional
+    #             information, a logging.Filter should be given here
+    # prologue - if a class is provided here then __call__ () is automatically
+    #            invoked before parsing every text file. This class should
+    #            be a subclass of BotAction so that it automatically inherits
+    #            all the attributes
+    # epilogue - if a class is provided here then __call__ () is automatically
+    #            invoked after parsing every text file. This class should be a
+    #            subclass of BotAction so that it automatically inherits all
+    #            the attributes
+    # enter - much like prologue but __call__ is automatically invoked before
+    #         parsing the first text file
+    # windUp - much like epilogue but __call__ is automatically invoked after
+    #          parsing the last text file
+    # quiet - if given, some additional information is skipped
+    # -----------------------------------------------------------------------------
+    def go (self, txtfile, dbfile, directory=os.getcwd (),
+            logger=None, logfilter=None, prologue=None, epilogue=None,
+            enter=None, windUp=None, quiet=False):
+        """
+        main service provided by this class. It automates the whole parsing
+        process.
+
+        Other (optional) parameters are:
+
+        directory - target directory where all output is recorded
+        logger - if a logger is given, autobot uses a child of it. Otherwise, it
+                 creates its own logger
+        logfilter - if the client code uses a logger that requires additional
+                    information, a logging.Filter should be given here
+        prologue - if a class is provided here then __call__ () is automatically
+                   invoked before parsing every text file. This class should
+                   be a subclass of BotAction so that it automatically inherits
+                   all the attributes
+        epilogue - if a class is provided here then __call__ () is automatically
+                   invoked after parsing every text file. This class should be a
+                   subclass of BotAction so that it automatically inherits all
+                   the attributes
+        enter - much like prologue but __call__ is automatically invoked before
+                parsing the first text file
+        windUp - much like epilogue but __call__ is automatically invoked after
+                 parsing the last text file
+        quiet - if given, some additional information is skipped
+        """
+
+        # copy the attributes
+        (self._txtfile, self._dbfile, self._directory,
+         self._prologue, self._epilogue, self._quiet) = \
+         (txtfile, dbfile, directory,
+          prologue, epilogue, quiet)
+
+        # logger settings - if a logger has been passed, just create a child of
+        # it
+        if logger:
+            self._logger = logger.getChild ('bots.BotParser')
+
+            # in case a filter has been given add it and finally set the log level
+            if logfilter:
+                self._logger.addFilter (logfilter)
+
+        # otherwise, create a simple logger based on a stream handler
+        else:
+            self._logger = logging.getLogger(self.__class__.__module__ + '.' +
+                                             self.__class__.__name__)
+            handler = logging.StreamHandler ()
+            handler.setLevel (BotParser._loglevel)
+            handler.setFormatter (logging.Formatter (" %(levelname)-10s:   %(message)s"))
+            self._logger.addHandler (handler)
+
+            # not passing a logger does not mean that other loggers do not exist
+            # so that make sure that the log messages generated here are not
+            # propagated upwards in the logging hierarchy
+            self._logger.propagate = False
+
+        self._logger.debug (" Starting automated parsing ...")
+
+        # check that all parameters are valid
+        self.check_flags (self._txtfile, self._dbfile, self._directory)
+
+        # and now, create the database specification
+
+        # process the database either as a string with a path to the file to
+        # parse or just simply copy the specification in case it was given as a
+        # verbatim string or as a file already processed
+        # proceed similarly in case of the database specification file
+        if type (self._dbfile) is str:
+            self._logger.debug (" Parsing the database specification file ...")
+            self._dbspec  = dbtools.DBFile (self._dbfile)
+        elif isinstance (self._dbfile, dbtools.DBVerbatim):
+            self._logger.debug (" The database was given as a verbatim specification")
+            self._dbspec = self._dbfile
+            self._dbfile = BotTestCase.defaultname
+        elif isinstance (self._dbfile, dbtools.DBFile):
+            self._logger.debug (" The database was given as a file already parsed")
+            self._dbspec = self._dbfile
+            self._dbfile = self._dbfile.filename
+        else:
+            raise ValueError (" Incorrect specification of the database")
+
+        # and now, unless quiet is enabled, show the flags
+        if (not self._quiet):
+
+            self.show_switches (self._txtfile, self._dbfile, self._directory)
+
+        # is the user overridden the definition of the data regexp?
+        for iregexp in self._dbspec.get_regexp ():
+
+            # if so, override the current definition and show an info message
+            if iregexp.get_name () == 'default':
+                self.statregexp = iregexp.get_specification ()
+                self._logger.warning (" The data regexp has been overridden to '%s'" % iregexp.get_specification ())
+
+        # in case it is requested to execute an *enter* action do it now
+        if enter:
+            action = enter (dbfile=self._dbfile,
+                            directory=self._directory)
+            action (self._logger)
+
+        # now, process every text file
+        for itxtfile in self._txtfile:
+
+            self._logger.info (" Starting the automated parsing of file '%s'" % itxtfile)
+
+            # execute the prologue in case any was given
+            if prologue:
+                action = prologue (textfile=itxtfile,
+                                   dbfile=self._dbfile,
+                                   directory=self._directory)
+                action (self._logger)
+
+
+            # now, before processing the next text file, invoke the epilogue in
+            # case any was given
+            if epilogue:
+                action = epilogue (textfile=itxtfile,
+                                   dbfile=self._dbfile,
+                                   directory=self._directory)
+                action (self._logger)
+
+        # before leaving, execute a windup action in case it was requested
+        if windUp:
+            action = windUp (dbfile=self._dbfile,
+                             directory=self._directory)
+            action (self._logger)
+
+
+# -----------------------------------------------------------------------------
 # BotLoader
 #
-# This class is responsible of processing all classes in the given
-# module and to return all of those that are children of BotTestCase
-# along with the methods that should be executed
+# This class is responsible of processing all classes in the given module and to
+# return all of those that are children of the given class along with the
+# methods that should be executed
 # -----------------------------------------------------------------------------
 class BotLoader:
     """
-    This class is responsible of processing all classes in the given
-    module and to return all of those that are children of BotTestCase
-    along with the methods that should be executed
+    This class is responsible of processing all classes in the given module and
+    to return all of those that are children of the given class along with the
+    methods that should be executed
     """
 
     _botTestre = 'test_'
 
-    def loadTestsFromModule (self, module):
+    def loadTestsFromModule (self, module, classdef):
         """
         Browse all the definitions in the given module and process those classes
-        that are descendants of BotTestCase. 'module' is the module object
+        that are descendants of classdef. 'module' is the module object
         properly imported. It returns a tuple with a couple of dictionaries. The
         first one provides the definition of all classes that contain methods to
         execute. The second one contains the (unbound) methods that have to be
@@ -1342,8 +1587,8 @@ class BotLoader:
         # Retrieve all classes defined in the given module. getmembers
         # return tuples of the form (name, value) so that all values
         # are processed to preserve only those that are inherited from
-        # BotTestCase
-        self._classes = filter (lambda x:issubclass (x[1], BotTestCase),
+        # the given class
+        self._classes = filter (lambda x:issubclass (x[1], classdef),
                                 inspect.getmembers (module,
                                                     lambda x:inspect.isclass (x)))
 
@@ -1366,20 +1611,23 @@ class BotLoader:
 # -----------------------------------------------------------------------------
 # BotMain
 #
-# This class provides the main definitions for accessing the services
-# provided by testbot
+# This class provides the main definitions for accessing the services provided
+# by testbot
 # -----------------------------------------------------------------------------
 class BotMain:
     """
-    This class provides the main definitions for accessing the
-    services provided by the testbot
+    This class provides the main definitions for accessing the services provided
+    by the testbot
     """
 
-    def __init__ (self, module='__main__', cmp=None):
+    def __init__ (self, module, classdef, cmp=None):
         """
-        Process the parameters of this session retrieving the test functions to
-        execute. Test functions are sorted according to cmp. If it equals None
-        then they are sorted in ascending order of the lexicographical order
+        Process the parameters of this session from the given module retrieving
+        the test functions to execute which are defined as methods in the given
+        class. Valid class definitions are BotTestCase and BotParser
+
+        Test functions are sorted according to cmp. If it equals None then they
+        are sorted in ascending order of the lexicographical order
         """
 
         def _cmp (methodA, methodB):
@@ -1401,7 +1649,7 @@ class BotMain:
         # get all the test cases to execute --- classes is a dictionary of names
         # to defs and methods is another dictionary of class names to method
         # implementations
-        (self._classes, self._methods) = BotLoader ().loadTestsFromModule (self._module)
+        (self._classes, self._methods) = BotLoader ().loadTestsFromModule (self._module, classdef)
 
         # and execute all methods
         for classname, methodList in self._methods.items ():
@@ -1416,8 +1664,8 @@ class BotMain:
                 instance.setUp ()
 
             # sort the methods in ascending order according to cmp. If no
-            # comparison is function is given then sort them lexicographically
-            # in ascending order
+            # comparison function is given then sort them lexicographically in
+            # ascending order
             if (not cmp):
                 cmp = _cmp
             methodList = sorted (methodList, cmp=lambda x,y: cmp (x, y))

@@ -1,13 +1,13 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-# testbot.py
-# Description: automatically executes any program and records various data using
-#              the services provided by autobot
+# parsebot.py
+# Description: automatically parses any collection of text files and records
+#              various data using the services provided by autobot
 # -----------------------------------------------------------------------------
 #
-# Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <viernes, 19 septiembre 2014 17:23:05 Carlos Linares Lopez (clinares)>
+# Started on  <Fri Sep 19 16:30:12 2014 Carlos Linares Lopez>
+# Last update <sábado, 20 septiembre 2014 01:51:08 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -16,7 +16,7 @@
 # -----------------------------------------------------------------------------
 #
 # Made by Carlos Linares Lopez
-# Login   <clinares@psyche>
+# Login   <clinares@atlas>
 #
 
 # -----------------------------------------------------------------------------
@@ -39,15 +39,15 @@
 # -----------------------------------------------------------------------------
 
 """
-automatically executes any program and records various data using the services
-provided by autobot
+automatically parses any collection of text files and records various
+data using the services provided by autobot
 """
 
 # globals
 # -----------------------------------------------------------------------------
-__version__  = '2.0'
-__revision__ = '$Revision:$'
-__date__     = '$Date:$'
+__version__  = '1.0'
+__revision__ = '$Revision$'
+__date__     = '$Date$'
 
 
 # imports
@@ -56,19 +56,19 @@ import logging                          # loggers
 
 from autobot.bots import BotMain        # main service
 from autobot.bots import BotAction      # automated pre/post actions
-from autobot.bots import BotTestCase    # automated full execution
+from autobot.bots import BotParser      # automated parsing
 from autobot import logutils            # utilities to configure loggers
 from autobot import parsetools          # default argument parser
 
 
 # -----------------------------------------------------------------------------
-# TestBot
+# ParseBot
 #
-# Execution of a particular test case that can involve various executions
+# Automated parsing of text files
 # -----------------------------------------------------------------------------
-class TestBot (BotTestCase):
+class ParseBot (BotParser):
     """
-    Execution of a particular test case that can involve various executions
+    Automated parsing of text files
     """
 
     def setUp (self):
@@ -80,10 +80,7 @@ class TestBot (BotTestCase):
         # --- parsing
 
         # parse arguments using a parser specifically designed for testbot
-        self.args = parsetools.BotTestArgParser ().parse_args ()
-
-        # convert properly the memory allotted from Gb to bytes
-        self.args.memory *= 1024**3
+        self.args = parsetools.BotParseArgParser ().parse_args ()
 
         # --- logging
 
@@ -103,16 +100,9 @@ class TestBot (BotTestCase):
         """
 
         # invoke the main service provided by autobot
-        self.go (self.args.solver,
-                 self.args.tests,
+        self.go (self.args.file,
                  self.args.db,
-                 self.args.timeout,
-                 self.args.memory,
-                 argnamespace=self.args,
-                 output=self.args.output,
-                 check=self.args.check,
                  directory=self.args.directory,
-                 compress=self.args.bz2,
                  logger=self.logger,
                  logfilter=logutils.ContextFilter (),
                  prologue=Prologue,
@@ -120,7 +110,6 @@ class TestBot (BotTestCase):
                  enter=Enter,
                  windUp=WindUp,
                  quiet=self.args.quiet)
-
 
     def tearDown (self):
         """
@@ -133,16 +122,13 @@ class TestBot (BotTestCase):
 
 class Enter (BotAction):
     """
-    Bot Action to be executed before every invocation of the solver with the
-    very first test case
+    Bot Action to be executed before parsing the first text file
     """
 
     def __call__ (self, logger):
         """
-        Method invoked before the execution of the solver with the very first
-        test case. It automatically inherits the values of the following
-        attributes: solver, tstspec, dbspec, timeout, memory, check, basedir,
-        resultsdir, compress, namespace, user namespace and stats.
+        Method invoked before parsing the first text file. It automatically
+        inherits the values of the following attributes: dbfile and directory
 
         This method provides additional information in case the debug level is
         requested
@@ -151,36 +137,22 @@ class Enter (BotAction):
         childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
         childlogger.addFilter (logutils.ContextFilter ())
         childlogger.debug ("""
- %s:
- * solver      : %s
- * timeout     : %d seconds
- * memory      : %d bytes
- * check       : %.2f seconds
- * basedir     : %s
- * resultsdir  : %s
- * compress    : %s
- * namespace   :
-
 %s
-
- * user namespace:
-
-%s""" % (self.__class__.__name__, self.solver, self.timeout, self.memory, self.check, self.basedir, self.resultsdir, self.compress, self.namespace, self.user))
+ * dbfile    : %s
+ * directory : %s
+""" % (self.__class__.__name__, self.dbfile, self.directory))
 
 
 class Prologue (BotAction):
     """
-    Bot Action to be executed before every invocation of the solver with every
-    test case
+    Bot Action to be executed before parsing every text file.
     """
 
     def __call__ (self, logger):
         """
-        Method invoked before the execution of the solver with regard to every
-        test case. It automatically inherits the values of the following
-        attributes: solver, tstspec, itest, dbspec, timeout, memory, output,
-        check, basedir, resultsdir, compress, namespace, user namespace, param
-        namespace, stats and startruntime.
+        Method invoked before parsing every text file.. It automatically
+        inherits the values of the following attributes: text file, dbfile and
+        directory
 
         The Prologue is in charge of providing additional information in case
         the debug information level is requested
@@ -189,44 +161,22 @@ class Prologue (BotAction):
         childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
         childlogger.addFilter (logutils.ContextFilter ())
         childlogger.debug ("""
- %s:
- * solver      : %s
- * itest       : %s
- * timeout     : %d seconds
- * memory      : %d bytes
- * output      : %s
- * check       : %.2f seconds
- * basedir     : %s
- * resultsdir  : %s
- * compress    : %s
- * startruntime: %i
- * namespace   :
-
 %s
-
- * user namespace:
-
-%s
-
- * param namespace:
-
-%s""" % (self.__class__.__name__, self.solver, self.itest, self.timeout, self.memory, self.output, self.check, self.basedir, self.resultsdir, self.compress, self.startruntime, self.namespace, self.user, self.param))
+ * text file : %s
+ * dbfile    : %s
+ * directory : %s
+""" % (self.__class__.__name__, self.textfile, self.dbfile, self.directory))
 
 
 class Epilogue (BotAction):
     """
-    Bot Action to be executed after every invocation of the solver with every
-    test case
+    Bot Action to be executed after parsing every text file
     """
 
     def __call__ (self, logger):
         """
-        Method invoked after the execution of the solver with regard to every
-        test case. It automatically inherits the values of the following
-        attributes: solver, tstspec, itest, dbspec, timeout, memory, output,
-        check, basedir, resultsdir, compress, namespace, data namespace, user
-        namespace, param namespace, regexp namespace, stats, startruntime and
-        endruntime.
+        Method invoked after parsing every text file. It automatically inherits
+        the values of the following attributes: textfile, dbfile and direcftory
 
         The Epilogue provides additional information in case the debug level is
         requested
@@ -235,52 +185,22 @@ class Epilogue (BotAction):
         childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
         childlogger.addFilter (logutils.ContextFilter ())
         childlogger.debug ("""
- %s:
- * solver      : %s
- * itest       : %s
- * timeout     : %d seconds
- * memory      : %d bytes
- * output      : %s
- * check       : %.2f seconds
- * basedir     : %s
- * resultsdir  : %s
- * compress    : %s
- * startruntime: %i
- * endruntime  : %i
- * namespace   :
-
 %s
-
- * data namespace:
-
-%s
-
- * user namespace:
-
-%s
-
- * param namespace:
-
-%s
-
- * regexp namespace:
-
-%s""" % (self.__class__.__name__, self.solver, self.itest, self.timeout, self.memory, self.output, self.check, self.basedir, self.resultsdir, self.compress, self.startruntime, self.endruntime, self.namespace, self.data, self.user, self.param, self.regexp))
+ * text file : %s
+ * dbfile    : %s
+ * directory : %s
+""" % (self.__class__.__name__, self.textfile, self.dbfile, self.directory))
 
 
 class WindUp (BotAction):
     """
-    Bot Action to be executed after the execution of the current solver on the
-    last test case
+    Bot Action to be executed after parsing the last text file
     """
 
     def __call__ (self, logger):
         """
-        Method invoked after the execution of the current solver with the last
-        test case. It automatically inherits the values of the following
-        attributes: solver, tstspec, dbspec, timeout, memory, check, basedir,
-        resultsdir, compress, namespace, data namespace, user namespace regexp
-        namespace and stats.
+        Method invoked after parsing the last text file. It automatically
+        inherits the values of the following attributes: dbfile and directory
 
         This method provides additional information in case the debug level has
         been requested.
@@ -289,36 +209,17 @@ class WindUp (BotAction):
         childlogger = logger.getChild (self.__class__.__module__ + '.' + self.__class__.__name__)
         childlogger.addFilter (logutils.ContextFilter ())
         childlogger.debug ("""
- %s:
- * solver      : %s
- * timeout     : %d seconds
- * memory      : %d bytes
- * check       : %.2f seconds
- * basedir     : %s
- * resultsdir  : %s
- * compress    : %s
- * namespace   :
-
 %s
-
- * data namespace:
-
-%s
-
- * user namespace:
-
-%s
-
- * regexp namespace:
-
-%s""" % (self.__class__.__name__, self.solver, self.timeout, self.memory, self.check, self.basedir, self.resultsdir, self.compress, self.namespace, self.data, self.user, self.regexp))
+ * dbfile    : %s
+ * directory : %s
+""" % (self.__class__.__name__, self.dbfile, self.directory))
 
 
 # main
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
 
-    BotMain (module='testbot', classdef=BotTestCase)
+    BotMain (module='parsebot', classdef=BotParser)
 
 
 # Local Variables:

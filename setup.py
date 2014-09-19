@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <miércoles, 15 enero 2014 23:02:22 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 19 septiembre 2014 16:39:56 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -82,17 +82,15 @@ setup(name='testbot',
       description='automates the tests of (hopefully) any executable under Linux OSs',
       long_description=read ('README.md'),
       packages = ['autobot'],
-      scripts = ['scripts/testbot.py'],
+      scripts = ['scripts/testbot.py', 'scripts/parsebot.py'],
       requires = ['ply (>=3.4)'],
-      provides = ['autobot', 'testbot'],
+      provides = ['autobot', 'testbot', 'parsebot'],
       classifiers = [
           'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
           'Operating System :: POSIX :: Linux',
           'Topic :: Scientific/Engineering',
           'Topic :: System :: Monitoring'],
-      data_files=[('db', ['examples/db/example.db']),
-                  ('tests', ['examples/tests/8puzzle.tb']),
-                  ('solvers', ['examples/solvers/eperimeter'])]
+      data_files=[('find', ['examples/find/find.db', 'examples/find/find.tb'])]
      )
 
 

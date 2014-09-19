@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Dec 14 00:04:20 2013 Carlos Linares Lopez>
-# Last update <jueves, 18 septiembre 2014 13:45:43 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 20 septiembre 2014 00:22:15 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -95,7 +95,7 @@ class ShowPlaceHolders (argparse.Action):
         print """ %s+%s
 
  The variables in the main namespace are given to the following BotActions:
- 
+
     + Enter/WindUp
     + Prologue/Epilogue
 
@@ -164,13 +164,13 @@ class ShowDatabaseSpec (argparse.Action):
 
 
 # -----------------------------------------------------------------------------
-# BotArgParser
+# BotTestArgParser
 #
-# Provides a static argument parser that can be reused/extended
+# Provides an argument parser that can be reused/extended for the BotTestCase
 # -----------------------------------------------------------------------------
-class BotArgParser ():
+class BotTestArgParser ():
     """
-    Provides a static argument parser that can be reused/extended
+    Provides an argument parser that can be reused/extended for the BotTestCase
     """
 
     def __init__ (self):
@@ -244,6 +244,75 @@ class BotArgParser ():
                                  nargs=0,
                                  action=ShowDatabaseSpec,
                                  help="processes the database specification file, shows the resulting definitions and exits")
+        self._misc.add_argument ('-q', '--quiet',
+                                 action='store_true',
+                                 help="suppress headers")
+        self._misc.add_argument ('-V', '--version',
+                                 action='version',
+                                 version=" %s %s %s %s" % (sys.argv [0], __version__, __revision__[1:-1], __date__[1:-1]),
+                                 help="output version information and exit")
+
+    # -----------------------------------------------------------------------------
+    # parse_args
+    #
+    # just parse the arguments with this argument parser
+    # -----------------------------------------------------------------------------
+    def parse_args (self):
+        """
+        just parse the arguments with this argument parser
+        """
+
+        return self._parser.parse_args ()
+
+
+
+# -----------------------------------------------------------------------------
+# BotParseArgParser
+#
+# Provides an argument parser that can be reused/extended for the BotParser
+# -----------------------------------------------------------------------------
+class BotParseArgParser ():
+    """
+    Provides an argument parser that can be reused/extended for the BotParser
+    """
+
+    def __init__ (self):
+        """
+        create a parser and store its contents in this instance
+        """
+
+        self._parser = argparse.ArgumentParser (description="Automatically parses the contents of the given files and records various data. Arguments are processed in the same order they are provided")
+
+        # now, add the arguments
+
+        # Group of mandatory arguments
+        self._mandatory = self._parser.add_argument_group ("Mandatory arguments", "The following arguments are required")
+        self._mandatory.add_argument ('-f', '--file',
+                                      nargs='+',
+                                      required=True,
+                                      help="file(s) to parse")
+        self._mandatory.add_argument ('-D', '--db',
+                                      dest='db',
+                                      required=True,
+        help="specification of the database tables with the information to record")
+
+        # Group of optional arguments
+        self._optional = self._parser.add_argument_group ('Optional', 'The following arguments are optional')
+        self._optional.add_argument ('-d', '--directory',
+                                     default=os.getcwd (),
+        help="directory where the results of the parsing process are stored. Relative directories are rooted in the current working directory. By default, the current working directory.")
+
+        # Group of logging services
+        self._logging = self._parser.add_argument_group ('Logging', 'The following arguments specify various logging settings')
+        self._logging.add_argument ('-l', '--logfile',
+                                    help = "name of the logfile where the output of the whole process is recorded. It is left at the current working directory")
+        self._logging.add_argument ('-L', '--level',
+                                    choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+                                    default='INFO',
+                                    help="level of log messages. Messages of the same level or above are shown. By default, INFO, i.e., all messages are shown")
+
+        # Group of miscellaneous arguments
+        self._misc = self._parser.add_argument_group ('Miscellaneous')
         self._misc.add_argument ('-q', '--quiet',
                                  action='store_true',
                                  help="suppress headers")

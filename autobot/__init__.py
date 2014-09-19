@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May 25 19:22:08 2013 Carlos Linares Lopez>
-# Last update <domingo, 05 enero 2014 01:24:17 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 19 septiembre 2014 16:45:49 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -40,23 +40,26 @@
 """
 .. module:: testbot
    :platform: Linux
-   :synopsis: This package automates the tests of (hopefully) any executable under Linux OSs
+   :synopsis: Init file for the automated testing facility
 
 .. moduleauthor:: Carlos Linares Lopez <carlos.linares@uc3m.es>
 """
 
-__version__  = '1.0'
+__version__  = '2.0'
 __revision__ = '$Revision$'
 
-__all__ = ["tsttools",
-           "timetools",
-           "tbparser",
-           "systools",
-           "sqltools",
-           "parsetools",
-           "dbtools",
+__all__ = ["bots",
+           "colors",
            "dbparser",
-           "bots"]
+           "dbtools",
+           "logutils", 
+           "namespace",
+           "parsetools",
+           "sqltools",
+           "systools",
+           "tbparser",
+           "timetools",
+           "tsttools"]
 
 
 from bots import BotTestCase
