@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 19 16:30:12 2014 Carlos Linares Lopez>
-# Last update <martes, 23 septiembre 2014 17:29:08 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 26 septiembre 2014 00:49:15 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -56,7 +56,7 @@ import logging                          # loggers
 
 from autobot.bots import BotMain        # main service
 from autobot.bots import BotAction      # automated pre/post actions
-from autobot.bots import BotParser      # automated parsing
+from autobot import BotParser           # automated parsing
 from autobot import logutils            # utilities to configure loggers
 from autobot import parsetools          # default argument parser
 

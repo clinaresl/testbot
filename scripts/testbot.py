@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 12 12:52:22 2012 Carlos Linares Lopez>
-# Last update <viernes, 19 septiembre 2014 17:23:05 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 26 septiembre 2014 00:15:46 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -56,7 +56,7 @@ import logging                          # loggers
 
 from autobot.bots import BotMain        # main service
 from autobot.bots import BotAction      # automated pre/post actions
-from autobot.bots import BotTestCase    # automated full execution
+from autobot import BotTester           # automated full execution
 from autobot import logutils            # utilities to configure loggers
 from autobot import parsetools          # default argument parser
 
@@ -66,7 +66,7 @@ from autobot import parsetools          # default argument parser
 #
 # Execution of a particular test case that can involve various executions
 # -----------------------------------------------------------------------------
-class TestBot (BotTestCase):
+class TestBot (BotTester):
     """
     Execution of a particular test case that can involve various executions
     """
@@ -318,7 +318,7 @@ class WindUp (BotAction):
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
 
-    BotMain (module='testbot', classdef=BotTestCase)
+    BotMain (module='testbot', classdef=BotTester)
 
 
 # Local Variables:

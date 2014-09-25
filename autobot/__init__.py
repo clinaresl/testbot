@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May 25 19:22:08 2013 Carlos Linares Lopez>
-# Last update <viernes, 19 septiembre 2014 16:45:49 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 26 septiembre 2014 00:41:17 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -49,10 +49,12 @@ __version__  = '2.0'
 __revision__ = '$Revision$'
 
 __all__ = ["bots",
+           "botparser",
+           "bottester",
            "colors",
            "dbparser",
            "dbtools",
-           "logutils", 
+           "logutils",
            "namespace",
            "parsetools",
            "sqltools",
@@ -62,7 +64,8 @@ __all__ = ["bots",
            "tsttools"]
 
 
-from bots import BotTestCase
+from bottester import BotTester
+from botparser import BotParser
 from bots import BotAction
 from bots import BotMain
 from . import parsetools
