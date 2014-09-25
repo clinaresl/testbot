@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <sábado, 20 septiembre 2014 01:44:59 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 24 septiembre 2014 17:53:43 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -203,7 +203,7 @@ class BotTestCase (object):
     #            for the 'output' file
     #
     # * datavar: data processed from the stdout of the executable. These data is
-    #            retrieved using different regular expressions and they are
+    #            retrieved using the default regular expression and they are
     #            processed only once after the execution of the solver over
     #            every test case
     #
@@ -218,11 +218,12 @@ class BotTestCase (object):
     #
     # * regexp: regexps are defined separately in the database specification
     #           file and can be used in the specification of database tables to
-    #           refer to the various groups that are contained therein.
+    #           refer to the various groups that result every time a match is
+    #           found
     #
     # to make these relationships more apparent, the variables given in the
     # database specification file can be preceded by a prefix that provide
-    # information abou the namespace they are written to:
+    # information about the namespace they are written to:
     #
     # type of variable   prefix
     # -----------------+-----------
@@ -464,6 +465,7 @@ class BotTestCase (object):
         ) then its __call__ method is invoked before/after the execution of the
         solver with every test case
         """
+
         def _sub (string):
             """
             substitute in string the ocurrence of every keyword in the namespace
@@ -539,7 +541,7 @@ class BotTestCase (object):
 
             # if a prologue was given, execute it now passing all parameters
             # (including the start run time which is computed right now)
-            startruntime=time.time ()
+            startruntime = time.time ()
             if self._prologue:
                 action = self._prologue (solver=solver,
                                          tstspec=self._tstspec,
@@ -834,10 +836,10 @@ class BotTestCase (object):
             # now, for each line in the output file
             for iline in stream.readlines ():
 
-                # data namespace
+                # data namespace - default regexp
                 # -------------------------------------------------------------
-                # check whether this line contains a stat
-                restat = re.match (self.statregexp, iline)
+                # check whether this line matches the default regexp
+                restat = re.match (BotTestCase.statregexp, iline)
                 if (restat):
 
                     # add this variable to the data namespace
@@ -889,6 +891,8 @@ class BotTestCase (object):
                                                          key = dict (zip (keys, keys)),
                                                          value = [tuple (values)])
 
+        # data namespace - filevars
+        # -------------------------------------------------------------
         # also, populate the data namespace with the contents of files
         # (filevars) if requested by any database table
         for itable in [jtable for jtable in self._dbspec.get_db () if jtable.datap ()]:
@@ -911,12 +915,12 @@ class BotTestCase (object):
     # -----------------------------------------------------------------------------
     # wrapup
     #
-    # wrapup all the execution performing the last operations
+    # wrapup performing the last operations
     # -----------------------------------------------------------------------------
     def wrapup (self, tstspec, dbspec, configdir):
 
         """
-        wrapup all the execution performing the last operations
+        wrapup performing the last operations
         """
 
         # copy the file with all the tests cases to the config dir. In case that
@@ -1028,7 +1032,7 @@ class BotTestCase (object):
         self._logger.debug (" Populating '%s' in '%s'" % (dbtable.get_name (), dbfilename))
 
         # connect to the sql database
-        db = sqltools.dbtest (dbfilename)
+        db = sqltools.dbaccess (dbfilename)
 
         # create the table
         db.create_table (dbtable)
@@ -1346,6 +1350,121 @@ class BotParser (object):
     # -----------------------------------------------------------------------------
     _loglevel = logging.INFO            # default logging level
 
+    # namespaces - a common place to exchange data in the form of single and
+    # multi key attributes. The following namespaces are mapped (in the
+    # comments) with the type of variables recognized by the dbparser (see
+    # dbparser.py)
+    #
+    # the purpose of every namespace is described below:
+    #
+    # * namespace: denoted also as the main namespace. It contains sys
+    #              information and main variables
+    # * data: It contains datavar and filevar
+    # * user: this namespace is never used by autobot and it is created only for
+    #         user specifics
+    # * regexp : it stores the results of processing the contents of a file with
+    #            the regexps found in the database specification
+    #
+    # These namespaces automatically use the different variables (most of them
+    # defined in the dbparser) whose purpose is defined below:
+    #
+    # * sysvar: these are variables computed by autobot with additional info
+    #           such as the index of the current file, current date and time and
+    #           the name of the file been currently processed
+    #
+    # * mainvar: these are the flags given to the main script using autobot
+    #            (ie., parsebot) These variables can be used to create a template
+    #            for the 'output' file
+    #
+    # * datavar: data processed from the stdout of the executable. These data is
+    #            retrieved using the default regular expression
+    #
+    # * filevar: these variables are given as filenames whose value are the
+    #            contents of the file
+    #
+    # * regexp: regexps are defined separately in the database specification
+    #           file and can be used in the specification of database tables to
+    #           refer to the various groups that result every time a match is
+    #           found
+    #
+    # to make these relationships more apparent, the variables given in the
+    # database specification file can be preceded by a prefix that provide
+    # information about the namespace they are written to:
+    #
+    # type of variable   prefix
+    # -----------------+-----------
+    # sysvar           | 'sys.'
+    # datavar          | 'data.'
+    # filevar          | 'file.'
+    # mainvar          | "main.'
+    # -----------------+-----------
+    #
+    # the case of regexp variables is a bit particular. They have their own
+    # statements of the form:
+    #
+    # regexp <name> <specification-string>
+    #
+    # where <specification-string> should contain at least one <group> defined
+    # with the directive (?P<group>...). This way, any column in the
+    # specification of a database can use the format <name>.<group> to refer to
+    # the value parsed in group <group> with regexp <name>
+    #
+    # Namespaces are populated with information with the following variable
+    # types:
+    #
+    # namespace   variable type
+    # ----------+-----------------
+    # namespace | sysvar mainvar
+    # data      | datavar filevar
+    # user      | --
+    # regexp    | regexp
+    # ----------+-----------------
+    #
+    # These associations are implemented in the poll method of the dbparser
+    # -----------------------------------------------------------------------------
+    _namespace = namespace.Namespace ()         # sysvar, mainvar
+    _data      = namespace.Namespace ()         # datavar, filevar
+    _user      = namespace.Namespace ()         # user space
+    _regexp    = namespace.Namespace ()         # regexp
+
+
+    # -----------------------------------------------------------------------------
+    # _sub
+    #
+    # substitute in string the ocurrence of every keyword in the namespace used
+    # in this instance of BotParser (BotParser._namespace) with its value if it
+    # appears preceded by '$' in string and it is a str. Similar to
+    # Template.substitute but it also allows the substitution of strings which
+    # do not follow the convention of python variable names
+    #
+    # Of course, other namespaces can be used but _sub is used only to compute
+    # the name of the output file so that only static information is used
+    # -----------------------------------------------------------------------------
+    def _sub (self, string):
+        """
+        substitute in string the ocurrence of every keyword in the namespace
+        used in this instance of BotParser (BotParser._namespace) with its value
+        if it appears preceded by '$' in string and it is a str. Similar to
+        Template.substitute but it also allows the substitution of strings which
+        do not follow the convention of python variable names
+
+        Of course, other namespaces can be used but _sub is used only to compute
+        the name of the output file so that only static information is used
+        """
+
+        result = string                                 # initialization
+
+        # now, substitute every ocurrence of every single attribute in
+        # namespace with its value only in case the value is a string
+        for ikey in [jkey for jkey in BotParser._namespace
+                     if not isinstance (BotParser._namespace [jkey], dict)]:
+
+            # perform the substitution enforcing the type of value to be str
+            result = re.sub ('\$' + ikey, str (BotParser._namespace [ikey]), result)
+
+        # and return the result now return result
+        return result
+
 
     # -----------------------------------------------------------------------------
     # check_flags
@@ -1398,14 +1517,325 @@ class BotParser (object):
 
 
     # -----------------------------------------------------------------------------
+    # setup
+    #
+    # sets up all the necessary environment. It returns: the directory where the
+    # parsed files should be copied and the config dir where additional
+    # information (such as the db specification) should be written
+    # -----------------------------------------------------------------------------
+    def setup (self, directory):
+        """
+        sets up all the necessary environment. It returns: the directory where
+        the parsed files should be copied and the config dir where additional
+        information (such as the db specification) should be written
+        """
+
+        def _mksubdir (parent, subdir):
+            """
+            create the given subdirectory from the parent and returns it. Note that
+            the absolute path is computed. Passing the absolute path prevents a
+            number of errors
+            """
+            newdir = os.path.abspath (os.path.join (parent, subdir))
+            os.mkdir (newdir)
+
+            return newdir
+
+
+        # the given directory should exist at this time, but not its
+        # subdirectories. A couple of sanity checks follow:
+        if (not os.access (directory, os.F_OK)):
+            os.makedirs (directory)
+            self._logger.debug (" The directory '%s' has been created!" % directory)
+
+        # create another subdir to store the results. Note that the absolute path is
+        # computed. Passing the absolute path to the results dir prevents a number
+        # of errors
+        resultsdir = _mksubdir (directory, "results")
+
+        # create also an additional directory to store additional information
+        # such as the database specification
+        configdir = _mksubdir (directory, "config")
+
+        # return the directories to be used in the experimentation
+        return (resultsdir, configdir)
+
+
+    # -----------------------------------------------------------------------------
+    # parse_all_files
+    #
+    # starts the automated parsing of all text files given in txtfiles. All
+    # these files are copied to the results directory given in resultsdir.
+    #
+    # if prologue/epilogue actions are specified then its __call__ method is
+    # invoked before/after parsing every text file.
+    # -----------------------------------------------------------------------------
+    def parse_all_files (self, txtfiles, resultsdir):
+        """
+        starts the automated parsing of all text files given in txtfiles. All
+        these files are copied to the results directory given in resultsdir.
+
+        if prologue/epilogue actions are specified then its __call__ method is
+        invoked before/after parsing every text file.
+        """
+
+        # before parsing all the text files, initialize the current file to the
+        # empty string. This will enforce the creation of a first database that
+        # will contain the results of the parsing
+        currdbname = str ()
+
+        # processing files
+        # -------------------------------------------------------------------------
+        # keep track of the file id as an integer
+        idx = 0
+
+        # now, process every text file
+        for itxtfile in txtfiles:
+
+            # namespaces
+            # -------------------------------------------------------------------------
+            # initialize the contents of the main namespace, data and regexp
+            # namespace
+            BotParser._namespace.clear ()
+            BotParser._data.clear ()
+            BotParser._regexp.clear ()
+
+            # initialize the namespace with the parameters passed to the main
+            # script (ie., the parsebot), mainvars. These are given in
+            # self._argnamespace. Since the argparser automatically casts type
+            # according to their type field, they are all converted into strings
+            # here to allow a uniform treatment
+            if self._argnamespace:
+                for index, value in self._argnamespace.__dict__.items ():
+                    BotParser._namespace [index] = str (value)
+
+            # initialize the namespace with the value of some sysvar attributes:
+            #
+            #   index     - index of this file as an integer in the range [0, ...)
+            #   name      - name of this text file
+            #   date      - current date
+            #   time      - current time
+            #   starttime - time the whole parsing started
+            #   currtime  - current time
+            #
+            # Note that other fields are added below to register the right
+            # timings when every parsing started/ended
+            BotParser._namespace.index = idx
+            BotParser._namespace.name  = itxtfile
+            BotParser._namespace.date  = datetime.datetime.now ().strftime ("%Y-%m-%d")
+            BotParser._namespace.time  = datetime.datetime.now ().strftime ("%H:%M:%S")
+            BotParser._namespace.starttime = self._starttime
+            BotParser._namespace.currtime  = datetime.datetime.now ()
+
+            self._logger.info (" Starting the automated parsing of file '%s'" % itxtfile)
+
+            # parsing
+            # -------------------------------------------------------------------------
+            # execute the prologue in case any was given (note that the run time
+            # is computed right now) and register also the exact time when the
+            # processing of this file started (including the prologue)
+            BotParser._namespace.startruntime = time.time ()
+            if self._prologue:
+                action = self._prologue (textfile=itxtfile,
+                                         dbfile=self._dbfile,
+                                         directory=self._directory,
+                                         startruntime=BotParser._namespace.startruntime,
+                                         namespace=BotParser._namespace,
+                                         user=BotParser._user)
+                action (self._logger)
+
+            # now, invoke the automated parsing of this particular text file
+            self.parse_single_file (itxtfile, resultsdir)
+
+            # now, before processing the next text file, invoke the epilogue in
+            # case any was given
+            if self._epilogue:
+                action = self._epilogue (textfile=itxtfile,
+                                         dbfile=self._dbfile,
+                                         directory=self._directory,
+                                         startruntime = BotParser._namespace.startruntime,
+                                         endruntime = time.time (),
+                                         namespace=BotParser._namespace,
+                                         data=BotParser._data,
+                                         user=BotParser._user)
+                action (self._logger)
+
+            # and register the exact time when the whole parsing of this file
+            # ended including processing the epilogue
+            BotParser._namespace.endruntime = time.time ()
+
+            # database
+            # -------------------------------------------------------------------------
+            # now, write data to the database. Note that we do this after
+            # invoking the epilogue so that the user gets a finer control on the
+            # data that is about to be inserted into the database
+
+            # First. compute the name of the database
+            dbname = self._sub (self._dbname)
+
+            # create a new SQLITE3 database connection
+            dbhandler = sqltools.dbaccess (dbname)
+
+            # in case we get a different database
+            if dbname != currdbname:
+
+                # create the tables
+                for itable in self._dbspec.get_db ():
+                    dbhandler.create_table (itable)
+
+                # and remember the name of the current database
+                currdbname = dbname
+
+            # now, populate the datatase
+            self._logger.debug (" Inserting data into '%s'" % currdbname)
+            for itable in self._dbspec.get_db ():
+                self._logger.debug (" Populating '%s'" % itable.get_name ())
+                dbhandler.insert_data (itable,
+                                       itable.poll (namespace = BotParser._namespace,
+                                                    data = BotParser._data,
+                                                    user = BotParser._user,
+                                                    param=None,
+                                                    regexp = BotParser._regexp,
+                                                    logger = self._logger))
+
+            # and close the database
+            dbhandler.close ()
+
+            # update the index
+            idx += 1
+
+
+    # -----------------------------------------------------------------------------
+    # parse_single_file
+    #
+    # looks for all matches of all regular expressions defined in the database
+    # specification in the given text file. The results of all matches are
+    # written to the regexp namespace. Also, the data namespace is populated
+    # with the results of the matches of the default regexp
+    #
+    # Also, the textfile is backed up to the resultsdir
+    # -----------------------------------------------------------------------------
+    def parse_single_file (self, txtfile, resultsdir):
+        """
+        looks for all matches of all regular expressions defined in the database
+        specification in the given text file. The results of all matches are
+        written to the regexp namespace. Also, the data namespace is populated
+        with the results of the matches of the default regexp
+
+        Also, the textfile is backed up to the resultsdir
+        """
+
+        # open the file in read mode
+        with open (txtfile, "r") as stream:
+
+            # read all contents of the input file - yep, this might take a lot
+            # of memory but the alternative, to process each line separately
+            # would not allow to match various lines simultaneously
+            contents = stream.read ()
+
+            # data namespace
+            # -------------------------------------------------------------
+            # for all matches of this regexp in the current text file
+            for imatch in re.finditer (BotParser.statregexp, contents):
+
+                # and store every match in the data namespace
+                BotParser._data [imatch.group ('varname').rstrip (' ')] = \
+                  imatch.group ('value')
+
+            # regexp namespace
+            # -------------------------------------------------------------
+            # for every regexp defined by the user
+            for iregexp in self._dbspec.get_regexp ():
+
+                # which is not the default regexp ---already processed under the
+                # data namespace
+                if iregexp.get_name () == 'default':
+                    continue;
+
+                self._logger.debug (" Processing %s" % iregexp)
+
+                # for all matches of this regexp in the current text file
+                for m in re.finditer (iregexp.get_specification (), contents):
+
+                    # add this variable to the regexp namespace as a multi-key
+                    # attribute with as many keys as groups there are in the
+                    # regexp. The multi-attribute should be named to allow
+                    # projections later on. The key names are the group names
+                    # themselves
+                    keys = tuple ([igroup for igroup in m.groupdict ()])
+                    BotParser._regexp.setkeynames (iregexp.get_name (), *keys)
+
+                    # now, compute the value of this multi-key attribute which
+                    # is a tuple with the matches of the regexp. Note that blank
+                    # spaces are stripped of at the right of the match. This
+                    # makes it easier for users to define regexps that can
+                    # include the blank space in between without worrying for
+                    # the trailing blank spaces
+                    values = [string.rstrip (m.group (igroup), ' ')
+                              for igroup in m.groupdict ()]
+
+                    # the policy is to accumulate values so that read the
+                    # current value of this multi-key attribute in case it
+                    # exists
+                    if iregexp.get_name () in BotParser._regexp:
+
+                        currvalues = BotParser._regexp.getattr (iregexp.get_name (),
+                                                                key = dict (zip (keys, keys)))
+                        BotParser._regexp.setattr (iregexp.get_name (),
+                                                   key = dict (zip (keys, keys)),
+                                                   value = currvalues + [tuple (values)])
+
+                    # otherwise, initialize the contents of this multi-key
+                    # attribute to a list which contains a single tuple with the
+                    # values of this match
+                    else:
+                        BotParser._regexp.setattr (iregexp.get_name (),
+                                                   key = dict (zip (keys, keys)),
+                                                   value = [tuple (values)])
+
+        # results/
+        # -------------------------------------------------------------------------
+        # once this file has been processed, copy it to the results directory
+        # after applying the substitution specified in the output directive
+        shutil.copy (txtfile, os.path.join (resultsdir, self._sub (self._output)))
+
+
+    # -----------------------------------------------------------------------------
+    # wrapup
+    #
+    # wrapup performing the last operations
+    # -----------------------------------------------------------------------------
+    def wrapup (self, dbspec, configdir):
+
+        """
+        wrapup performing the last operations
+        """
+
+        # copy the database specification to the config dir
+        if isinstance (dbspec, dbtools.DBVerbatim):
+            with open (os.path.join (configdir, 'database.db'), 'w') as database:
+                database.write (dbspec.data)
+
+        elif isinstance (dbspec, dbtools.DBFile):
+            shutil.copy (dbspec.filename,
+                         os.path.join (configdir, os.path.basename (dbspec.filename)))
+        else:
+            raise ValueError (" Incorrect dbspec in wrapup")
+
+
+    # -----------------------------------------------------------------------------
     # go
     #
     # main service provided by this class. It automates the whole parsing
-    # process.
+    # process. It parses the contents of all files specified in txtfile (which
+    # is a list of strings) according to the specification given in dbfile. It
+    # writes down the results in the database whose name is given in dbname
     #
-    # Other (optional) parameters are:
+    # The argnamespace is the Namespace of the parser used (which should be an
+    # instance of argparse or None). Other (optional) parameters are:
     #
     # directory - target directory where all output is recorded
+    # output - filenames given to the backup copies of the parsed files
     # logger - if a logger is given, autobot uses a child of it. Otherwise, it
     #          creates its own logger
     # logfilter - if the client code uses a logger that requires additional
@@ -1424,16 +1854,21 @@ class BotParser (object):
     #          parsing the last text file
     # quiet - if given, some additional information is skipped
     # -----------------------------------------------------------------------------
-    def go (self, txtfile, dbfile, directory=os.getcwd (),
-            logger=None, logfilter=None, prologue=None, epilogue=None,
-            enter=None, windUp=None, quiet=False):
+    def go (self, txtfile, dbfile, dbname="$name.db", directory=os.getcwd (),
+            argnamespace=None, output="$name", logger=None, logfilter=None,
+            prologue=None, epilogue=None, enter=None, windUp=None,
+            quiet=False):
         """
         main service provided by this class. It automates the whole parsing
-        process.
+        process. It parses the contents of all files specified in txtfile (which
+        is a list of strings) according to the specification given in dbfile. It
+        writes down the results in the database whose name is given in dbname
 
-        Other (optional) parameters are:
+        The argnamespace is the Namespace of the parser used (which should be an
+        instance of argparse or None). Other (optional) parameters are:
 
         directory - target directory where all output is recorded
+        output - filenames given to the backup copies of the parsed files
         logger - if a logger is given, autobot uses a child of it. Otherwise, it
                  creates its own logger
         logfilter - if the client code uses a logger that requires additional
@@ -1454,9 +1889,11 @@ class BotParser (object):
         """
 
         # copy the attributes
-        (self._txtfile, self._dbfile, self._directory,
+        (self._txtfile, self._dbfile, self._dbname, self._directory,
+         self._argnamespace, self._output,
          self._prologue, self._epilogue, self._quiet) = \
-         (txtfile, dbfile, directory,
+         (txtfile, dbfile, dbname, directory,
+          argnamespace, output,
           prologue, epilogue, quiet)
 
         # logger settings - if a logger has been passed, just create a child of
@@ -1499,7 +1936,7 @@ class BotParser (object):
         elif isinstance (self._dbfile, dbtools.DBVerbatim):
             self._logger.debug (" The database was given as a verbatim specification")
             self._dbspec = self._dbfile
-            self._dbfile = BotTestCase.defaultname
+            self._dbfile = BotParser.defaultname
         elif isinstance (self._dbfile, dbtools.DBFile):
             self._logger.debug (" The database was given as a file already parsed")
             self._dbspec = self._dbfile
@@ -1512,6 +1949,10 @@ class BotParser (object):
 
             self.show_switches (self._txtfile, self._dbfile, self._directory)
 
+        # setup the necessary environment and retrieve the directores to be
+        # used
+        (resultsdir, configdir) = self.setup (self._directory)
+
         # is the user overridden the definition of the data regexp?
         for iregexp in self._dbspec.get_regexp ():
 
@@ -1523,34 +1964,30 @@ class BotParser (object):
         # in case it is requested to execute an *enter* action do it now
         if enter:
             action = enter (dbfile=self._dbfile,
-                            directory=self._directory)
+                            directory=self._directory,
+                            namespace=BotParser._namespace,
+                            user=BotParser._user)
             action (self._logger)
 
-        # now, process every text file
-        for itxtfile in self._txtfile:
+        # record the start time
+        self._starttime = datetime.datetime.now ()
 
-            self._logger.info (" Starting the automated parsing of file '%s'" % itxtfile)
+        # now, invoke the automated parsing of this particular text file
+        self.parse_all_files (self._txtfile, resultsdir)
 
-            # execute the prologue in case any was given
-            if prologue:
-                action = prologue (textfile=itxtfile,
-                                   dbfile=self._dbfile,
-                                   directory=self._directory)
-                action (self._logger)
+        # record the end time
+        self._endtime = datetime.datetime.now ()
 
-
-            # now, before processing the next text file, invoke the epilogue in
-            # case any was given
-            if epilogue:
-                action = epilogue (textfile=itxtfile,
-                                   dbfile=self._dbfile,
-                                   directory=self._directory)
-                action (self._logger)
+        # and wrapup
+        self.wrapup (self._dbspec, configdir)
 
         # before leaving, execute a windup action in case it was requested
         if windUp:
             action = windUp (dbfile=self._dbfile,
-                             directory=self._directory)
+                             directory=self._directory,
+                             namespace=BotParser._namespace,
+                             data=BotParser._data,
+                             user=BotParser._user)
             action (self._logger)
 
 

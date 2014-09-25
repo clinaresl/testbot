@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 19 16:30:12 2014 Carlos Linares Lopez>
-# Last update <sábado, 20 septiembre 2014 01:51:08 Carlos Linares Lopez (clinares)>
+# Last update <martes, 23 septiembre 2014 17:29:08 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -102,7 +102,10 @@ class ParseBot (BotParser):
         # invoke the main service provided by autobot
         self.go (self.args.file,
                  self.args.db,
+                 self.args.dbname,
                  directory=self.args.directory,
+                 argnamespace=self.args,
+                 output=self.args.output,
                  logger=self.logger,
                  logfilter=logutils.ContextFilter (),
                  prologue=Prologue,
@@ -128,7 +131,8 @@ class Enter (BotAction):
     def __call__ (self, logger):
         """
         Method invoked before parsing the first text file. It automatically
-        inherits the values of the following attributes: dbfile and directory
+        inherits the values of the following attributes: dbfile, directory, the
+        sys namespace and the user namespace
 
         This method provides additional information in case the debug level is
         requested
@@ -140,7 +144,14 @@ class Enter (BotAction):
 %s
  * dbfile    : %s
  * directory : %s
-""" % (self.__class__.__name__, self.dbfile, self.directory))
+ * namespace :
+
+%s
+
+ * user namespace :
+
+%s
+""" % (self.__class__.__name__, self.dbfile, self.directory, self.namespace, self.user))
 
 
 class Prologue (BotAction):
@@ -151,8 +162,8 @@ class Prologue (BotAction):
     def __call__ (self, logger):
         """
         Method invoked before parsing every text file.. It automatically
-        inherits the values of the following attributes: text file, dbfile and
-        directory
+        inherits the values of the following attributes: text file, dbfile,
+        directory, startruntime, the sys namespace and the user namespace
 
         The Prologue is in charge of providing additional information in case
         the debug information level is requested
@@ -162,10 +173,18 @@ class Prologue (BotAction):
         childlogger.addFilter (logutils.ContextFilter ())
         childlogger.debug ("""
 %s
- * text file : %s
- * dbfile    : %s
- * directory : %s
-""" % (self.__class__.__name__, self.textfile, self.dbfile, self.directory))
+ * text file     : %s
+ * dbfile        : %s
+ * directory     : %s
+ * startruntiime : %s
+ * namespace     :
+
+%s
+
+ * user namespace :
+
+%s
+""" % (self.__class__.__name__, self.textfile, self.dbfile, self.directory, self.startruntime, self.namespace, self.user))
 
 
 class Epilogue (BotAction):
@@ -176,7 +195,9 @@ class Epilogue (BotAction):
     def __call__ (self, logger):
         """
         Method invoked after parsing every text file. It automatically inherits
-        the values of the following attributes: textfile, dbfile and direcftory
+        the values of the following attributes: textfile, dbfile, direcftory,
+        startruntime, endruntime, the sys namespace, the data namespace and the
+        user namespace
 
         The Epilogue provides additional information in case the debug level is
         requested
@@ -186,10 +207,23 @@ class Epilogue (BotAction):
         childlogger.addFilter (logutils.ContextFilter ())
         childlogger.debug ("""
 %s
- * text file : %s
- * dbfile    : %s
- * directory : %s
-""" % (self.__class__.__name__, self.textfile, self.dbfile, self.directory))
+ * text file    : %s
+ * dbfile       : %s
+ * directory    : %s
+ * startruntime : %s
+ * endruntime   : %s
+ * namespace    :
+
+%s
+
+ * data namespace :
+
+%s
+
+ * user namespace :
+
+%s
+""" % (self.__class__.__name__, self.textfile, self.dbfile, self.directory, self.startruntime, self.endruntime, self.namespace, self.data, self.user))
 
 
 class WindUp (BotAction):
@@ -200,7 +234,8 @@ class WindUp (BotAction):
     def __call__ (self, logger):
         """
         Method invoked after parsing the last text file. It automatically
-        inherits the values of the following attributes: dbfile and directory
+        inherits the values of the following attributes: dbfile, directory, the
+        sys namespace, the data namespace and the user namespace
 
         This method provides additional information in case the debug level has
         been requested.
@@ -212,7 +247,18 @@ class WindUp (BotAction):
 %s
  * dbfile    : %s
  * directory : %s
-""" % (self.__class__.__name__, self.dbfile, self.directory))
+ * namespace :
+
+%s
+
+ * data namespace :
+
+%s
+
+ * user namespace :
+
+%s
+""" % (self.__class__.__name__, self.dbfile, self.directory, self.namespace, self.data, self.user))
 
 
 # main

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <martes, 07 enero 2014 23:26:31 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 24 septiembre 2014 07:41:03 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -123,12 +123,12 @@ class sqldb(object):
 
 
 # -----------------------------------------------------------------------------
-# dbtest
+# dbaccess
 #
 # this class wraps read/write access to sqlite3 databases for storing and
-# retrieving information of various automated tests
+# retrieving information
 # -----------------------------------------------------------------------------
-class dbtest(sqldb):
+class dbaccess(sqldb):
 
     """
     this class wraps read/write access to sqlite3 databases for storing and

@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <miércoles, 13 agosto 2014 02:06:08 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 25 septiembre 2014 10:54:59 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -99,10 +99,30 @@ class DBColumn:
                     filevar   filenames                 plan.soln
                     mainvar   flags given to testbot    quiet, test, db
                     param     params given to exec      beam-width, domain
-                    regexp    regular expression        cost.value
 
-                    In the last case, the user provided a regexp called 'cost'
-                    with a group named 'value'
+                    The case of regexp is exceptional. A couple of examples
+                    follow:
+
+                    vartype   variable                  examples
+                    regexp    regular expression        cost.value
+                    regexp    regexp in a context       sys.name/filename.algo
+
+                    In the first case, the user provided a regexp called 'cost'
+                    with a group named 'value' and it is applied to the default
+                    "context" which is the current stream (typically the stdout
+                    of an executable or the contents of a text file). In the
+                    second case, a specific ccontext is provided: the name of
+                    the file being parsed which is accessed through the sys
+                    variable 'sys.name' which is processed with a regexp called
+                    'filename'. The value retrieved is accessed through its
+                    group 'algo'. Any variable can be used as the context as a
+                    regexp including the result of another regexp. The third
+                    example shows how the result of a regexp can be processed
+                    with an additional regexp and, in general, there is no limit
+                    and regular expressions can be nested as much as
+                    desired. The only constraint is that all contexts shall be
+                    regexps but the first one which can be a variable of any
+                    type.
 
         * action: specifies what to do in case the variable was not found. The
                   following can be defined:
@@ -115,6 +135,10 @@ class DBColumn:
                   the variable is computed with their "neutral" value (0 or 0.0
                   for numbers and the empty string for strings). In the last
                   case, execution is stopped and an error is raised
+
+                  If any other value is given, then it is used as a default
+                  value in case the variable was not available, e.g.,
+                  "<Unavailable>"
         """
 
         (self._identifier, self._type, self._vartype, self._variable , self._action) = \
@@ -589,6 +613,7 @@ class DBParser :
         'LCURBRACK',
         'RCURBRACK',
         'SEMICOLON',
+        'SLASH',
         'SYSVAR',
         'DATAVAR',
         'DIRVAR',
@@ -617,6 +642,7 @@ class DBParser :
     t_LCURBRACK = r'\{'
     t_RCURBRACK = r'\}'
     t_SEMICOLON = r';'
+    t_SLASH     = r'/'
 
     # Definition of integer numbers
     def t_NUMBER(self, t):
@@ -850,8 +876,29 @@ class DBParser :
         p[0] = ('USERVAR', p[1])
 
     def p_variable_regexp (self, p):
-        '''variable : REGEXP'''
-        p[0] = ('REGEXP', p[1])
+        '''variable : REGEXP
+                    | variable SLASH REGEXP'''
+        if len (p) == 2:
+            p[0] = ('REGEXP', p[1])
+        else:
+
+            # check whether the variable (p[1]) is the *first* context. If this
+            # is the case, then derive its type and add it to the value to
+            # return. Otherwise, simply concatenate the next regexp to the full
+            # expression
+            if string.find (p[1][1], DBParser.t_SLASH) < 0:
+
+                # in this particular case keep track of the type of the first
+                # context. In case it is a regexp avoid writing it down (since
+                # regexps are qualified by their name solely) and add it
+                # otherwise
+                if p[1][0] != 'REGEXP':
+                    p[0] = ('REGEXP', string.lower (p[1][0]) + '.' + p[1][1] + DBParser.t_SLASH + p[3])
+                else:
+                    p[0] = ('REGEXP', p[1][1] + DBParser.t_SLASH + p[3])                    
+            else:
+                p[0] = ('REGEXP', p[1][1] + DBParser.t_SLASH + p[3])
+
 
     def p_action (self, p):
         '''action : NONE
