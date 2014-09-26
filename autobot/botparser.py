@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <viernes, 26 septiembre 2014 18:20:23 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 26 septiembre 2014 21:06:24 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -395,6 +395,16 @@ class BotParser (object):
             # and register the exact time when the whole parsing of this file
             # ended including processing the epilogue
             BotParser._namespace.endruntime = time.time ()
+
+            # filevars
+            # -------------------------------------------------------------------------
+            # also, populate the data namespace with the contents of
+            # files (filevars) as specified in the database
+            # specification file
+            for itable in [jtable for jtable in self._dbspec.get_db ()]:
+                for icolumn in [jcolumn for jcolumn in itable if jcolumn.get_vartype () == 'FILEVAR']:
+                    with open (icolumn.get_variable (), 'r') as stream:
+                        BotParser._data [icolumn.get_variable ()] = stream.read ()
 
             # database
             # -------------------------------------------------------------------------
