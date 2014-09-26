@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 19 16:30:12 2014 Carlos Linares Lopez>
-# Last update <viernes, 26 septiembre 2014 00:49:15 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 26 septiembre 2014 18:13:21 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -104,6 +104,7 @@ class ParseBot (BotParser):
                  self.args.db,
                  self.args.dbname,
                  directory=self.args.directory,
+                 compress=self.args.bz2,
                  argnamespace=self.args,
                  output=self.args.output,
                  logger=self.logger,

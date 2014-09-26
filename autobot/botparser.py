@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <viernes, 26 septiembre 2014 00:51:11 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 26 septiembre 2014 18:20:23 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -457,6 +457,27 @@ class BotParser (object):
         Also, the textfile is backed up to the resultsdir
         """
 
+        def _bz2 (filename, remove=False):
+            """
+            compress the contents of the given filename and writes the results to a
+            file with the same name + '.bz2'. If remove is enabled, the original
+            filename is removed
+            """
+
+            # open the original file in read mode
+            with open(filename, 'r') as input:
+
+                # create a bz2file to write compressed data
+                with bz2.BZ2File(filename+'.bz2', 'w', compresslevel=9) as output:
+
+                    # and just transfer data from one file to the other
+                    shutil.copyfileobj(input, output)
+
+            # if remove is enabled, remove the original filename
+            if (remove):
+                os.remove (filename)
+
+
         # open the file in read mode
         with open (txtfile, "r") as stream:
 
@@ -528,8 +549,24 @@ class BotParser (object):
         # results/
         # -------------------------------------------------------------------------
         # once this file has been processed, copy it to the results directory
-        # after applying the substitution specified in the output directive
-        shutil.copy (txtfile, os.path.join (resultsdir, self._sub (self._output)))
+        # after applying the substitution specified in the output directive.
+
+        # take care of the compress flag. If bzip2 compression was
+        # requested apply it
+        if (self._compress):
+            self._logger.debug (" Compressing the contents of file '%s'" % txtfile)
+
+            _bz2 (txtfile, remove=False)
+
+            # and now, move it to its target location with the suffix
+            # 'bz2' taking care of the substitution provided with the
+            # output flag
+            shutil.move (txtfile + '.bz2',
+                         os.path.join (resultsdir, self._sub (self._output) + '.bz2'))
+
+        # otherwise, just perform a backup copy of the parsed file
+        else:
+            shutil.copy (txtfile, os.path.join (resultsdir, self._sub (self._output)))
 
 
     # -----------------------------------------------------------------------------
@@ -587,7 +624,7 @@ class BotParser (object):
     # quiet - if given, some additional information is skipped
     # -----------------------------------------------------------------------------
     def go (self, txtfile, dbfile, dbname="$name.db", directory=os.getcwd (),
-            argnamespace=None, output="$name", logger=None, logfilter=None,
+            compress=False, argnamespace=None, output="$name", logger=None, logfilter=None,
             prologue=None, epilogue=None, enter=None, windUp=None,
             quiet=False):
         """
@@ -622,10 +659,10 @@ class BotParser (object):
 
         # copy the attributes
         (self._txtfile, self._dbfile, self._dbname, self._directory,
-         self._argnamespace, self._output,
+         self._compress, self._argnamespace, self._output,
          self._prologue, self._epilogue, self._quiet) = \
          (txtfile, dbfile, dbname, directory,
-          argnamespace, output,
+          compress, argnamespace, output,
           prologue, epilogue, quiet)
 
         # logger settings - if a logger has been passed, just create a child of

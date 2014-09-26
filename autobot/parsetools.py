@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Dec 14 00:04:20 2013 Carlos Linares Lopez>
-# Last update <viernes, 26 septiembre 2014 00:01:49 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 26 septiembre 2014 18:12:22 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -351,6 +351,9 @@ class BotParseArgParser ():
         self._optional.add_argument ('-o', '--output',
                                      default='$name',
                                      help="text files are copied to the results/ directory. This directive allows the user to give those files specific names. Placeholders can be used. For a description of the available placeholders type '--show-placeholders'. By default '$name'")
+        self._optional.add_argument ('-B','--bz2',
+                                     action='store_true',
+                                     help="if enabled, the parsed files are compressed using bz2. By default, disabled")
 
         # Group of logging services
         self._logging = self._parser.add_argument_group ('Logging', 'The following arguments specify various logging settings')
