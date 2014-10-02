@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <viernes, 26 septiembre 2014 21:06:24 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 01 octubre 2014 17:35:45 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -40,6 +40,8 @@ import shutil                   # shell utitilies such as copying files
 import string                   # rstrip
 import time                     # time management
 
+import dbparser                 # database parser
+import dbexpression             # evaluation of database exprsesions
 import dbtools                  # database specification files
 import namespace                # single and multi key attributes
 import sqltools                 # sqlite3 database access
@@ -488,16 +490,21 @@ class BotParser (object):
                 os.remove (filename)
 
 
+
+        # processing regular expressions
+        # ---------------------------------------------------------------------
+        # process the default regular expression in this textfile
+
         # open the file in read mode
         with open (txtfile, "r") as stream:
 
+            # default regexp
+            # ---------------------------------------------------------------------
             # read all contents of the input file - yep, this might take a lot
             # of memory but the alternative, to process each line separately
             # would not allow to match various lines simultaneously
             contents = stream.read ()
 
-            # data namespace
-            # -------------------------------------------------------------
             # for all matches of this regexp in the current text file
             for imatch in re.finditer (BotParser.statregexp, contents):
 
@@ -505,56 +512,123 @@ class BotParser (object):
                 BotParser._data [imatch.group ('varname').rstrip (' ')] = \
                   imatch.group ('value')
 
-            # regexp namespace
-            # -------------------------------------------------------------
-            # for every regexp defined by the user
-            for iregexp in self._dbspec.get_regexp ():
+            # data tables
+            # ---------------------------------------------------------------------
+            # eval all regular expressions appearing in any database table (so
+            # that we are implicitly skipping those that are defined but never
+            # used) that apply to the contents of this file ---again, we are
+            # implicitly skipping those that apply to other *contexts*. In case
+            # a regular expression is given with an arbitrary number of
+            # contexts, evaluate only the first one in case it is a regexp.
 
-                # which is not the default regexp ---already processed under the
-                # data namespace
-                if iregexp.get_name () == 'default':
-                    continue;
+            # The regexp is fully processed so that the value of all its groups
+            # is computed
 
-                self._logger.debug (" Processing %s" % iregexp)
+            # for all database tables (ie, implicitly ignoring regexps) within
+            # the current database specification
+            for itable in [itable for itable in self._dbspec
+                           if isinstance (itable, dbparser.DBTable)]:
 
-                # for all matches of this regexp in the current text file
-                for m in re.finditer (iregexp.get_specification (), contents):
+                # now, for all regular expressions mentioned in any column of
+                # this table
+                for icolumn in [icolumn for icolumn in  itable
+                                if icolumn.get_vartype () == "REGEXP"]:
 
-                    # add this variable to the regexp namespace as a multi-key
-                    # attribute with as many keys as groups there are in the
-                    # regexp. The multi-attribute should be named to allow
-                    # projections later on. The key names are the group names
-                    # themselves
-                    keys = tuple ([igroup for igroup in m.groupdict ()])
-                    BotParser._regexp.setkeynames (iregexp.get_name (), *keys)
+                    # create a dbexpression for this particular definition
+                    expression = dbexpression.DBExpression (icolumn.get_vartype (),
+                                                            icolumn.get_variable (),
+                                                            self._logger,
+                                                            self._logfilter)
 
-                    # now, compute the value of this multi-key attribute which
-                    # is a tuple with the matches of the regexp. Note that blank
-                    # spaces are stripped of at the right of the match. This
-                    # makes it easier for users to define regexps that can
-                    # include the blank space in between without worrying for
-                    # the trailing blank spaces
-                    values = [string.rstrip (m.group (igroup), ' ')
-                              for igroup in m.groupdict ()]
+                    # compute the regular expression to evaluate. If it has no
+                    # contexts, then use it directly. Otherwise, consider only
+                    # the first context and evaluate it only in case it is a
+                    # regexp
+                    if not expression.has_context ():
 
-                    # the policy is to accumulate values so that read the
-                    # current value of this multi-key attribute in case it
-                    # exists
-                    if iregexp.get_name () in BotParser._regexp:
+                        # then copy its definition from the database
+                        # specification table which is always of the form
+                        # <prefix>.<suffix>. 'index' is intentionally used to
+                        # let Python raise an exception in case a dot is missing
+                        regexp = icolumn.get_variable () [0:string.index (icolumn.get_variable (),
+                                                                          '.')]
 
-                        currvalues = BotParser._regexp.getattr (iregexp.get_name (),
-                                                                key = dict (zip (keys, keys)))
-                        BotParser._regexp.setattr (iregexp.get_name (),
-                                                   key = dict (zip (keys, keys)),
-                                                   value = currvalues + [tuple (values)])
-
-                    # otherwise, initialize the contents of this multi-key
-                    # attribute to a list which contains a single tuple with the
-                    # values of this match
                     else:
-                        BotParser._regexp.setattr (iregexp.get_name (),
-                                                   key = dict (zip (keys, keys)),
-                                                   value = [tuple (values)])
+
+                        # take the first context which is always of the form
+                        # <prefix>.<suffix>. 'index' is intentionally used to
+                        # let Python raise an exception in case a dot is missing
+                        prefix = expression.get_context () [0] [0:string.index (expression.get_context () [0], '.')]
+
+                        # in case this prefix exists as the name of a regular
+                        # expression then go ahead with it,
+                        if self._dbspec.get_regexp (prefix):
+                            regexp = prefix
+                        else:
+
+                            # otherwise, skip it
+                            continue
+
+                    # and now, access the instance of the regexp with the name
+                    # we computed above
+                    iregexp = self._dbspec.get_regexp (regexp)
+
+                    # in case this is the default regexp, then skip it since
+                    # they've been all already processed above
+                    if iregexp.get_name () == 'default':
+                        continue
+
+                    # also, in case that this regular expression was already
+                    # processed, then skip it now (we can do this since the
+                    # groups of all regexp are processed at once)
+                    if iregexp.get_name () in self._regexp:
+                        continue
+
+                    self._logger.info (" Processing %s" % iregexp)
+
+                    # for all matches of this regexp in the current text file
+                    for m in re.finditer (iregexp.get_specification (), contents):
+
+                        # add this variable to the regexp namespace as a
+                        # multi-key attribute with as many keys as groups there
+                        # are in the regexp. The multi-attribute should be named
+                        # to allow projections later on. The key names are the
+                        # group names themselves
+                        keys = tuple ([igroup for igroup in m.groupdict ()])
+                        BotParser._regexp.setkeynames (iregexp.get_name (), *keys)
+
+                        # now, compute the value of this multi-key attribute
+                        # which is a tuple with the matches of the regexp. Note
+                        # that blank spaces are stripped of at the right of the
+                        # match. This makes it easier for users to define
+                        # regexps that can include the blank space in between
+                        # without worrying for the trailing blank spaces
+                        values = [string.rstrip (m.group (igroup), ' ')
+                                  for igroup in m.groupdict ()]
+
+                        # the policy is to accumulate values so that read the
+                        # current value of this multi-key attribute in case it
+                        # exists
+                        if iregexp.get_name () in BotParser._regexp:
+
+                            currvalues = BotParser._regexp.getattr (iregexp.get_name (),
+                                                                    key = dict (zip (keys, keys)))
+                            BotParser._regexp.setattr (iregexp.get_name (),
+                                                       key = dict (zip (keys, keys)),
+                                                       value = currvalues + [tuple (values)])
+
+                        # otherwise, initialize the contents of this multi-key
+                        # attribute to a list which contains a single tuple with
+                        # the values of this match
+                        else:
+                            BotParser._regexp.setattr (iregexp.get_name (),
+                                                       key = dict (zip (keys, keys)),
+                                                       value = [tuple (values)])
+
+
+                    # and now perform the evaluation
+                    result = expression.eval (self._dbspec, self._namespace, self._data, None,
+                                              self._regexp, self._user)
 
         # results/
         # -------------------------------------------------------------------------
@@ -677,6 +751,7 @@ class BotParser (object):
 
         # logger settings - if a logger has been passed, just create a child of
         # it
+        self._logfilter = logfilter
         if logger:
             self._logger = logger.getChild ('bots.BotParser')
 

@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <jueves, 25 septiembre 2014 10:54:59 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 02 octubre 2014 09:37:59 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -55,6 +55,7 @@ import ply.lex as lex
 import ply.yacc as yacc
 
 import colors                           # tty colors
+import dbexpression                     # evaluation of databse expressions
 
 
 # -----------------------------------------------------------------------------
@@ -363,7 +364,7 @@ class DBTable:
         return None
 
 
-    def poll (self, namespace, data, user, param, regexp, logger):
+    def poll (self, namespace, data, user, param, regexp, logger, logfilter):
         """
         returns a tuple of values according to the definition of columns of this
         table and the values specified in the given namespaces: namespace, data,
@@ -433,6 +434,10 @@ class DBTable:
             return [tuple (map (lambda x:x[i] if isinstance (x, list) else x, t))
                     for i in range(cardinality)]
 
+
+        # update information about the logger ---the child and its filter
+        self._logger = logger.getChild ("DBTable.poll")
+        self._logger.addFilter (logfilter)
 
         # initialization
         t=()                    # raw description of the tuples to return
@@ -895,7 +900,7 @@ class DBParser :
                 if p[1][0] != 'REGEXP':
                     p[0] = ('REGEXP', string.lower (p[1][0]) + '.' + p[1][1] + DBParser.t_SLASH + p[3])
                 else:
-                    p[0] = ('REGEXP', p[1][1] + DBParser.t_SLASH + p[3])                    
+                    p[0] = ('REGEXP', p[1][1] + DBParser.t_SLASH + p[3])
             else:
                 p[0] = ('REGEXP', p[1][1] + DBParser.t_SLASH + p[3])
 

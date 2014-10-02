@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Feb 19 18:17:04 2014 Carlos Linares Lopez>
-# Last update <martes, 12 agosto 2014 23:10:56 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 01 octubre 2014 07:56:52 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -519,11 +519,11 @@ class Namespace (MutableMapping):
         this method is similar to items. The difference is that values are also
         projected over the specified keys.
 
-        returns a list of tuples (key+, value+) where key+/value+ is the
-        projection of the keys of the attribute over the specified 'keys'. Every
-        value should be either a list or a tuple with the same length than the
-        key. This service assumes that the i-th value corresponds to the i-th
-        key so that:
+        returns a list [(key+), [value+]] where key+/value+ is the projection of
+        the keys of the attribute over the specified 'keys' and [value+] is a
+        list of tuples with all values. Initially, every value should be either
+        a list or a tuple with the same length than the key. This service
+        assumes that the i-th value corresponds to the i-th key so that:
 
            1. key+ contains a key if it is given in the specified keys
            2. value+ contains the i-th item if and only if the i-th key is
@@ -544,15 +544,21 @@ class Namespace (MutableMapping):
         if not keys: keys = self._fields [attribute]
 
         # note that items are sorted so that they are always traversed in the
-        # same order in spite of the component requested at different methods
+        # same order in spite of the component requested at different
+        # methods. The following snippet makes use of a list comprehension to
+        # select those values that correspond with active keys.
+
+        # Note that the information returned by items consists of a list with a
+        # tuple that contains: first, a tuple with the keys and second, a list
+        # of tuples with the items ---which are not projected
         result = list ()
-        for (ikey, ival) in sorted (self.__dict__ [attribute].items ()):
-            result.append ((tuple ([ikey[i] for i in
-                                    [self._fields [attribute].index(j) for j in keys]]),
-                            tuple ([ival[i] for i in
+
+        # compute the list of values
+        for ival in sorted (self.__dict__ [attribute].items () [0][1]):
+            result.append ((tuple ([ival[i] for i in
                                     [self._fields [attribute].index (j) for j in keys]])))
 
-        return result
+        return list ([keys]) + [result]
 
 
     def update (self, *args):

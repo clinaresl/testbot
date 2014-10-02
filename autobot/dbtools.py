@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <sábado, 09 agosto 2014 21:55:18 Carlos Linares Lopez (clinares)>
+# Last update <martes, 30 septiembre 2014 15:24:32 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -113,8 +113,8 @@ class DBIter(object):
 # -----------------------------------------------------------------------------
 class DBSpec(object):
     """
-    this class provides services for accessing and interpreting the
-    contents of database specifications
+    this class provides services for accessing and interpreting the contents of
+    database specifications
     """
 
     def __init__ (self, spec):
@@ -132,14 +132,19 @@ class DBSpec(object):
         # and copy all definitions found by the parser
         self._tables = p._tables
 
-        # create different lists for storing regexps and database tables
+        # create different lists for storing regexps and database tables. They
+        # are also indexed in a dictionary by their name
         self._regexp = []
+        self._regexpdict = {}
         self._db = []
+        self._dbdict = {}
         for itable in self._tables:
             if isinstance (itable, dbparser.DBRegexp):
                 self._regexp.append (itable)
+                self._regexpdict [itable.get_name ()] = itable
             elif isinstance (itable, dbparser.DBTable):
                 self._db.append (itable)
+                self._dbdict [itable.get_name ()] = itable
             else:
                 raise NotImplementedError ('Unknown table type')
 
@@ -210,22 +215,53 @@ class DBSpec(object):
         return '\n' + stdb
 
 
-    def get_regexp (self):
+    def get_regexp (self, name=None):
         """
         return a list with all regexp found in this instance. Every regexp is an
-        instance of dbparser.DBRegexp
+        instance of dbparser.DBRegexp.
+
+        If a specific name is given then the regexp with that name is returned
+        or None if it does not exist
         """
 
-        return self._regexp
+        if not name:
+            return self._regexp
+        else:
+            if name not in self._regexpdict:
+                return None
+            else:
+                return self._regexpdict [name]
 
 
-    def get_db (self):
+    def get_db (self, name=None):
         """
         return a list with all database tables found in this instance. Every
         database table is an instance of dbparser.DBTable
+
+        If a specific name is given then the database table with that name is
+        returned or None if it does not exist
         """
 
-        return self._db
+        if not name:
+            return self._db
+        else:
+            if name not in self._dbdict:
+                return None
+            else:
+                return self._dbdict [name]
+
+
+    def isregexp (self, name):
+        """
+        return true if and only if the given string is the name of a regexp and
+        false otherwise
+        """
+
+        for iregexp in self._regexp:
+            if iregexp.get_name () == name:
+                return True
+
+        return False
 
 
     def verify_regexps (self):
