@@ -71,10 +71,10 @@ class DBExpression:
         #
         # for n>0
         nbseps = string.count (expression, dbparser.DBParser.t_SLASH)
-        nbdots = string.count (expression, '.')
-        if nbdots != nbseps + 1:
-            self._logger.critical (" Syntax error in expression: '%s'" % expression)
-            raise ValueError
+        # nbdots = string.count (expression, '.')
+        # if nbdots != nbseps + 1:
+        #     self._logger.critical (" Syntax error in expression: '%s'" % expression)
+        #     raise ValueError
 
         # copy the expression (and its type) given to this instance
         self._type, self._expression = (exptype, expression)
@@ -121,7 +121,7 @@ class DBExpression:
         return self._contexts
 
 
-    def eval (self, dbspec, sys, data, param, regexp, user, logger):
+    def eval (self, dbspec, sys, data, param, regexp, user):
         """
         eval returns the evaluation of the expression stored in this
         instance. The evaluation is resolved with information of the regular
@@ -183,13 +183,12 @@ class DBExpression:
             arbitrary number of them
             """
 
-            # compute the prefix and variable of this expression
-            (prefix, variable) = string.split (expression, '.')
-
             # in case this is a regexp, then we have to compute the projection
             # of the regexp over the given variable
             if self._type == "REGEXP":
 
+                # compute the prefix and variable of this expression
+                (prefix, variable) = string.split (expression, '.')
                 result = regexp.projection (prefix, variable)
 
                 # the result of a project is a list with a tuple that contains
@@ -206,13 +205,13 @@ class DBExpression:
                 nspace = _get_namespace ()
 
                 # check that this variable exists in the current namespace
-                if variable not in nspace:
+                if expression not in nspace:
 
                     self._logger.critical (" Variable '%s' has not been found!" % variable)
                     raise ValueError
 
                 # and return its value
-                return nspace [variable]
+                return nspace [expression]
 
 
         def _apply_regexp (s, regexp, groupname):

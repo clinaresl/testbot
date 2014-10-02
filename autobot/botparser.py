@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <miércoles, 01 octubre 2014 17:35:45 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 02 octubre 2014 09:45:59 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -435,12 +435,14 @@ class BotParser (object):
             for itable in self._dbspec.get_db ():
                 self._logger.debug (" Populating '%s'" % itable.get_name ())
                 dbhandler.insert_data (itable,
-                                       itable.poll (namespace = BotParser._namespace,
+                                       itable.poll (dbspec = self._dbspec,
+                                                    namespace = BotParser._namespace,
                                                     data = BotParser._data,
                                                     user = BotParser._user,
                                                     param=None,
                                                     regexp = BotParser._regexp,
-                                                    logger = self._logger))
+                                                    logger = self._logger,
+                                                    logfilter = self._logfilter))
 
             # and close the database
             dbhandler.close ()
@@ -625,7 +627,6 @@ class BotParser (object):
                                                        key = dict (zip (keys, keys)),
                                                        value = [tuple (values)])
 
-
                     # and now perform the evaluation
                     result = expression.eval (self._dbspec, self._namespace, self._data, None,
                                               self._regexp, self._user)
@@ -750,7 +751,8 @@ class BotParser (object):
           prologue, epilogue, quiet)
 
         # logger settings - if a logger has been passed, just create a child of
-        # it
+        # it and save the log filter since it might be given to other methods
+        # invoked from this class
         self._logfilter = logfilter
         if logger:
             self._logger = logger.getChild ('bots.BotParser')

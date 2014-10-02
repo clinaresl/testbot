@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <jueves, 02 octubre 2014 09:37:59 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 02 octubre 2014 12:18:17 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -364,7 +364,7 @@ class DBTable:
         return None
 
 
-    def poll (self, namespace, data, user, param, regexp, logger, logfilter):
+    def poll (self, dbspec, namespace, data, user, param, regexp, logger, logfilter):
         """
         returns a tuple of values according to the definition of columns of this
         table and the values specified in the given namespaces: namespace, data,
@@ -372,6 +372,11 @@ class DBTable:
 
         In case the value requested for a particular column is not found, the
         specified action is executed.
+
+        columns might evaluate to either scalars (computed by default or
+        explicitly) or lists (computed explicitly). In case at least one column
+        evaluates to a list, the tuples are replicated making sure that all
+        columns take either the maximum cardinality or one.
 
         this method is likely to raise warnings and errors (along with an
         exception). Therefore, it receives also a logger to show messages
@@ -403,25 +408,6 @@ class DBTable:
                 logger.error (" Unknown type '%s'" % ctype)
                 raise TypeError
 
-        def _get_namespace (vartype):
-            """
-            return the namespace that should contain the values of a variable of
-            the given vartype. This function actually implements the logic that
-            associates variable types as specified by the user with namespaces
-            as handled internally by autobot
-
-            Note that, by default, the main namespace is used instead of raising
-            an error (and, instead, if there is an action set to Error and the
-            value is not find anywhere an error is finally raised)
-            """
-
-            if vartype == "SYS" or vartype == "MAINVAR": return namespace
-            elif vartype == "DATA" or vartype == "FILEVAR": return data
-            elif vartype == "PARAM" or vartype == "DIR": return param
-            elif vartype == "USERVAR": return user
-            elif vartype == "REGEXP": return regexp
-            else: return namespace
-
         def _replicate (t, cardinality):
             """
             it returns a list of tuples with length equal to cardinality such
@@ -436,8 +422,8 @@ class DBTable:
 
 
         # update information about the logger ---the child and its filter
-        self._logger = logger.getChild ("DBTable.poll")
-        self._logger.addFilter (logfilter)
+        logger = logger.getChild ("DBTable.poll")
+        logger.addFilter (logfilter)
 
         # initialization
         t=()                    # raw description of the tuples to return
@@ -446,74 +432,33 @@ class DBTable:
         # for all columns in this table
         for icolumn in self:
 
-            # in case this is not the regexp namespace (the cardinality is
-            # always fixed to one)
-            if icolumn.get_vartype () != "REGEXP":
+            # create an expresssion that contains the specification of this
+            # column
+            expression = dbexpression.DBExpression (icolumn.get_vartype (),
+                                                    icolumn.get_variable (),
+                                                    logger,
+                                                    logfilter)
 
-                # get the right namespace for retrieving the value of this
-                # variable
-                nspace = _get_namespace (icolumn.get_vartype ())
+            # and evaluate it
+            result = expression.eval (dbspec, namespace, data, param, regexp, user)
 
-                # if this variable does not exist in this namespace
-                if icolumn.get_variable () not in nspace:
+            # in case that the evaluation of this column resolved to nothing
+            if result == None:
 
-                    # then execute the specified action
-                    value = self.execute_action (icolumn, logger)
+                # then execute the specified action
+                value = self.execute_action (icolumn, logger)
 
-                    # and include the pertinent value
-                    if value: t += (value,)
-                    else: t+=(_neutral (icolumn.get_type ()),)
+                # and include the pertinent value
+                if value: t += (value,)
+                else: t+=(_neutral (icolumn.get_type ()),)
 
-                # otherwise, add it after coercing the desired type
-                else:
-                    t += (_cast_value (icolumn.get_type (), nspace[icolumn.get_variable ()]),)
-
-            # otherwise, in case this is the regexp namespace (the cardinality
-            # can be any arbitrary number greater or equal than one)
+            # otherwise, add it after coercing the desired type
             else:
 
-                # compute the name of the regexp and the group within this
-                # regexp from the variable name
-                (name, group) = string.split (icolumn.get_variable (), '.')
+                # the result might be either a single scalar or a list
+                if isinstance (result, list):
 
-                # in case this regexp does not exist in the regexp namespace
-                if name not in regexp:
-
-                    # then execute the specified action
-                    value = self.execute_action (icolumn, logger)
-
-                    # and include the pertinent value
-                    if value: t += (value,)
-                    else: t+=(_neutral (icolumn.get_type ()),)
-
-                # otherwise, compute the value of this regexp which is stored in
-                # the namespace as a list of tuples of the same length than the
-                # key
-                else:
-
-                    # if this group does not exist in this attribute then this
-                    # is an error most likely due to the fact that the user
-                    # accidentally mistyped the right name
-                    if group not in regexp.getkeynames (name):
-                        logger.error ("""%s
- Error: while processing the table
-
-%s
-
- the group '%s' was not found in the regexp '%s'
-""" % (colors.red, self, group, name))
-                        raise ValueError
-
-                    # the following statement is simple (in spite of its fierce
-                    # looking). It just return the i-th content of every tuple where
-                    # the location (i) is computed as the position of the group in
-                    # the keys of this attribute
-                    vals = [jval [regexp._fields [name].index (group)]
-                            for jval in regexp.getattr (name,
-                                                        key=dict (zip (regexp.getkeynames (name),
-                                                                       regexp.getkeynames (name))))]
-
-                    # and add it to this tuple
+                    vals = [_cast_value (icolumn.get_type (), iresult) for iresult in result]
                     t += (vals,)
 
                     # and check the cardinality ---if no column has been found
@@ -526,17 +471,21 @@ class DBTable:
                     # then an error has been found
                     elif len (vals) > 1 and cardinality != len (vals):
                         logger.error ("""%s
- Error: while processing the table
+     Error: while processing the table
 
-%s
+    %s
 
- a cardinality mismatch has been found
+     a cardinality mismatch has been found
 
- cardinality : %s
- vals        : %s
- t           : %s
-""" % (colors.red, self, cardinality, vals, t))
+     cardinality : %s
+     vals        : %s
+     t           : %s
+    """ % (colors.red, self, cardinality, vals, t))
                         raise ValueError
+
+                # in case this is a scalar
+                else:
+                    t += (_cast_value (icolumn.get_type (), result),)
 
         # and finally replicate this tuple and return the result
         return _replicate (t, cardinality)
