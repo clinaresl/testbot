@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <jueves, 02 octubre 2014 12:18:17 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 03 octubre 2014 09:47:01 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -54,7 +54,6 @@ import string                           # split
 import ply.lex as lex
 import ply.yacc as yacc
 
-import colors                           # tty colors
 import dbexpression                     # evaluation of databse expressions
 
 
@@ -353,9 +352,9 @@ class DBTable:
 
         # execute the action specified for this column
         if column.get_action () == 'Warning':
-            logger.warning ("%s Warning [%s]: The variable '%s' was not available!" % (colors.yellow, self._name, column.get_variable ()))
+            logger.warning (" Warning [%s]: The variable '%s' was not available!" % (self._name, column.get_variable ()))
         elif column.get_action () == 'Error':
-            logger.error ("%s Error [%s]: The variable '%s' was not available!" % (colors.red, self._name, column.get_variable ()))
+            logger.error (" Error [%s]: The variable '%s' was not available!" % (self._name, column.get_variable ()))
             raise ValueError
         elif column.get_action () != 'None':
             return column.get_action ()
@@ -470,17 +469,18 @@ class DBTable:
                     # one and it does not match the current max cardinality,
                     # then an error has been found
                     elif len (vals) > 1 and cardinality != len (vals):
-                        logger.error ("""%s
+                        logger.error ("""
      Error: while processing the table
 
     %s
 
      a cardinality mismatch has been found
 
-     cardinality : %s
+     cardinality : %i
      vals        : %s
+     len (vals)  : %i
      t           : %s
-    """ % (colors.red, self, cardinality, vals, t))
+    """ % (self, cardinality, vals, len (vals), t))
                         raise ValueError
 
                 # in case this is a scalar

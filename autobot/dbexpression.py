@@ -41,7 +41,6 @@ import string                           # split, find
 
 import dbparser                         # t_SLASH
 
-
 # -----------------------------------------------------------------------------
 # DBExpression
 #
@@ -65,22 +64,11 @@ class DBExpression:
         self._logger = logger.getChild ("DBExpression.dbexpression")
         self._logger.addFilter (logfilter)
 
-        # verify that the expression is of the form
-        #
-        # <prefix 1>.<var 1>/.../<prefix n.var n>
-        #
-        # for n>0
-        nbseps = string.count (expression, dbparser.DBParser.t_SLASH)
-        # nbdots = string.count (expression, '.')
-        # if nbdots != nbseps + 1:
-        #     self._logger.critical (" Syntax error in expression: '%s'" % expression)
-        #     raise ValueError
-
         # copy the expression (and its type) given to this instance
         self._type, self._expression = (exptype, expression)
 
         # Do this expression contain a context? If so, process them in a list
-        if nbseps > 0:
+        if string.count (expression, dbparser.DBParser.t_SLASH) > 0:
             self._hascontext = True
             self._contexts = string.split (expression, dbparser.DBParser.t_SLASH)
         else:
@@ -158,21 +146,46 @@ class DBExpression:
         logger to show messages
         """
 
-        def _get_namespace ():
+        def _get_namespace (atype = None):
             """
             return the namespace that should contain the values of a variable of
-            the type of this instance. This function actually implements the
-            logic that associates prefixes to namespaces as given above.
+            the type of this instance or the given type if any.
+
+            This function actually implements the logic that associates prefixes
+            to namespaces as given above. In case no namespace is found for this
+            particular type it returns None
             """
 
-            if self._type == "SYS" or self._type == "MAIN": return sys
-            elif self._type == "DATA" or self._type == "FILE": return data
-            elif self._type == "PARAM" or self._type == "DIR": return param
-            elif self._type == "REGEXP": return regexp
-            elif self._type == "USER": return user
+            # if no type is given, use the default type of this
+            # instance. Otherwise, copy the specified one
+            if atype:
+                prefix = string.upper (atype)
             else:
-                self._logger.critical (" Unknown prefix '%s'" % self._type)
+                prefix = string.upper (self._type)
+
+            if prefix == "SYS" or prefix == "MAIN": return sys
+            elif prefix == "DATA" or prefix == "FILE": return data
+            elif prefix == "PARAM" or prefix == "DIR": return param
+            elif prefix == "REGEXP": return regexp
+            elif prefix == "USER": return user
+            else: return None
+
+
+        def _retrieve (nspace, variable):
+            """
+            return the value of the given variable which should be accessed in
+            the specified namespace. In case it does not exist, an error is
+            raised
+            """
+
+            # check that this variable exists in the current namespace
+            if variable not in nspace:
+
+                self._logger.critical (" Variable '%s' has not been found!" % variable)
                 raise ValueError
+
+            # and return its value
+            return nspace [variable]
 
 
         def _eval_without_context (expression):
@@ -183,35 +196,48 @@ class DBExpression:
             arbitrary number of them
             """
 
+            # IMPORTANT: expressions should be the variable name (without any
+            # reference to the namespace that contains them) in case they are
+            # not regexps. Otherwise, they are qualified with the name of the
+            # regexp and then the group name separated by a dot.
+            
             # in case this is a regexp, then we have to compute the projection
             # of the regexp over the given variable
             if self._type == "REGEXP":
 
                 # compute the prefix and variable of this expression
                 (prefix, variable) = string.split (expression, '.')
-                result = regexp.projection (prefix, variable)
 
-                # the result of a project is a list with a tuple that contains
-                # the keys used for the projection and then a list of tuples
-                # with the values (also projected). We get rid here of the tuple
-                # of keys and we convert the list of tuples into a list of
-                # values
-                return map (lambda x:x[0], result[1])
+                # even if this instance is of type regexp, it might be part of a
+                # regexp with a context. Because the first variable might not be
+                # a regexp, it is mandatory now to check the real type of
+                # this argument
+                nspace = _get_namespace (prefix)
+
+                # in case this is proven to be a regular expression ---because
+                # its prefix refers to no known namespace, then make the
+                # projection
+                if not nspace:
+                    result = regexp.projection (prefix, variable)
+
+                    # the result of a projection is a list with a tuple that
+                    # contains the keys used for the projection and then a list
+                    # of tuples with the values (also projected). We get rid
+                    # here of the tuple of keys and we convert the list of
+                    # tuples into a list of values
+                    return map (lambda x:x[0], result[1])
+
+                # otherwise, just retrieve the right value from the given
+                # namespace
+                else:
+                    return _retrieve (nspace, variable)
 
             # otherwise, get the namespace that should contain the value of this
-            # expression
+            # expression and return the value of this variable as stored in that
+            # namespace
             else:
 
-                nspace = _get_namespace ()
-
-                # check that this variable exists in the current namespace
-                if expression not in nspace:
-
-                    self._logger.critical (" Variable '%s' has not been found!" % variable)
-                    raise ValueError
-
-                # and return its value
-                return nspace [expression]
+                return _retrieve (_get_namespace (), expression)
 
 
         def _apply_regexp (s, regexp, groupname):
@@ -240,7 +266,6 @@ class DBExpression:
             return values
 
 
-        #
         # ---------------------------------------------------------------------
         # first case: the expression given has no context
         if not self._hascontext:
