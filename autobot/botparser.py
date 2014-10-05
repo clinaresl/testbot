@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <jueves, 02 octubre 2014 09:45:59 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 05 octubre 2014 23:11:01 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -452,6 +452,97 @@ class BotParser (object):
 
 
     # -----------------------------------------------------------------------------
+    # eval_regexp
+    #
+    # compute the value of the regexp defined in the specified column of a
+    # database table with the contents specified in the second argument. As a
+    # result, it writes in the regexp namespace its final value
+    # -----------------------------------------------------------------------------
+    def eval_regexp (self, icolumn, contents):
+        """
+        compute the value of the regexp defined in the specified column of a
+        database table with the contents specified in the second argument. As a
+        result, it writes in the regexp namespace its final value
+        """
+
+        # create a dbexpression for this particular definition
+        expression = dbexpression.DBExpression (icolumn.get_vartype (),
+                                                icolumn.get_variable (),
+                                                self._logger,
+                                                self._logfilter)
+
+        # compute the regular expression to evaluate. If it has no contexts,
+        # then use it directly. Otherwise, consider only the first context and
+        # evaluate it only in case it is a regexp
+        if not expression.has_context ():
+
+            # then copy its definition from the database specification table
+            # which is always of the form <prefix>.<suffix>. 'index' is
+            # intentionally used to let Python raise an exception in case a dot
+            # is missing
+            prefix = icolumn.get_variable () [0:string.index (icolumn.get_variable (),
+                                                              '.')]
+
+        else:
+
+            # take the first context which is always of the form
+            # <prefix>.<suffix>. 'index' is intentionally used to let Python
+            # raise an exception in case a dot is missing
+            prefix = expression.get_context()[0][0:string.index (expression.get_context () [0], '.')]
+
+        # in case this prefix exists as the name of a regular expression then go
+        # ahead with it.
+        #
+        # Strange, huh? the reason is that a prefix might result from the first
+        # part of a contenxt and that's not necessarily a regexp!!
+        iregexp = self._dbspec.get_regexp (prefix)
+        if not iregexp:
+            return
+
+        # if this regexp has been already processed or if it is the default
+        # regexp (which has been already processed above), then skip it
+        if iregexp.get_name () == 'default' or iregexp.get_name () in self._regexp:
+            return
+
+        self._logger.info (" Processing %s" % iregexp)
+
+        # for all matches of this regexp in the current text file
+        for m in re.finditer (iregexp.get_specification (), contents):
+
+            # add this variable to the regexp namespace as a multi-key attribute
+            # with as many keys as groups there are in the regexp. The
+            # multi-attribute should be named to allow projections later on. The
+            # key names are the group names themselves
+            keys = tuple ([igroup for igroup in m.groupdict ()])
+            BotParser._regexp.setkeynames (iregexp.get_name (), *keys)
+
+            # now, compute the value of this multi-key attribute which is a
+            # tuple with the matches of the regexp. Note that blank spaces are
+            # stripped of at the right of the match. This makes it easier for
+            # users to define regexps that can include the blank space in
+            # between without worrying for the trailing blank spaces
+            values = [string.rstrip (m.group (igroup), ' ')
+                      for igroup in m.groupdict ()]
+
+            # the policy is to accumulate values so that read the current value
+            # of this multi-key attribute in case it exists
+            if iregexp.get_name () in BotParser._regexp:
+
+                currvalues = BotParser._regexp.getattr (iregexp.get_name (),
+                                                        key = dict (zip (keys, keys)))
+                BotParser._regexp.setattr (iregexp.get_name (),
+                                           key = dict (zip (keys, keys)),
+                                           value = currvalues + [tuple (values)])
+
+            # otherwise, initialize the contents of this multi-key attribute to
+            # a list which contains a single tuple with the values of this match
+            else:
+                BotParser._regexp.setattr (iregexp.get_name (),
+                                           key = dict (zip (keys, keys)),
+                                           value = [tuple (values)])
+
+
+    # -----------------------------------------------------------------------------
     # parse_single_file
     #
     # looks for all matches of all regular expressions defined in the database
@@ -492,11 +583,6 @@ class BotParser (object):
                 os.remove (filename)
 
 
-
-        # processing regular expressions
-        # ---------------------------------------------------------------------
-        # process the default regular expression in this textfile
-
         # open the file in read mode
         with open (txtfile, "r") as stream:
 
@@ -514,7 +600,7 @@ class BotParser (object):
                 BotParser._data [imatch.group ('varname').rstrip (' ')] = \
                   imatch.group ('value')
 
-            # data tables
+            # regexps in data tables
             # ---------------------------------------------------------------------
             # eval all regular expressions appearing in any database table (so
             # that we are implicitly skipping those that are defined but never
@@ -536,116 +622,22 @@ class BotParser (object):
                 for icolumn in [icolumn for icolumn in  itable
                                 if icolumn.get_vartype () == "REGEXP"]:
 
-                    # create a dbexpression for this particular definition
-                    expression = dbexpression.DBExpression (icolumn.get_vartype (),
-                                                            icolumn.get_variable (),
-                                                            self._logger,
-                                                            self._logfilter)
-
-                    # compute the regular expression to evaluate. If it has no
-                    # contexts, then use it directly. Otherwise, consider only
-                    # the first context and evaluate it only in case it is a
-                    # regexp
-                    if not expression.has_context ():
-
-                        # then copy its definition from the database
-                        # specification table which is always of the form
-                        # <prefix>.<suffix>. 'index' is intentionally used to
-                        # let Python raise an exception in case a dot is missing
-                        regexp = icolumn.get_variable () [0:string.index (icolumn.get_variable (),
-                                                                          '.')]
-
-                    else:
-
-                        # take the first context which is always of the form
-                        # <prefix>.<suffix>. 'index' is intentionally used to
-                        # let Python raise an exception in case a dot is missing
-                        prefix = expression.get_context () [0] [0:string.index (expression.get_context () [0], '.')]
-
-                        # in case this prefix exists as the name of a regular
-                        # expression then go ahead with it,
-                        if self._dbspec.get_regexp (prefix):
-                            regexp = prefix
-                        else:
-
-                            # otherwise, skip it
-                            continue
-
-                    # and now, access the instance of the regexp with the name
-                    # we computed above
-                    iregexp = self._dbspec.get_regexp (regexp)
-
-                    # in case this is the default regexp, then skip it since
-                    # they've been all already processed above
-                    if iregexp.get_name () == 'default':
-                        continue
-
-                    # also, in case that this regular expression was already
-                    # processed, then skip it now (we can do this since the
-                    # groups of all regexp are processed at once)
-                    if iregexp.get_name () in self._regexp:
-                        continue
-
-                    self._logger.info (" Processing %s" % iregexp)
-
-                    # for all matches of this regexp in the current text file
-                    for m in re.finditer (iregexp.get_specification (), contents):
-
-                        # add this variable to the regexp namespace as a
-                        # multi-key attribute with as many keys as groups there
-                        # are in the regexp. The multi-attribute should be named
-                        # to allow projections later on. The key names are the
-                        # group names themselves
-                        keys = tuple ([igroup for igroup in m.groupdict ()])
-                        BotParser._regexp.setkeynames (iregexp.get_name (), *keys)
-
-                        # now, compute the value of this multi-key attribute
-                        # which is a tuple with the matches of the regexp. Note
-                        # that blank spaces are stripped of at the right of the
-                        # match. This makes it easier for users to define
-                        # regexps that can include the blank space in between
-                        # without worrying for the trailing blank spaces
-                        values = [string.rstrip (m.group (igroup), ' ')
-                                  for igroup in m.groupdict ()]
-
-                        # the policy is to accumulate values so that read the
-                        # current value of this multi-key attribute in case it
-                        # exists
-                        if iregexp.get_name () in BotParser._regexp:
-
-                            currvalues = BotParser._regexp.getattr (iregexp.get_name (),
-                                                                    key = dict (zip (keys, keys)))
-                            BotParser._regexp.setattr (iregexp.get_name (),
-                                                       key = dict (zip (keys, keys)),
-                                                       value = currvalues + [tuple (values)])
-
-                        # otherwise, initialize the contents of this multi-key
-                        # attribute to a list which contains a single tuple with
-                        # the values of this match
-                        else:
-                            BotParser._regexp.setattr (iregexp.get_name (),
-                                                       key = dict (zip (keys, keys)),
-                                                       value = [tuple (values)])
-
-                    # and now perform the evaluation
-                    result = expression.eval (self._dbspec, self._namespace, self._data, None,
-                                              self._regexp, self._user)
+                    self.eval_regexp (icolumn, contents)
 
         # results/
         # -------------------------------------------------------------------------
         # once this file has been processed, copy it to the results directory
         # after applying the substitution specified in the output directive.
 
-        # take care of the compress flag. If bzip2 compression was
-        # requested apply it
+        # take care of the compress flag. If bzip2 compression was requested
+        # apply it
         if (self._compress):
             self._logger.debug (" Compressing the contents of file '%s'" % txtfile)
 
             _bz2 (txtfile, remove=False)
 
-            # and now, move it to its target location with the suffix
-            # 'bz2' taking care of the substitution provided with the
-            # output flag
+            # and now, move it to its target location with the suffix 'bz2'
+            # taking care of the substitution provided with the output flag
             shutil.move (txtfile + '.bz2',
                          os.path.join (resultsdir, self._sub (self._output) + '.bz2'))
 

@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <domingo, 05 octubre 2014 11:35:27 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 06 octubre 2014 00:04:34 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -707,16 +707,16 @@ class DBParser :
 
     # reserved words
     reserved_words = {
-        'regexp'  : 'REGEXP',
-        'snippet' : 'SNIPPET',
-        'code'    : 'CODE',
-        'return'  : 'RETURN',
-        'integer' : 'INTEGER',
-        'real'    : 'REAL',
-        'text'    : 'TEXT',
-        'None'    : 'NONE',
-        'Warning' : 'WARNING',
-        'Error'   : 'ERROR'
+        'regexp'    : 'REGEXP',
+        'snippet'   : 'SNIPPET',
+        'code'      : 'CODE',
+        'return'    : 'RETURN',
+        'integer'   : 'INTEGER',
+        'real'      : 'REAL',
+        'text'      : 'TEXT',
+        'None'      : 'NONE',
+        'Warning'   : 'WARNING',
+        'Error'     : 'ERROR'
         }
 
     # List of token names.   This is always required
@@ -736,6 +736,7 @@ class DBParser :
         'MAINVAR',
         'PARAM',
         'USERVAR',
+        'QUALIFIEDVAR',
         'ID',
         'TABLEID'
         ) + tuple(reserved_words.values ())
@@ -747,8 +748,12 @@ class DBParser :
 
         # Build the lexer and parser
         self._lexer = lex.lex(module=self)
-        self._parser = yacc.yacc(module=self)
+        self._parser = yacc.yacc(module=self,write_tables=0)
 
+        # and also declare a couple of symbol tables for storing the names of
+        # regexps and snippets
+        self._regexptable = {}
+        self._snippettable = {}
 
     # lex rules
     # -------------------------------------------------------------------------
@@ -880,21 +885,12 @@ class DBParser :
                 t.value = t.value[5:]
         return t
 
-    # regexp variables: any variable preceded by the name of a regexp. They
-    # stand for namespaces whose contents can be accessed with the groups
-    # defined in the regexp with the format <regexp-name>.<group-name>
-    def t_REGEXP (self, t):
+    # qualified variables: any variable preceded by a name and a dot. They are
+    # used to refer to regexps and snippets. In the case of regexps the format
+    # is <regexp-name>.<group-name>. In the case of snippets the format is
+    # <snippet-name>.<output-variable-name>
+    def t_QUALIFIEDVAR (self, t):
         r"[a-zA-Z][a-zA-Z_0-9]+\.[a-zA-Z_][a-zA-Z_0-9]+"
-
-        # just return the string
-        return t
-
-    # snippet variables: they are simply of the form <name>.<variable> where
-    # <name> is the name of a snippet previously defined and <variable> is the
-    # name of an output variable in the snippet
-    def t_SNIPPET (self, t):
-        r"[a-zA-Z][a-zA-Z_0-9]+\.[a-zA-Z_][a-zA-Z_0-9]+"
-
         return t
 
     # tableid: a correct name for tables (either sys_, data_ or user_)
@@ -947,6 +943,56 @@ class DBParser :
         elif len (p) == 3:
             p[0] = [p[1]] + p[2]
 
+    # definition of regexps
+    # -----------------------------------------------------------------------------
+    def p_regexp (self, p):
+        '''regexp : REGEXP ID STRING'''
+        p[0] = DBRegexp (p[2], p[3])
+
+        # and now write the information of this regexp in the regexp table
+        self._regexptable [p[2]] = p[0]
+
+    # definition of snippets
+    # -----------------------------------------------------------------------------
+    def p_snippet (self, p):
+        '''snippet : SNIPPET ID outputvars CODE FILEVAR
+                   | SNIPPET ID inputvars outputvars CODE FILEVAR'''
+        # note that the inputvars are optional since they might not be necessary
+        # to perform any computation
+        if len (p) == 6:
+            p[0] = DBSnippet (p[2], [], p[3], p[5])
+        else:
+            p[0] = DBSnippet (p[2], p[3], p[4], p[6])
+
+        # finally, write the information of this snippet in the snippet table
+        self._snippettable [p[2]] = p[0]
+
+    def p_snippet_inputvars (self, p):
+        '''inputvars : input_statement
+                     | input_statement inputvars'''
+        if len (p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = [p[1]] + p[2]
+
+    def p_input_statement (self, p):
+        '''input_statement : ID EQ variable'''
+        p[0] = DBSnippetInput (p[1], p[3])
+
+    def p_snippet_outputvars (self, p):
+        '''outputvars : output_statement
+                      | output_statement outputvars'''
+        if len (p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = [p[1]] + p[2]
+
+    def p_output_statement (self, p):
+        '''output_statement : RETURN ID'''
+        p[0] = DBSnippetOutput (p[2])
+
+    # definition of data tables
+    # -----------------------------------------------------------------------------
     def p_table (self, p):
         '''table : TABLEID LCURBRACK columns RCURBRACK'''
         p[0] = DBTable (p[1], p[3])
@@ -1001,33 +1047,44 @@ class DBParser :
         '''variable : USERVAR'''
         p[0] = ('USERVAR', p[1])
 
-    def p_variable_regexp (self, p):
-        '''variable : REGEXP
-                    | variable SLASH REGEXP'''
+    def p_variable_qualified (self, p):
+        '''variable : QUALIFIEDVAR
+                    | variable SLASH QUALIFIEDVAR'''
+
+        # compute the prefix of the qualified var
+        prefix = string.split (p[len (p)-1], '.') [0]
+
+        # check whether it refers to a regexp or a snippet
+        if prefix in self._regexptable: vartype = 'REGEXP'
+        elif prefix in self._snippettable: vartype = 'SNIPPET'
+        else:
+            print "Line %i: The qualified var '%s' has been found but it does not appear to be either a REGEXP or a SNIPPET" % (p.lineno (1), p[1])
+            self.p_error (p)
+
         if len (p) == 2:
-            p[0] = ('REGEXP', p[1])
+            p[0] = (vartype, p[1])
         else:
 
-            # check whether the variable (p[1]) is the *first* context. If this
-            # is the case, then derive its type and add it to the value to
-            # return. Otherwise, simply concatenate the next regexp to the full
-            # expression
+            # check whether the variable (p[1]) is the *first* context
             if string.find (p[1][1], DBParser.t_SLASH) < 0:
 
-                # in this particular case keep track of the type of the first
-                # context. In case it is a regexp avoid writing it down (since
-                # regexps are qualified by their name solely) and add it
-                # otherwise
-                if p[1][0] != 'REGEXP':
-                    p[0] = ('REGEXP', string.lower (p[1][0]) + '.' + p[1][1] + DBParser.t_SLASH + p[3])
+                # in case it is, keep track of the type of the first context if
+                # and only if it is not a regexp or a snippet. In case it is
+                # either a regexp or a snippet then avoid writing down its type
+                # (since they are qualified by their name solely)
+                if p[1][0] != 'REGEXP' and p[1][0] != 'SNIPPET':
+                    p[0] = (vartype, string.lower (p[1][0]) + '.' + p[1][1] + DBParser.t_SLASH + p[3])
                 else:
-                    p[0] = ('REGEXP', p[1][1] + DBParser.t_SLASH + p[3])
+                    p[0] = (vartype, p[1][1] + DBParser.t_SLASH + p[3])
             else:
-                p[0] = ('REGEXP', p[1][1] + DBParser.t_SLASH + p[3])
 
-    def p_variable_snippet (self, p):
-        '''variable : SNIPPET'''
-        p[0] = ('SNIPPET', p[1])
+                # if not then just concatenate the variable name to the full
+                # expression
+                p[0] = (vartype, p[1][1] + DBParser.t_SLASH + p[3])
+
+    # def p_variable_snippet (self, p):
+    #     '''variable : QUALIFIEDVAR'''
+    #     p[0] = ('SNIPPET', p[1])
 
     def p_action (self, p):
         '''action : NONE
@@ -1042,43 +1099,6 @@ class DBParser :
                    | STRING'''
         p[0] = p[1]
 
-    def p_regexp (self, p):
-        '''regexp : REGEXP ID STRING'''
-        p[0] = DBRegexp (p[2], p[3])
-
-    def p_snippet (self, p):
-        '''snippet : SNIPPET ID outputvars CODE FILEVAR
-                   | SNIPPET ID inputvars outputvars CODE FILEVAR'''
-        # note that the inputvars are optional since they might not be necessary
-        # to perform any computation
-        if len (p) == 6:
-            p[0] = DBSnippet (p[2], [], p[3], p[5])
-        else:
-            p[0] = DBSnippet (p[2], p[3], p[4], p[6])
-
-    def p_snippet_inputvars (self, p):
-        '''inputvars : input_statement
-                     | input_statement inputvars'''
-        if len (p) == 2:
-            p[0] = [p[1]]
-        else:
-            p[0] = [p[1]] + p[2]
-
-    def p_input_statement (self, p):
-        '''input_statement : ID EQ variable'''
-        p[0] = DBSnippetInput (p[1], p[3])
-
-    def p_snippet_outputvars (self, p):
-        '''outputvars : output_statement
-                      | output_statement outputvars'''
-        if len (p) == 2:
-            p[0] = [p[1]]
-        else:
-            p[0] = [p[1]] + p[2]
-
-    def p_output_statement (self, p):
-        '''output_statement : RETURN ID'''
-        p[0] = DBSnippetOutput (p[2])
 
     # error handling
     # -----------------------------------------------------------------------------
