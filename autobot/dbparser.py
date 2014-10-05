@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <viernes, 03 octubre 2014 09:47:01 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 05 octubre 2014 11:35:27 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -537,6 +537,163 @@ class DBRegexp:
 
 
 # -----------------------------------------------------------------------------
+# DBSnippetInput
+#
+# Definition of an individual input statement of a DBSnippet
+# -----------------------------------------------------------------------------
+class DBSnippetInput:
+    """
+    Definition of an individual input statement of a DBSnippet
+    """
+
+    def __init__ (self, name, variable):
+        """
+        attaches the given variable to the specified name
+        """
+
+        # just copy the name and the variable
+        (self._name, self._variable) = (name, variable)
+
+
+    def __str__ (self):
+        """
+        output formatting
+        """
+
+        return "%s = %s" % (self._name, self._variable)
+
+
+    def get_name (self):
+        """
+        return the name of this input statement
+        """
+
+        return self._name
+
+
+    def get_variable (self):
+        """
+        return the variable attached to the name of this input statement
+        """
+
+        return self._variable
+
+
+# -----------------------------------------------------------------------------
+# DBSnippetOutput
+#
+# Definition of an individual output statement of a DBSnippet
+# -----------------------------------------------------------------------------
+class DBSnippetOutput:
+    """
+    Definition of an individual output statement of a DBSnippet
+    """
+
+    def __init__ (self, name):
+        """
+        creates an output variable with the given name
+        """
+
+        # just copy the name and the variable
+        self._name = name
+
+
+    def __str__ (self):
+        """
+        output formatting
+        """
+
+        return "return %s" % self._name
+
+
+    def get_name (self):
+        """
+        return the name of this output variable
+        """
+
+        return self._name
+
+
+# -----------------------------------------------------------------------------
+# DBSnippet
+#
+# Definition of an individual snippet of code
+# -----------------------------------------------------------------------------
+class DBSnippet:
+    """
+    Definition of an individiual snippet of code
+    """
+
+    def __init__ (self, name, inputvars, outputvars, filecode):
+        """
+        creates a snippet with the given name whose specification consists of:
+
+        * inputvars: variables used in the snippet that should be initialized to
+                     the values given in their variables. They should be
+                     instances of DBSnippetInput
+
+        * outputvars: variables computed in the snippet whose value should be
+                      returned to the database specification file to be used in
+                      a column
+
+        * filecode: contains the name of the python code to execute
+        """
+
+        # just copy the name and the specification of the snippet
+        (self._name, self._inputvars, self._outputvars,
+         self._filecode) = \
+         (name, inputvars, outputvars,
+          filecode)
+
+
+    def __str__ (self):
+        """
+        output formatting
+        """
+
+        output = " snippet %s\n" % self._name
+        for ivar in self._inputvars:
+            output += '\t' + ivar.__str__ () + '\n'
+        for ivar in self._outputvars:
+            output += '\t' + ivar.__str__ () + '\n'
+        output += "\tcode: " + self._filecode
+
+        return output
+
+
+    def get_name (self):
+        """
+        return the name of this snippet
+        """
+
+        return self._name
+
+
+    def get_inputvars (self):
+        """
+        return the inputvars of this snippet
+        """
+
+        return self._inputvars
+
+
+    def get_outputvars (self):
+        """
+        return the outputvars of this snippet
+        """
+
+        return self._inputvars
+
+
+    def get_filecode (self):
+        """
+        return the file with the Python code to execute
+        """
+
+        return self._filecode
+
+
+# -----------------------------------------------------------------------------
 # DBParser
 #
 # Class used to define the lex and grammar rules necessary for
@@ -551,6 +708,9 @@ class DBParser :
     # reserved words
     reserved_words = {
         'regexp'  : 'REGEXP',
+        'snippet' : 'SNIPPET',
+        'code'    : 'CODE',
+        'return'  : 'RETURN',
         'integer' : 'INTEGER',
         'real'    : 'REAL',
         'text'    : 'TEXT',
@@ -566,6 +726,7 @@ class DBParser :
         'STRING',
         'LCURBRACK',
         'RCURBRACK',
+        'EQ',
         'SEMICOLON',
         'SLASH',
         'SYSVAR',
@@ -593,10 +754,11 @@ class DBParser :
     # -------------------------------------------------------------------------
 
     # Regular expression rules for simple tokens
-    t_LCURBRACK = r'\{'
-    t_RCURBRACK = r'\}'
-    t_SEMICOLON = r';'
-    t_SLASH     = r'/'
+    t_LCURBRACK  = r'\{'
+    t_RCURBRACK  = r'\}'
+    t_EQ         = r'='
+    t_SEMICOLON  = r';'
+    t_SLASH      = r'/'
 
     # Definition of integer numbers
     def t_NUMBER(self, t):
@@ -611,7 +773,7 @@ class DBParser :
         return t
 
     # A regular expression for recognizing both single and doubled quoted
-    # strings
+    # strings in a single line
     def t_STRING (self, t):
         r"""\"([^\\\n]|(\\.))*?\"|'([^\\\n]|(\\.))*?'"""
         return t
@@ -722,9 +884,17 @@ class DBParser :
     # stand for namespaces whose contents can be accessed with the groups
     # defined in the regexp with the format <regexp-name>.<group-name>
     def t_REGEXP (self, t):
-        r"[a-zA-Z][a-zA-Z_0-9]*\.[a-zA-Z_][a-zA-Z_0-9]*"
+        r"[a-zA-Z][a-zA-Z_0-9]+\.[a-zA-Z_][a-zA-Z_0-9]+"
 
         # just return the string
+        return t
+
+    # snippet variables: they are simply of the form <name>.<variable> where
+    # <name> is the name of a snippet previously defined and <variable> is the
+    # name of an output variable in the snippet
+    def t_SNIPPET (self, t):
+        r"[a-zA-Z][a-zA-Z_0-9]+\.[a-zA-Z_][a-zA-Z_0-9]+"
+
         return t
 
     # tableid: a correct name for tables (either sys_, data_ or user_)
@@ -768,8 +938,10 @@ class DBParser :
     def p_definitions (self, p):
         '''definitions : table
                        | regexp
+                       | snippet
                        | table definitions
-                       | regexp definitions'''
+                       | regexp definitions
+                       | snippet definitions'''
         if len (p) == 2:
             p[0] = [p[1]]
         elif len (p) == 3:
@@ -853,6 +1025,9 @@ class DBParser :
             else:
                 p[0] = ('REGEXP', p[1][1] + DBParser.t_SLASH + p[3])
 
+    def p_variable_snippet (self, p):
+        '''variable : SNIPPET'''
+        p[0] = ('SNIPPET', p[1])
 
     def p_action (self, p):
         '''action : NONE
@@ -870,6 +1045,40 @@ class DBParser :
     def p_regexp (self, p):
         '''regexp : REGEXP ID STRING'''
         p[0] = DBRegexp (p[2], p[3])
+
+    def p_snippet (self, p):
+        '''snippet : SNIPPET ID outputvars CODE FILEVAR
+                   | SNIPPET ID inputvars outputvars CODE FILEVAR'''
+        # note that the inputvars are optional since they might not be necessary
+        # to perform any computation
+        if len (p) == 6:
+            p[0] = DBSnippet (p[2], [], p[3], p[5])
+        else:
+            p[0] = DBSnippet (p[2], p[3], p[4], p[6])
+
+    def p_snippet_inputvars (self, p):
+        '''inputvars : input_statement
+                     | input_statement inputvars'''
+        if len (p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = [p[1]] + p[2]
+
+    def p_input_statement (self, p):
+        '''input_statement : ID EQ variable'''
+        p[0] = DBSnippetInput (p[1], p[3])
+
+    def p_snippet_outputvars (self, p):
+        '''outputvars : output_statement
+                      | output_statement outputvars'''
+        if len (p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = [p[1]] + p[2]
+
+    def p_output_statement (self, p):
+        '''output_statement : RETURN ID'''
+        p[0] = DBSnippetOutput (p[2])
 
     # error handling
     # -----------------------------------------------------------------------------

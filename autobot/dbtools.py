@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <martes, 30 septiembre 2014 15:24:32 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 04 octubre 2014 14:54:30 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -138,6 +138,8 @@ class DBSpec(object):
         self._regexpdict = {}
         self._db = []
         self._dbdict = {}
+        self._snippet = []
+        self._snippetdict = {}
         for itable in self._tables:
             if isinstance (itable, dbparser.DBRegexp):
                 self._regexp.append (itable)
@@ -145,6 +147,9 @@ class DBSpec(object):
             elif isinstance (itable, dbparser.DBTable):
                 self._db.append (itable)
                 self._dbdict [itable.get_name ()] = itable
+            elif isinstance (itable, dbparser.DBSnippet):
+                self._snippet.append (itable)
+                self._snippetdict [itable.get_name ()] = itable
             else:
                 raise NotImplementedError ('Unknown table type')
 
@@ -190,15 +195,20 @@ class DBSpec(object):
         Informal string of this instance
         """
 
-        # this instance might containt database table and/or regexp
-        # specifications. Other cases should raise a not implemented error
-        stregexp = str ()
+        # this instance might containt database table and/or snippets and/or
+        # regexp specifications. Other cases should raise a not implemented
+        # error
         stdb = str ()
+        stregexp = str ()
+        stsnippet = str ()
 
-        # database tables and regexps are processed separately to be shown
-        # altogether in different groups: first, regexp; next, database tables
+        # database tables, regexps and snippets are processed separately to be
+        # shown altogether in different groups: first, snippets, second, regexp;
+        # next, database tables
         for itable in self._tables:
-            if isinstance (itable, dbparser.DBRegexp):
+            if isinstance (itable, dbparser.DBSnippet):
+                stsnippet += str (itable) + '\n'
+            elif isinstance (itable, dbparser.DBRegexp):
                 stregexp += str (itable) + '\n'
             elif isinstance (itable, dbparser.DBTable):
                 stdb += str (itable) + '\n'
@@ -210,9 +220,27 @@ class DBSpec(object):
         # part (this is just to prevent that two newlines are shown when
         # printing the contents of this session)
         if (stregexp):
-            return '\n' + stregexp + '\n' + stdb
+            return '\n' + stsnippet + '\n' + stregexp + '\n' + stdb
 
-        return '\n' + stdb
+        return '\n' + stsnippet + '\n' + stdb
+
+
+    def get_db (self, name=None):
+        """
+        return a list with all database tables found in this instance. Every
+        database table is an instance of dbparser.DBTable
+
+        If a specific name is given then the database table with that name is
+        returned or None if it does not exist
+        """
+
+        if not name:
+            return self._db
+        else:
+            if name not in self._dbdict:
+                return None
+            else:
+                return self._dbdict [name]
 
 
     def get_regexp (self, name=None):
@@ -233,22 +261,22 @@ class DBSpec(object):
                 return self._regexpdict [name]
 
 
-    def get_db (self, name=None):
+    def get_snippet (self, name=None):
         """
-        return a list with all database tables found in this instance. Every
-        database table is an instance of dbparser.DBTable
+        return a list with all snippets found in this instance. Every snippet is
+        an instance of dbparser.DBSnippet.
 
-        If a specific name is given then the database table with that name is
-        returned or None if it does not exist
+        If a specific name is given then the snippet with that name is returned
+        or None if it does not exist
         """
 
         if not name:
-            return self._db
+            return self._snippet
         else:
-            if name not in self._dbdict:
+            if name not in self._snippetdict:
                 return None
             else:
-                return self._dbdict [name]
+                return self._snippetdict [name]
 
 
     def isregexp (self, name):
