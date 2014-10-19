@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <jueves, 09 octubre 2014 11:38:07 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 01:23:27 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -275,7 +275,7 @@ class BotParser (object):
   * Database             : %s
 
   * Directory            : %s
- -----------------------------------------------------------------------------""" % (__revision__[1:-1], __date__[1:-2], __version__, txtfile, dbfile, directory))
+ -----------------------------------------------------------------------------""" % (__revision__[1:-1], __date__[1:-1], __version__, txtfile, dbfile, directory))
 
 
     # -----------------------------------------------------------------------------
@@ -324,165 +324,6 @@ class BotParser (object):
 
 
     # -----------------------------------------------------------------------------
-    # parse_all_files
-    #
-    # starts the automated parsing of all text files given in txtfiles. All
-    # these files are copied to the results directory given in resultsdir.
-    #
-    # if prologue/epilogue actions are specified then its __call__ method is
-    # invoked before/after parsing every text file.
-    # -----------------------------------------------------------------------------
-    def parse_all_files (self, txtfiles, resultsdir):
-        """
-        starts the automated parsing of all text files given in txtfiles. All
-        these files are copied to the results directory given in resultsdir.
-
-        if prologue/epilogue actions are specified then its __call__ method is
-        invoked before/after parsing every text file.
-        """
-
-        # before parsing all the text files, initialize the current file to the
-        # empty string. This will enforce the creation of a first database that
-        # will contain the results of the parsing
-        currdbname = str ()
-
-        # processing files
-        # -------------------------------------------------------------------------
-        # keep track of the file id as an integer
-        idx = 0
-
-        # now, process every text file
-        for itxtfile in txtfiles:
-
-            # namespaces
-            # -------------------------------------------------------------------------
-            # initialize the contents of the main namespace, data, regexp
-            # and snippet namespaces
-            BotParser._namespace.clear ()
-            BotParser._data.clear ()
-            BotParser._regexp.clear ()
-            BotParser._snippet.clear ()
-
-            # initialize the main namespace with the parameters passed to the
-            # main script (ie., the parsebot), mainvars. These are given in
-            # self._argnamespace. Since the argparser automatically casts type
-            # according to their type field, they are all converted into strings
-            # here to allow a uniform treatment
-            if self._argnamespace:
-                for index, value in self._argnamespace.__dict__.items ():
-                    BotParser._namespace [index] = str (value)
-
-            # initialize the main namespace with the value of some sysvar
-            # attributes:
-            #
-            #   index     - index of this file as an integer in the range [0, ...)
-            #   name      - name of this text file
-            #   date      - current date
-            #   time      - current time
-            #   starttime - time the whole parsing started
-            #   currtime  - current time
-            #
-            # Note that other fields are added below to register the right
-            # timings when every parsing started/ended
-            BotParser._namespace.index = idx
-            BotParser._namespace.name  = itxtfile
-            BotParser._namespace.date  = datetime.datetime.now ().strftime ("%Y-%m-%d")
-            BotParser._namespace.time  = datetime.datetime.now ().strftime ("%H:%M:%S")
-            BotParser._namespace.starttime = self._starttime
-            BotParser._namespace.currtime  = datetime.datetime.now ()
-
-            self._logger.info (" Starting the automated parsing of file '%s'" % itxtfile)
-
-            # parsing
-            # -------------------------------------------------------------------------
-            # execute the prologue in case any was given (note that the run time
-            # is computed right now) and register also the exact time when the
-            # processing of this file started (including the prologue)
-            BotParser._namespace.startruntime = time.time ()
-            if self._prologue:
-                action = self._prologue (textfile=itxtfile,
-                                         dbfile=self._dbfile,
-                                         directory=self._directory,
-                                         startruntime=BotParser._namespace.startruntime,
-                                         namespace=BotParser._namespace,
-                                         user=BotParser._user)
-                action (self._logger)
-
-            # now, invoke the automated parsing of this particular text file
-            self.parse_single_file (itxtfile, resultsdir)
-
-            # now, before processing the next text file, invoke the epilogue in
-            # case any was given
-            if self._epilogue:
-                action = self._epilogue (textfile=itxtfile,
-                                         dbfile=self._dbfile,
-                                         directory=self._directory,
-                                         startruntime = BotParser._namespace.startruntime,
-                                         endruntime = time.time (),
-                                         namespace=BotParser._namespace,
-                                         data=BotParser._data,
-                                         user=BotParser._user)
-                action (self._logger)
-
-            # and register the exact time when the whole parsing of this file
-            # ended including processing the epilogue
-            BotParser._namespace.endruntime = time.time ()
-
-            # filevars
-            # -------------------------------------------------------------------------
-            # also, populate the data namespace with the contents of
-            # files (filevars) as specified in the database
-            # specification file
-            for itable in [jtable for jtable in self._dbspec.get_db ()]:
-                for icolumn in [jcolumn for jcolumn in itable if jcolumn.get_vartype () == 'FILEVAR']:
-                    with open (icolumn.get_variable (), 'r') as stream:
-                        BotParser._data [icolumn.get_variable ()] = stream.read ()
-
-            # database
-            # -------------------------------------------------------------------------
-            # now, write data to the database. Note that we do this after
-            # invoking the epilogue so that the user gets a finer control on the
-            # data that is about to be inserted into the database
-
-            # First. compute the name of the database
-            dbname = self._sub (self._dbname)
-
-            # create a new SQLITE3 database connection
-            dbhandler = sqltools.dbaccess (dbname)
-
-            # in case we get a different database
-            if dbname != currdbname:
-
-                # create the tables
-                for itable in self._dbspec.get_db ():
-                    dbhandler.create_table (itable)
-
-                # and remember the name of the current database
-                currdbname = dbname
-
-            # now, populate the datatase
-            self._logger.debug (" Inserting data into '%s'" % currdbname)
-            for itable in self._dbspec.get_db ():
-                self._logger.debug (" Populating '%s'" % itable.get_name ())
-                dbhandler.insert_data (itable,
-                                       itable.poll (dbspec = self._dbspec,
-                                                    namespace = BotParser._namespace,
-                                                    data = BotParser._data,
-                                                    param=None,
-                                                    regexp = BotParser._regexp,
-                                                    snippet = BotParser._snippet,
-                                                    user = BotParser._user,
-                                                    logger = self._logger,
-                                                    logfilter = self._logfilter))
-
-            # and close the database
-            dbhandler.close ()
-
-            # update the index
-            idx += 1
-
-
-    # -----------------------------------------------------------------------------
     # eval_regexp
     #
     # compute the value of the regexp defined in the specified struct with the
@@ -499,6 +340,8 @@ class BotParser (object):
         snippet, ie., the only places where regexps can be used.  As a result,
         it writes in the regexp namespace its final value
         """
+
+        self._logger.critical (" Invoking eval_regexp!")
 
         # create a dbexpression for this particular definition
         expression = dbexpression.DBExpression (struct.get_vartype (),
@@ -523,13 +366,14 @@ class BotParser (object):
             # take the first context which is always of the form
             # <prefix>.<suffix>. 'index' is intentionally used to let Python
             # raise an exception in case a dot is missing
-            prefix = expression.get_context()[0][0:string.index (expression.get_context () [0], '.')]
+            prefix = expression.get_context()[0][0:string.index (expression.get_context () [0],
+                                                                 '.')]
 
         # in case this prefix exists as the name of a regular expression then go
         # ahead with it.
         #
         # Strange, huh? the reason is that a prefix might result from the first
-        # part of a contenxt and that's not necessarily a regexp!!
+        # part of a context and that's not necessarily a regexp!!
         iregexp = self._dbspec.get_regexp (prefix)
         if not iregexp:
             return
@@ -618,73 +462,90 @@ class BotParser (object):
                 os.remove (filename)
 
 
+        # default regexp
+        # ---------------------------------------------------------------------
+        # read all contents of the input file - yep, this might take a lot
+        # of memory but the alternative, to process each line separately
+        # would not allow to match various lines simultaneously
+
         # open the file in read mode
         with open (txtfile, "r") as stream:
 
-            # default regexp
-            # ---------------------------------------------------------------------
-            # read all contents of the input file - yep, this might take a lot
-            # of memory but the alternative, to process each line separately
-            # would not allow to match various lines simultaneously
-            contents = stream.read ()
-
-            # for all matches of this regexp in the current text file
-            for imatch in re.finditer (BotParser.statregexp, contents):
+            # for all matches of the default regexp in the current text file
+            for imatch in re.finditer (BotParser.statregexp, stream.read ()):
 
                 # and store every match in the data namespace
                 BotParser._data [imatch.group ('varname').rstrip (' ')] = \
                   imatch.group ('value')
 
-            # regexps in data tables
+        # for all database tables (ie, implicitly ignoring snippets) within the
+        # current database specification 
+        for itable in [itable for itable in self._dbspec
+                         if isinstance (itable, dbparser.DBTable)]:
+
+            # snippets
             # ---------------------------------------------------------------------
-            # eval all regular expressions appearing in any database table (so
-            # that we are implicitly skipping those that are defined but never
-            # used) that apply to the contents of this file ---again, we are
-            # implicitly skipping those that apply to other *contexts*. In case
-            # a regular expression is given with an arbitrary number of
-            # contexts, evaluate only the first one in case it is a regexp.
+            # now, for all snippets mentioned in any column of this table
+            for icolumn in [icolumn for icolumn in  itable
+                            if icolumn.get_vartype () == "SNIPPET"]:
 
-            # The regexp is fully processed so that the value of all its groups
-            # is computed
+                # create an expression with this snippet
+                expression = dbexpression.DBExpression (icolumn.get_vartype (),
+                                                        icolumn.get_variable (),
+                                                        self._logger,
+                                                        self._logfilter)
 
-            # for all database tables (ie, implicitly ignoring regexps) within
-            # the current database specification
-            for itable in [itable for itable in self._dbspec
-                           if isinstance (itable, dbparser.DBTable)]:
+                # and request its evaluation
+                expression.eval_snippet (dbspec  = self._dbspec,
+                                         sys     = BotParser._namespace,
+                                         data    = BotParser._data,
+                                         param   = None,
+                                         regexp  = BotParser._regexp,
+                                         snippet = BotParser._snippet,
+                                         user    = BotParser._user)
 
-                # now, for all regular expressions mentioned in any column of
-                # this table
-                for icolumn in [icolumn for icolumn in  itable
-                                if icolumn.get_vartype () == "REGEXP"]:
-
-                    self.eval_regexp (icolumn, contents)
-
-            # regexps in snippets
+            # regexps
             # ---------------------------------------------------------------------
-            # eval also all regular expressions that appear as input variables
-            # of the snippets defined in the database specification file. Note
-            # that the value of this regexps might be also dependent upon the
-            # contents of the current file
-            for isnippet in [itable for itable in self._dbspec
-                             if isinstance (itable, dbparser.DBSnippet)]:
+            # also, for all regular expressions that start with either a snippet
+            # or a file
+            for icolumn in [icolumn for icolumn in itable
+                            if icolumn.get_vartype () == "REGEXP"]:
 
-                # now, for all input variables mentioned in this snippet
-                for ivariable in [ivariable for ivariable in isnippet.get_inputvars ()
-                                  if ivariable.get_vartype () == "REGEXP"]:
+                # create an expression with this regular expression
+                expression = dbexpression.DBExpression (icolumn.get_vartype (),
+                                                        icolumn.get_variable (),
+                                                        self._logger,
+                                                        self._logfilter)
 
-                    self.eval_regexp (ivariable, contents)
+                # retrieve the first context
+                head = expression.get_context () [0]
 
+                # and retrieve its prefix and variable name
+                (prefix, variable) = string.split (head, '.')
 
-        expression = dbexpression.DBExpression ('SNIPPET', 'time.actualtime',
-                                                self._logger, self._logfilter)
+                # verify whether this is a snippet ...
+                if self._dbspec.get_snippet (prefix):
 
-        expression.eval_snippet (self._dbspec,
-                                 BotParser._namespace,
-                                 BotParser._data,
-                                 None,
-                                 BotParser._regexp,
-                                 BotParser._snippet,
-                                 BotParser._user)
+                    # if so, create a dbexpression and evaluate it updating the
+                    # snippet namespace
+                    head = dbexpression.DBExpression ('SNIPPET',
+                                                      head,
+                                                      self._logger,
+                                                      self._logfilter)
+
+                    head.eval_snippet (dbspec  = self._dbspec,
+                                       sys     = BotParser._namespace,
+                                       data    = BotParser._data,
+                                       param   = None,
+                                       regexp  = BotParser._regexp,
+                                       snippet = BotParser._snippet,
+                                       user    = BotParser._user)
+
+                # ... or a file variable
+                elif string.upper (prefix) == 'FILE':
+                    self._logger.debug (" Copying the contents of file '%s' to the data namespace" % variable)
+                    with open (variable, 'r') as stream:
+                        BotParser._data [variable] = stream.read ()
 
         # results/
         # -------------------------------------------------------------------------
@@ -706,6 +567,182 @@ class BotParser (object):
         # otherwise, just perform a backup copy of the parsed file
         else:
             shutil.copy (txtfile, os.path.join (resultsdir, self._sub (self._output)))
+
+
+    # -----------------------------------------------------------------------------
+    # parse_all_files
+    #
+    # starts the automated parsing of all text files given in txtfiles. All
+    # these files are copied to the results directory given in resultsdir.
+    #
+    # if prologue/epilogue actions are specified then its __call__ method is
+    # invoked before/after parsing every text file.
+    # -----------------------------------------------------------------------------
+    def parse_all_files (self, txtfiles, resultsdir):
+        """
+        starts the automated parsing of all text files given in txtfiles. All
+        these files are copied to the results directory given in resultsdir.
+
+        if prologue/epilogue actions are specified then its __call__ method is
+        invoked before/after parsing every text file.
+        """
+
+        # before parsing all the text files, initialize the current file to the
+        # empty string. This will enforce the creation of a first database that
+        # will contain the results of the parsing
+        currdbname = str ()
+
+        # processing files
+        # -------------------------------------------------------------------------
+        # keep track of the file id as an integer
+        idx = 0
+
+        # now, process every text file
+        for itxtfile in txtfiles:
+
+            # namespaces
+            # -------------------------------------------------------------------------
+            # initialize the contents of the main namespace, data, regexp
+            # and snippet namespaces
+            BotParser._namespace.clear ()
+            BotParser._data.clear ()
+            BotParser._regexp.clear ()
+            BotParser._snippet.clear ()
+
+            # - data namespace
+            # -------------------------------------------------------------------------
+            # populate the data namespace with the contents of files (filevars)
+            # as specified in the database specification file
+            for itable in [jtable for jtable in self._dbspec.get_db ()]:
+                for icolumn in [jcolumn for jcolumn in itable if jcolumn.get_vartype () == 'FILE']:
+                    with open (icolumn.get_variable (), 'r') as stream:
+
+                        self._logger.debug (" Copying the contents of file '%s' to the data namespace" % icolumn.get_variable ())
+                        BotParser._data [icolumn.get_variable ()] = stream.read ()
+
+            # - main (sys) namespace
+            # -------------------------------------------------------------------------
+            # initialize the main namespace with the parameters passed to the
+            # main script (ie., the parsebot), mainvars. These are given in
+            # self._argnamespace. Since the argparser automatically casts type
+            # according to their type field, they are all converted into strings
+            # here to allow a uniform treatment
+            if self._argnamespace:
+                for index, value in self._argnamespace.__dict__.items ():
+                    BotParser._namespace [index] = str (value)
+
+            # also, with the contents of this file
+            with open (itxtfile, "r") as stream:
+                BotParser._namespace.stdout = stream.read ()
+            stream.close ()
+
+            # and also with the following variables
+            #
+            #   index         - index of this file as an integer in the range [0, ...)
+            #   name          - name of this text file
+            #   date          - current date
+            #   time          - current time
+            #   startdatetime - when the whole parsing started in date/time format
+            #   startruntime  - when the whole parsing started in secs from Epoch
+            #
+            # Note that other fields are added below to register the right
+            # timings when every parsing started/ended
+            BotParser._namespace.index            = idx
+            BotParser._namespace.name             = itxtfile
+            BotParser._namespace.date             = datetime.datetime.now ().strftime ("%Y-%m-%d")
+            BotParser._namespace.time             = datetime.datetime.now ().strftime ("%H:%M:%S")
+            BotParser._namespace.startfullparsedatetime = datetime.datetime.now ()
+            BotParser._namespace.startfullparsetime     = time.time ()
+
+            self._logger.info (" Starting the automated parsing of file '%s'" % itxtfile)
+
+            # parsing
+            # -------------------------------------------------------------------------
+            # execute the prologue in case any was given (note that the run time
+            # is computed right now) and register also the exact time when the
+            # processing of this file started (including the prologue)
+            if self._prologue:
+                action = self._prologue (textfile=itxtfile,
+                                         dbfile=self._dbfile,
+                                         directory=self._directory,
+                                         startfullparsetime=BotParser._namespace.startfullparsetime,
+                                         namespace=BotParser._namespace,
+                                         data=BotParser._data,
+                                         user=BotParser._user)
+                action (self._logger)
+
+            # now, invoke the automated parsing of this particular text file
+            # after recording the exact timings before and after (ie, this do
+            # not take the time of the prologue/epilogue into account)
+            BotParser._namespace.startparsedatetime = datetime.datetime.now ()
+            BotParser._namespace.startparsetime = time.time ()
+
+            self.parse_single_file (itxtfile, resultsdir)
+
+            BotParser._namespace.endparsedatetime = datetime.datetime.now ()
+            BotParser._namespace.endparsetime = time.time ()
+
+            # now, before processing the next text file, invoke the epilogue in
+            # case any was given
+            if self._epilogue:
+                action = self._epilogue (textfile=itxtfile,
+                                         dbfile=self._dbfile,
+                                         directory=self._directory,
+                                         startparsetime = BotParser._namespace.startparsetime,
+                                         endparsetime = BotParser._namespace.endparsetime,
+                                         namespace=BotParser._namespace,
+                                         data=BotParser._data,
+                                         user=BotParser._user)
+                action (self._logger)
+
+            # and register the exact time when the whole parsing of this file
+            # ended including processing the epilogue both in seconds from Epoc
+            # (endruntime) and in date/time format (enddatetime)
+            BotParser._namespace.endfullparsetime = time.time ()
+            BotParser._namespace.endfullparsedatetime = datetime.datetime.now ()
+
+            # database
+            # -------------------------------------------------------------------------
+            # now, write data to the database. Note that we do this after
+            # invoking the epilogue so that the user gets a finer control on the
+            # data that is about to be inserted into the database
+
+            # First. compute the name of the database
+            dbname = self._sub (self._dbname)
+
+            # create a new SQLITE3 database connection
+            dbhandler = sqltools.dbaccess (dbname)
+
+            # in case we get a different database
+            if dbname != currdbname:
+
+                # create the tables
+                for itable in self._dbspec.get_db ():
+                    dbhandler.create_table (itable)
+
+                # and remember the name of the current database
+                currdbname = dbname
+
+            # now, populate the datatase
+            self._logger.debug (" Inserting data into '%s'" % currdbname)
+            for itable in self._dbspec.get_db ():
+                self._logger.debug (" Populating '%s'" % itable.get_name ())
+                dbhandler.insert_data (itable,
+                                       itable.poll (dbspec    = self._dbspec,
+                                                    namespace = BotParser._namespace,
+                                                    data      = BotParser._data,
+                                                    param     = None,
+                                                    regexp    = BotParser._regexp,
+                                                    snippet   = BotParser._snippet,
+                                                    user      = BotParser._user,
+                                                    logger    = self._logger,
+                                                    logfilter = self._logfilter))
+
+            # and close the database
+            dbhandler.close ()
+
+            # update the index
+            idx += 1
 
 
     # -----------------------------------------------------------------------------

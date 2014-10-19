@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <martes, 07 octubre 2014 07:51:17 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 00:48:25 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -374,10 +374,11 @@ class DBTable:
         """
         returns a tuple of values according to the definition of columns of this
         table and the values specified in the given namespaces: namespace, data,
-        user, param and regexp.
+        param, regexp, snippet and user
 
         In case the value requested for a particular column is not found, the
-        specified action is executed.
+        specified action is executed. An action consists of either doing
+        nothing, raising a Warning, an Error or returning a default value
 
         columns might evaluate to either scalars (computed by default or
         explicitly) or lists (computed explicitly). In case at least one column
@@ -446,7 +447,13 @@ class DBTable:
                                                     logfilter)
 
             # and evaluate it
-            result = expression.eval (dbspec, namespace, data, param, regexp, snippet, user)
+            result = expression.eval (dbspec  = dbspec,
+                                      sys     = namespace,
+                                      data    = data,
+                                      param   = param,
+                                      regexp  = regexp,
+                                      snippet = snippet,
+                                      user    = user)
 
             # in case that the evaluation of this column resolved to nothing
             if result == None:
@@ -1108,15 +1115,15 @@ class DBParser :
 
     def p_variable_file (self, p):
         '''variable : FILEVAR'''
-        p[0] = ('FILEVAR', p[1])
+        p[0] = ('FILE', p[1])
 
     def p_variable_main (self, p):
         '''variable : MAINVAR'''
-        p[0] = ('MAINVAR', p[1])
+        p[0] = ('MAIN', p[1])
 
     def p_variable_user (self, p):
         '''variable : USERVAR'''
-        p[0] = ('USERVAR', p[1])
+        p[0] = ('USER', p[1])
 
     def p_variable_qualified (self, p):
         '''variable : QUALIFIEDVAR

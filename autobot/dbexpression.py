@@ -2,13 +2,12 @@
 # -*- coding: utf-8 -*-
 #
 # dbexpression.py
-# Description: DBExpression implements the main services for
-#              evaluating database expressions with data in different
-#              namespaces
+# Description: DBExpression implements the main services for evaluating database
+#              expressions with data in different namespaces
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Sep 28 00:22:50 2014 Carlos Linares Lopez>
-# Last update <domingo, 28 septiembre 2014 00:23:13 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 00:45:04 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -44,11 +43,21 @@ import dbparser                         # t_SLASH
 # -----------------------------------------------------------------------------
 # DBExpression
 #
-# Definition of a database expression
+# Definition of a database expression.
+#
+# Database expression provide facilities for updating namespaces with the
+# results of some particular expressions (such as snippets) and also to resolve
+# the value of an expression (such as a regexp) provided that the namespaces
+# have the values of all the involved variables
 # -----------------------------------------------------------------------------
 class DBExpression:
     """
-    Definition of a database expression
+    Definition of a database expression.
+
+    Database expression provide facilities for updating namespaces with the
+    results of some particular expressions (such as snippets) and also to
+    resolve the value of an expression (such as a regexp) provided that the
+    namespaces have the values of all the involved variables
     """
 
     def __init__ (self, exptype, expression, logger, logfilter):
@@ -251,13 +260,14 @@ class DBExpression:
         values. In case that the evaluation resolves to nothing eval returns
         None.
 
-        eval also welcomes regular expressions with an arbitrary number of
-        contexts. The final value in this case is computed as the match of every
-        regexp to the result of the previous evaluation. All contexts shall be
-        regular expressions, but the first one which can be of any type.
+        eval also welcomes regular expressions which consist of an arbitrary
+        number of contexts. The final value in this case is computed as the
+        match of every regexp to the result of the previous evaluation. All
+        contexts shall be regular expressions, but the first one which can be of
+        any type but a regexp!
 
-        eval might raise warnings and errors. Therefore, it receives a
-        logger to show messages
+        eval might raise warnings and errors. Therefore, it receives a logger to
+        show messages
         """
 
         def _get_namespace (atype = None):
@@ -311,24 +321,25 @@ class DBExpression:
             arbitrary number of them
             """
 
-            # IMPORTANT: expressions should be the variable name (without any
-            # reference to the namespace that contains them) in case they are
+            # -----------------------------------------------------------------
+            # IMPORTANT: an expression should be the variable name (without any
+            # reference to the namespace that contains it) in case they are
             # neither regexps nor snippets. Otherwise, they are qualified with
             # the name of the regexp/snippet and then the group name/output
             # variable separated by a dot.
+            # -----------------------------------------------------------------
 
             # in case this is a regexp/snippet, then we have to compute the
-            # projection of the regexp over the given variable
+            # projection over the given variable
             if self._type == "REGEXP" or self._type == "SNIPPET":
 
                 # compute the prefix (either a regexp-name or a snippet-name)
                 # and variable name of this expression
                 (prefix, variable) = string.split (expression, '.')
 
-                # even if this instance is either a regexp or a snippet, it
-                # might be part of a regexp with a context. Because the first
-                # variable might not be a regexp, it is mandatory now to check
-                # the real type of this argument
+                # If this instance is a regexp, maybe this refers to the first
+                # context, which is not a regexp on its own. Thus, it is
+                # mandatory now to check the real type of this argument
                 nspace = _get_namespace (prefix)
 
                 # in case this is proven to be either a regular expression or a
@@ -344,7 +355,7 @@ class DBExpression:
                     elif dbspec.get_snippet (prefix):
                         result = snippet.projection (prefix, variable)
                     else:
-                        self._logger.critical (" The given expression is neither a 'REGEXP' nor a 'SNIPPET'" % expression)
+                        self._logger.critical (" The expression '%s' is neither a 'REGEXP' nor a 'SNIPPET'" % expression)
                         raise ValueError
 
                     # the result of a projection is a list with a tuple that
@@ -412,7 +423,7 @@ class DBExpression:
             # an ancilliary variable
             currvalue = _eval_without_context (self._contexts [0])
 
-            # process all contexts one after another but the first one ---this
+            # process all contexts one after another but the first one ---these
             # shall be all regular expressions!
             for icontext in self._contexts[1:]:
 
@@ -442,7 +453,7 @@ class DBExpression:
 
                 else:
 
-                    # in case it is a list, then process each separately,
+                    # in case it is a list, then process each item separately,
                     # getting rid of all empty lists
                     newvalue = list ()
                     for ivalue in currvalue:

@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 19 16:30:12 2014 Carlos Linares Lopez>
-# Last update <viernes, 26 septiembre 2014 18:13:21 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 00:16:15 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -164,7 +164,7 @@ class Prologue (BotAction):
         """
         Method invoked before parsing every text file.. It automatically
         inherits the values of the following attributes: text file, dbfile,
-        directory, startruntime, the sys namespace and the user namespace
+        directory, startfullparsetime, the sys namespace, the data namespace and the user namespace
 
         The Prologue is in charge of providing additional information in case
         the debug information level is requested
@@ -174,18 +174,22 @@ class Prologue (BotAction):
         childlogger.addFilter (logutils.ContextFilter ())
         childlogger.debug ("""
 %s
- * text file     : %s
- * dbfile        : %s
- * directory     : %s
- * startruntiime : %s
- * namespace     :
+ * text file           : %s
+ * dbfile              : %s
+ * directory           : %s
+ * startfullparsetiime : %s
+ * namespace           :
 
 %s
 
- * user namespace :
+ * data namespace      :
 
 %s
-""" % (self.__class__.__name__, self.textfile, self.dbfile, self.directory, self.startruntime, self.namespace, self.user))
+
+ * user namespace      :
+
+%s
+""" % (self.__class__.__name__, self.textfile, self.dbfile, self.directory, self.startfullparsetime, self.namespace, self.data, self.user))
 
 
 class Epilogue (BotAction):
@@ -197,7 +201,7 @@ class Epilogue (BotAction):
         """
         Method invoked after parsing every text file. It automatically inherits
         the values of the following attributes: textfile, dbfile, direcftory,
-        startruntime, endruntime, the sys namespace, the data namespace and the
+        startparsetime, endparsetime, the sys namespace, the data namespace and the
         user namespace
 
         The Epilogue provides additional information in case the debug level is
@@ -208,12 +212,12 @@ class Epilogue (BotAction):
         childlogger.addFilter (logutils.ContextFilter ())
         childlogger.debug ("""
 %s
- * text file    : %s
- * dbfile       : %s
- * directory    : %s
- * startruntime : %s
- * endruntime   : %s
- * namespace    :
+ * text file      : %s
+ * dbfile         : %s
+ * directory      : %s
+ * startparsetime : %s
+ * endparsetime   : %s
+ * namespace      :
 
 %s
 
@@ -224,7 +228,7 @@ class Epilogue (BotAction):
  * user namespace :
 
 %s
-""" % (self.__class__.__name__, self.textfile, self.dbfile, self.directory, self.startruntime, self.endruntime, self.namespace, self.data, self.user))
+""" % (self.__class__.__name__, self.textfile, self.dbfile, self.directory, self.startparsetime, self.endparsetime, self.namespace, self.data, self.user))
 
 
 class WindUp (BotAction):
