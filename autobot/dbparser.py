@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <lunes, 06 octubre 2014 00:04:34 Carlos Linares Lopez (clinares)>
+# Last update <martes, 07 octubre 2014 07:51:17 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -69,8 +69,8 @@ class DBColumn:
 
     def __init__ (self, cidentifier, ctype, cvartype, cvariable, caction):
         """
-        creates a column identified by the identifier, type, variable
-        and action given in the arguments
+        creates a column identified by the identifier, type, variable type,
+        variable and action given in the arguments
 
         * identifier: it is a valid identifier which is represented with a
                       string that starts with a letter and can contain an
@@ -82,15 +82,15 @@ class DBColumn:
                 string). It is implemented in the grammar rule 'type'
 
         * vartype: type of variable. It provides an indication of the namespace
-                   that will hold its value. There are up to seven different
-                   vartypes: sysvar, datavar, dirvar, filevar, mainvar, param
-                   and regexp. All of them are implemented as terminal symbols
-                   of the grammar with the same name
+                   that will hold its value. There are up to eight different
+                   vartypes: sysvar, datavar, dirvar, filevar, mainvar, param,
+                   regexp and snippets. All of them are implemented as terminal
+                   symbols of the grammar with the same name
 
         * variable: internal name of the variable as it is known by autobot (for
-                    the first six types) or as it is defined in a regexp (in the
-                    last case). The internal names are computed in different
-                    ways depending upon the vartype:
+                    the first six types) or as it is defined in a regexp/snippet
+                    (in the last two cases). The internal names are computed in
+                    different ways depending upon the vartype:
 
                     vartype   variable                  examples
                     sysvar    hard-coded in autobot     cputime, vsize
@@ -100,12 +100,14 @@ class DBColumn:
                     mainvar   flags given to testbot    quiet, test, db
                     param     params given to exec      beam-width, domain
 
-                    The case of regexp is exceptional. A couple of examples
-                    follow:
+                    The case of regexps/snippets is exceptional. A couple of
+                    examples follow:
 
                     vartype   variable                  examples
                     regexp    regular expression        cost.value
                     regexp    regexp in a context       sys.name/filename.algo
+                    snippet   simple snippet            time.currtime
+                    snippet   snippet in a context      stats.average/label.name
 
                     In the first case, the user provided a regexp called 'cost'
                     with a group named 'value' and it is applied to the default
@@ -123,6 +125,11 @@ class DBColumn:
                     desired. The only constraint is that all contexts shall be
                     regexps but the first one which can be a variable of any
                     type.
+
+                    The first example of snippets shows the case where some
+                    external Python code returns the value of variable
+                    'currtime' in a snippet labeled as 'stats'. The second case
+                    is analagous to the case of regexps with contexts.
 
         * action: specifies what to do in case the variable was not found. The
                   following can be defined:
@@ -363,7 +370,7 @@ class DBTable:
         return None
 
 
-    def poll (self, dbspec, namespace, data, user, param, regexp, logger, logfilter):
+    def poll (self, dbspec, namespace, data, param, regexp, snippet, user, logger, logfilter):
         """
         returns a tuple of values according to the definition of columns of this
         table and the values specified in the given namespaces: namespace, data,
@@ -439,7 +446,7 @@ class DBTable:
                                                     logfilter)
 
             # and evaluate it
-            result = expression.eval (dbspec, namespace, data, param, regexp, user)
+            result = expression.eval (dbspec, namespace, data, param, regexp, snippet, user)
 
             # in case that the evaluation of this column resolved to nothing
             if result == None:
@@ -546,13 +553,30 @@ class DBSnippetInput:
     Definition of an individual input statement of a DBSnippet
     """
 
-    def __init__ (self, name, variable):
+    def __init__ (self, sidentifier, stype, svartype, svariable):
         """
-        attaches the given variable to the specified name
+        creates an input variable identified by the identifier, type and
+        variable type given in the arguments:
+
+        * identifier: it is a valid identifier which is represented with a
+                      string
+
+        * type: specifies the type of this input variable (integer, real or
+                string)
+
+        * vartype: type of variable. It provides an indication of the namespace
+                   that will hold its value
+
+        * variable: internal name of the variable as it is known by autobot.
+
+        These fields are also used in the definition of columns of database
+        tables. See the docstring of the __init__ method of DBColumn for more
+        information
         """
 
-        # just copy the name and the variable
-        (self._name, self._variable) = (name, variable)
+        # just copy the attributes of this instance
+        (self._identifier, self._type, self._vartype, self._variable) = \
+          (sidentifier, stype, svartype, svariable)
 
 
     def __str__ (self):
@@ -560,15 +584,31 @@ class DBSnippetInput:
         output formatting
         """
 
-        return "%s = %s" % (self._name, self._variable)
+        return "[type: %s] %s = [vartype: %s] [variable: %s]" % (self._type, self._identifier, self._vartype, self._variable)
 
 
-    def get_name (self):
+    def get_identifier (self):
         """
-        return the name of this input statement
+        return the identifier of this input statement
         """
 
-        return self._name
+        return self._identifier
+
+
+    def get_type (self):
+        """
+        return the type of this input statement
+        """
+
+        return self._type
+
+
+    def get_vartype (self):
+        """
+        return the type of the variable of this input statement
+        """
+
+        return self._vartype
 
 
     def get_variable (self):
@@ -589,13 +629,23 @@ class DBSnippetOutput:
     Definition of an individual output statement of a DBSnippet
     """
 
-    def __init__ (self, name):
+    def __init__ (self, identifier, keyword):
         """
-        creates an output variable with the given name
+        creates an output variable with the given name and keyword:
+
+        * identifier: it is a valid string designating the name of the output
+                      variable
+
+        * keyword: either STATIC or VOLATILE. In the first case, the value of
+                   the variable is the same for the same values of the input
+                   variables (eg., computing the average over a list of
+                   numbers); in the second case, the value of the output
+                   variable might changd in every evaluation for the same values
+                   of the input variables ---e.g., computing the current time
         """
 
         # just copy the name and the variable
-        self._name = name
+        (self._identifier, self._keyword) = (identifier, keyword)
 
 
     def __str__ (self):
@@ -603,15 +653,23 @@ class DBSnippetOutput:
         output formatting
         """
 
-        return "return %s" % self._name
+        return "return %s [keyword: %s]" % (self._identifier, self._keyword)
 
 
-    def get_name (self):
+    def get_identifier (self):
         """
-        return the name of this output variable
+        return the identifier of this output variable
         """
 
-        return self._name
+        return self._identifier
+
+
+    def get_keyword (self):
+        """
+        return the keyword of this output variable
+        """
+
+        return self._keyword
 
 
 # -----------------------------------------------------------------------------
@@ -656,7 +714,7 @@ class DBSnippet:
             output += '\t' + ivar.__str__ () + '\n'
         for ivar in self._outputvars:
             output += '\t' + ivar.__str__ () + '\n'
-        output += "\tcode: " + self._filecode
+        output += "\teval " + self._filecode
 
         return output
 
@@ -682,7 +740,7 @@ class DBSnippet:
         return the outputvars of this snippet
         """
 
-        return self._inputvars
+        return self._outputvars
 
 
     def get_filecode (self):
@@ -709,8 +767,10 @@ class DBParser :
     reserved_words = {
         'regexp'    : 'REGEXP',
         'snippet'   : 'SNIPPET',
-        'code'      : 'CODE',
+        'static'    : 'STATIC',
+        'volatile'  : 'VOLATILE',
         'return'    : 'RETURN',
+        'eval'      : 'EVAL',
         'integer'   : 'INTEGER',
         'real'      : 'REAL',
         'text'      : 'TEXT',
@@ -955,8 +1015,8 @@ class DBParser :
     # definition of snippets
     # -----------------------------------------------------------------------------
     def p_snippet (self, p):
-        '''snippet : SNIPPET ID outputvars CODE FILEVAR
-                   | SNIPPET ID inputvars outputvars CODE FILEVAR'''
+        '''snippet : SNIPPET ID outputvars EVAL FILEVAR
+                   | SNIPPET ID inputvars outputvars EVAL FILEVAR'''
         # note that the inputvars are optional since they might not be necessary
         # to perform any computation
         if len (p) == 6:
@@ -976,8 +1036,8 @@ class DBParser :
             p[0] = [p[1]] + p[2]
 
     def p_input_statement (self, p):
-        '''input_statement : ID EQ variable'''
-        p[0] = DBSnippetInput (p[1], p[3])
+        '''input_statement : type ID EQ variable'''
+        p[0] = DBSnippetInput (p[2], p[1], p[4][0], p[4][1])
 
     def p_snippet_outputvars (self, p):
         '''outputvars : output_statement
@@ -988,8 +1048,19 @@ class DBParser :
             p[0] = [p[1]] + p[2]
 
     def p_output_statement (self, p):
-        '''output_statement : RETURN ID'''
-        p[0] = DBSnippetOutput (p[2])
+        '''output_statement : RETURN ID
+                            | RETURN keyword ID'''
+        # keywords are used to qualify the output variable: either static or
+        # volatile. By default, they are static
+        if len (p) == 3:
+            p[0] = DBSnippetOutput (p[2], 'static')
+        else:
+            p[0] = DBSnippetOutput (p[3], p[2])
+
+    def p_output_statement_keyword (self, p):
+        '''keyword : STATIC
+                   | VOLATILE'''
+        p[0] = p[1]
 
     # definition of data tables
     # -----------------------------------------------------------------------------

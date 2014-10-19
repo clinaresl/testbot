@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <sábado, 04 octubre 2014 14:54:30 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 06 octubre 2014 03:05:16 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -220,7 +220,7 @@ class DBSpec(object):
         # part (this is just to prevent that two newlines are shown when
         # printing the contents of this session)
         if (stregexp):
-            return '\n' + stsnippet + '\n' + stregexp + '\n' + stdb
+            return '\n' + stregexp + '\n' + stsnippet + '\n' + stdb
 
         return '\n' + stsnippet + '\n' + stdb
 

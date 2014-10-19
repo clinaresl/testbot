@@ -65,7 +65,8 @@ class DBExpression:
         self._logger.addFilter (logfilter)
 
         # copy the expression (and its type) given to this instance
-        self._type, self._expression = (exptype, expression)
+        self._type, self._expression, self._logfilter = \
+          (exptype, expression, logfilter)
 
         # Do this expression contain a context? If so, process them in a list
         if string.count (expression, dbparser.DBParser.t_SLASH) > 0:
@@ -109,26 +110,139 @@ class DBExpression:
         return self._contexts
 
 
-    def eval (self, dbspec, sys, data, param, regexp, user):
+    def eval_snippet (self, dbspec, sys, data, param, regexp, snippet, user):
+        """
+        evaluates the expression stored in this instance which is certainly
+        known to be a snippet.
+
+        The evaluation of a snippet goes through the following steps:
+
+        1. It first initializes a dictionary of globals with the values of all
+           input variables specified in the snippet. Importantly, the
+           initialization includes a casting operation to types explicitly
+           declared by the user
+
+        2. It then compiles the code specified in the snippet and evaluates the
+           resulting object.
+
+        3. It finally updates the snippet namespace with the information of the
+           output variables specified in the definition of the snippet
+
+        Thus, this method actually modifies the snippet namespace whereas it
+        uses all the other namespaces for retrieving data
+        """
+
+        def _cast_value (value, itype):
+            """
+            converts the given value to the specified type
+            """
+
+            if itype == "text": value = str (value)
+            elif itype == "integer": value = int (value)
+            elif itype == "real": value = float (value)
+            else:
+                self._logger.error (" Unknown type '%s'" % itype)
+                raise TypeError
+
+            return value
+
+
+        # Get information about the snippet whose name is specified in the
+        # expression under evaluation
+        (prefix, variable) = string.split (self._expression, '.')
+        isnippet = dbspec.get_snippet (prefix)
+
+        # Step #1
+        # ---------------------------------------------------------------------
+        # first step, initialize a dictionary with the values of all the input
+        # variables casted to their respective types as specified by the user
+        dglobals = {}
+
+        # for every input variable, compute its value and update the dictionary
+        # of globals
+        for ivariable in isnippet.get_inputvars ():
+
+            # simply create a dbexpression and requests its evaluation
+            result = DBExpression (ivariable.get_vartype (),
+                                   ivariable.get_variable (),
+                                   self._logger, self._logfilter).eval (dbspec,
+                                                                        sys,
+                                                                        data,
+                                                                        param,
+                                                                        regexp,
+                                                                        snippet,
+                                                                        user)
+
+            # cast this value to its corresponding type as specified by the
+            # user. Two different cases are allowed: either the input variable
+            # is a list or it is a scalar value. In the first case, all items
+            # are casted, in the second one just the scalar is casted to the
+            # desiredy type
+            if isinstance (result, list):
+                result = map (lambda x:_cast_value (x, ivariable.get_type ()),
+                              result)
+            else:
+                result = _cast_value (result, ivariable.get_type ())
+
+            # and now add this variable to the dictionary of globals
+            dglobals [ivariable.get_identifier ()] = result
+
+        # Step #2
+        # ---------------------------------------------------------------------
+        # compile the python file and execute it
+        with open (isnippet.get_filecode ()) as stream:
+
+            contents = stream.read ()
+            fobject = compile (contents, isnippet.get_filecode (), 'exec')
+
+            # and now evaluate its contants using the dictionary of globals
+            # computed in the previous step
+            eval (fobject, dglobals)
+
+        # Step #3
+        # ---------------------------------------------------------------------
+        # retrieve data from the globals dictionary and update the snippet
+        # namespace accordingly
+
+        # Just write the data of all the output variables in a multi-key
+        # attribute so that the same names can be used in output-variables of
+        # different snippets (which are then distinguished by their
+        # name). Compute the keys and values as the output variable names and
+        # values returned by the evaluation of the snippet
+        keys = tuple ([jvariable.get_identifier ()
+                       for jvariable in isnippet.get_outputvars ()])
+        values = [dglobals [jvariable.get_identifier ()]
+                  for jvariable in isnippet.get_outputvars ()]
+
+        # Now, declare this snippet as a multi-key attribute whose keys are the
+        # output variables
+        snippet.setkeynames (prefix, *keys)
+        snippet.setattr (prefix,
+                         key = dict (zip (keys, keys)),
+                         value = [tuple (values)])
+
+
+    def eval (self, dbspec, sys, data, param, regexp, snippet, user):
         """
         eval returns the evaluation of the expression stored in this
         instance. The evaluation is resolved with information of the regular
-        expressions stored in the database specification and data in the
-        different namespaces given in the arguments solely.
+        expressions stored in the database specification, output variables of
+        the snippets and data in the different namespaces given in the arguments.
 
-        'sys', 'data', 'param', 'regexp' and 'user' are namespaces whose
-        description is given in the bot that uses dbexpressions. Currently, eval
-        maps different prefixes given to the expression to the different
-        namespaces as follows:
+        'sys', 'data', 'param', 'regexp', 'snippet' and 'user' are namespaces
+        whose description is given in the bot that uses
+        dbexpressions. Currently, eval maps different prefixes given to the
+        expression to the different namespaces as follows:
 
         namespace   prefix
-        ----------+-----------------
+        ----------+------------------------------------
         sys       | sys. main.
         data      | data. file.
         param     | param. dir.
-        user      | user.
         regexp    | <regexp-name>.<group-name>
-        ----------+-----------------
+        snippet   | <snippet-name>.<variable-name>
+        user      | user.
+        ----------+------------------------------------
 
         'eval' affects neither the database specification nor the namespaces and
         they are used solely to retrieve data.
@@ -140,7 +254,7 @@ class DBExpression:
         eval also welcomes regular expressions with an arbitrary number of
         contexts. The final value in this case is computed as the match of every
         regexp to the result of the previous evaluation. All contexts shall be
-        regular expressions, but the first one which can be any type.
+        regular expressions, but the first one which can be of any type.
 
         eval might raise warnings and errors. Therefore, it receives a
         logger to show messages
@@ -167,6 +281,7 @@ class DBExpression:
             elif prefix == "DATA" or prefix == "FILE": return data
             elif prefix == "PARAM" or prefix == "DIR": return param
             elif prefix == "REGEXP": return regexp
+            elif prefix == "SNIPPET": return snippet
             elif prefix == "USER": return user
             else: return None
 
@@ -178,7 +293,7 @@ class DBExpression:
             raised
             """
 
-            # check that this variable exists in the current namespace
+            # check the given variable exists in the current namespace
             if variable not in nspace:
 
                 self._logger.critical (" Variable '%s' has not been found!" % variable)
@@ -198,34 +313,52 @@ class DBExpression:
 
             # IMPORTANT: expressions should be the variable name (without any
             # reference to the namespace that contains them) in case they are
-            # not regexps. Otherwise, they are qualified with the name of the
-            # regexp and then the group name separated by a dot.
-            
-            # in case this is a regexp, then we have to compute the projection
-            # of the regexp over the given variable
-            if self._type == "REGEXP":
+            # neither regexps nor snippets. Otherwise, they are qualified with
+            # the name of the regexp/snippet and then the group name/output
+            # variable separated by a dot.
 
-                # compute the prefix and variable of this expression
+            # in case this is a regexp/snippet, then we have to compute the
+            # projection of the regexp over the given variable
+            if self._type == "REGEXP" or self._type == "SNIPPET":
+
+                # compute the prefix (either a regexp-name or a snippet-name)
+                # and variable name of this expression
                 (prefix, variable) = string.split (expression, '.')
 
-                # even if this instance is of type regexp, it might be part of a
-                # regexp with a context. Because the first variable might not be
-                # a regexp, it is mandatory now to check the real type of
-                # this argument
+                # even if this instance is either a regexp or a snippet, it
+                # might be part of a regexp with a context. Because the first
+                # variable might not be a regexp, it is mandatory now to check
+                # the real type of this argument
                 nspace = _get_namespace (prefix)
 
-                # in case this is proven to be a regular expression ---because
-                # its prefix refers to no known namespace, then make the
-                # projection
+                # in case this is proven to be either a regular expression or a
+                # snippet---because its prefix refers to no known namespace,
+                # then project it over the specified variable
                 if not nspace:
-                    result = regexp.projection (prefix, variable)
+
+                    # dissambiguate between the regexp and the snippet
+                    # namespaces looking at the definitions of regexps and
+                    # snippets instead of using the type of this instance
+                    if dbspec.get_regexp (prefix):
+                        result = regexp.projection (prefix, variable)
+                    elif dbspec.get_snippet (prefix):
+                        result = snippet.projection (prefix, variable)
+                    else:
+                        self._logger.critical (" The given expression is neither a 'REGEXP' nor a 'SNIPPET'" % expression)
+                        raise ValueError
 
                     # the result of a projection is a list with a tuple that
                     # contains the keys used for the projection and then a list
                     # of tuples with the values (also projected). We get rid
                     # here of the tuple of keys and we convert the list of
                     # tuples into a list of values
-                    return map (lambda x:x[0], result[1])
+                    values = map (lambda x:x[0], result[1])
+
+                    # also, in case this list consists of a single value we
+                    # return it as a scalar
+                    if len (values) == 1:
+                        return values [0]
+                    return values
 
                 # otherwise, just retrieve the right value from the given
                 # namespace
@@ -289,7 +422,13 @@ class DBExpression:
 
                 # Check whether the current value consists of a scalar or a list
                 # of values
-                if isinstance (currvalue, str):
+                if isinstance (currvalue, (int, float, str)):
+
+                    # there is no guarantee that this value is a string (maybe
+                    # this is a value returned by a snippet). Enforce a
+                    # conversion if necessary
+                    if not isinstance (currvalue, str):
+                        currvalue = str (currvalue)
 
                     # if it is a string just compute the value that results by
                     # applying the corresponding specification
@@ -303,10 +442,16 @@ class DBExpression:
 
                 else:
 
-                    # in case it is a list of strings, then process each
-                    # separately, getting rid of all empty lists
+                    # in case it is a list, then process each separately,
+                    # getting rid of all empty lists
                     newvalue = list ()
                     for ivalue in currvalue:
+
+                        # of course, it might happen that this particular value
+                        # is not a string (e.g., it is returned by a snippet),
+                        # in that case enforce the type conversion
+                        if not isinstance (ivalue, str):
+                            ivalue = str (ivalue)
                         result = _apply_regexp (ivalue, sregexp, group)
                         if result:
                             newvalue.append (result)

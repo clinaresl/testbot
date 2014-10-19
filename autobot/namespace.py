@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Feb 19 18:17:04 2014 Carlos Linares Lopez>
-# Last update <viernes, 03 octubre 2014 09:54:20 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 19 octubre 2014 15:19:59 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -35,7 +35,6 @@ import copy                             # for shallow copies
 
 from collections import defaultdict
 from collections import MutableMapping
-
 
 # -----------------------------------------------------------------------------
 # Namespace

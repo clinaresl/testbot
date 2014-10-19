@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <domingo, 05 octubre 2014 23:11:01 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 09 octubre 2014 11:38:07 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -91,13 +91,15 @@ class BotParser (object):
     #
     # the purpose of every namespace is described below:
     #
-    # * namespace: denoted also as the main namespace. It contains sys
+    # * namespace: denoted also as the main or sys namespace. It contains sys
     #              information and main variables
     # * data: It contains datavar and filevar
     # * user: this namespace is never used by autobot and it is created only for
     #         user specifics
     # * regexp : it stores the results of processing the contents of a file with
     #            the regexps found in the database specification
+    # * snippet: saves the values of variables computed with external Python
+    #            code that can be initialized with variables in autobot
     #
     # These namespaces automatically use the different variables (most of them
     # defined in the dbparser) whose purpose is defined below:
@@ -120,6 +122,15 @@ class BotParser (object):
     #           file and can be used in the specification of database tables to
     #           refer to the various groups that result every time a match is
     #           found
+    # * snippet: snippets are also defined separately in the database
+    #            specification file and can be used in the specification of
+    #            database tables to refer to the different output variables that
+    #            are computed by the snippet
+    #
+    # Importantly, all these variables can be qualified with contexts which have
+    # to be regexps. When contexts are used, the final value results of applying
+    # the next regexp to the previous value until all contexts have been
+    # processed.
     #
     # to make these relationships more apparent, the variables given in the
     # database specification file can be preceded by a prefix that provide
@@ -143,6 +154,21 @@ class BotParser (object):
     # specification of a database can use the format <name>.<group> to refer to
     # the value parsed in group <group> with regexp <name>
     #
+    # Likewise, snippets are defined with the syntax:
+    #
+    # snippet <name>
+    #    input-var1 = <autobot-variable>
+    #          ...  = ...
+    #    input-varn = <autobot-variable>
+    #    return output-var1
+    #      ...      ...
+    #    return output-varn
+    #    code <python-file>
+    #
+    # This way, any column in the specification of a database can use the
+    # variables computed by the execution of the <python-file> with the syntax
+    # <name>.<output-var>
+    #
     # Namespaces are populated with information with the following variable
     # types:
     #
@@ -152,14 +178,16 @@ class BotParser (object):
     # data      | datavar filevar
     # user      | --
     # regexp    | regexp
+    # snippet   | snippet
     # ----------+-----------------
     #
-    # These associations are implemented in the poll method of the dbparser
+    # These associations are implemented in the evaluation of dbexpressions
     # -----------------------------------------------------------------------------
     _namespace = namespace.Namespace ()         # sysvar, mainvar
     _data      = namespace.Namespace ()         # datavar, filevar
     _user      = namespace.Namespace ()         # user space
     _regexp    = namespace.Namespace ()         # regexp
+    _snippet   = namespace.Namespace ()         # snippets of python code
 
 
     # -----------------------------------------------------------------------------
@@ -328,14 +356,15 @@ class BotParser (object):
 
             # namespaces
             # -------------------------------------------------------------------------
-            # initialize the contents of the main namespace, data and regexp
-            # namespace
+            # initialize the contents of the main namespace, data, regexp
+            # and snippet namespaces
             BotParser._namespace.clear ()
             BotParser._data.clear ()
             BotParser._regexp.clear ()
+            BotParser._snippet.clear ()
 
-            # initialize the namespace with the parameters passed to the main
-            # script (ie., the parsebot), mainvars. These are given in
+            # initialize the main namespace with the parameters passed to the
+            # main script (ie., the parsebot), mainvars. These are given in
             # self._argnamespace. Since the argparser automatically casts type
             # according to their type field, they are all converted into strings
             # here to allow a uniform treatment
@@ -343,7 +372,8 @@ class BotParser (object):
                 for index, value in self._argnamespace.__dict__.items ():
                     BotParser._namespace [index] = str (value)
 
-            # initialize the namespace with the value of some sysvar attributes:
+            # initialize the main namespace with the value of some sysvar
+            # attributes:
             #
             #   index     - index of this file as an integer in the range [0, ...)
             #   name      - name of this text file
@@ -438,9 +468,10 @@ class BotParser (object):
                                        itable.poll (dbspec = self._dbspec,
                                                     namespace = BotParser._namespace,
                                                     data = BotParser._data,
-                                                    user = BotParser._user,
                                                     param=None,
                                                     regexp = BotParser._regexp,
+                                                    snippet = BotParser._snippet,
+                                                    user = BotParser._user,
                                                     logger = self._logger,
                                                     logfilter = self._logfilter))
 
@@ -454,20 +485,24 @@ class BotParser (object):
     # -----------------------------------------------------------------------------
     # eval_regexp
     #
-    # compute the value of the regexp defined in the specified column of a
-    # database table with the contents specified in the second argument. As a
-    # result, it writes in the regexp namespace its final value
+    # compute the value of the regexp defined in the specified struct with the
+    # contents specified in the second argument. Legal structs are either the
+    # column of a database table or the definition of an input statement in a
+    # snippet, ie., the only places where regexps can be used.  As a result, it
+    # writes in the regexp namespace its final value
     # -----------------------------------------------------------------------------
-    def eval_regexp (self, icolumn, contents):
+    def eval_regexp (self, struct, contents):
         """
-        compute the value of the regexp defined in the specified column of a
-        database table with the contents specified in the second argument. As a
-        result, it writes in the regexp namespace its final value
+        compute the value of the regexp defined in the specified struct with the
+        contents specified in the second argument. Legal structs are either the
+        column of a database table or the definition of an input statement in a
+        snippet, ie., the only places where regexps can be used.  As a result,
+        it writes in the regexp namespace its final value
         """
 
         # create a dbexpression for this particular definition
-        expression = dbexpression.DBExpression (icolumn.get_vartype (),
-                                                icolumn.get_variable (),
+        expression = dbexpression.DBExpression (struct.get_vartype (),
+                                                struct.get_variable (),
                                                 self._logger,
                                                 self._logfilter)
 
@@ -480,7 +515,7 @@ class BotParser (object):
             # which is always of the form <prefix>.<suffix>. 'index' is
             # intentionally used to let Python raise an exception in case a dot
             # is missing
-            prefix = icolumn.get_variable () [0:string.index (icolumn.get_variable (),
+            prefix = struct.get_variable () [0:string.index (struct.get_variable (),
                                                               '.')]
 
         else:
@@ -623,6 +658,33 @@ class BotParser (object):
                                 if icolumn.get_vartype () == "REGEXP"]:
 
                     self.eval_regexp (icolumn, contents)
+
+            # regexps in snippets
+            # ---------------------------------------------------------------------
+            # eval also all regular expressions that appear as input variables
+            # of the snippets defined in the database specification file. Note
+            # that the value of this regexps might be also dependent upon the
+            # contents of the current file
+            for isnippet in [itable for itable in self._dbspec
+                             if isinstance (itable, dbparser.DBSnippet)]:
+
+                # now, for all input variables mentioned in this snippet
+                for ivariable in [ivariable for ivariable in isnippet.get_inputvars ()
+                                  if ivariable.get_vartype () == "REGEXP"]:
+
+                    self.eval_regexp (ivariable, contents)
+
+
+        expression = dbexpression.DBExpression ('SNIPPET', 'time.actualtime',
+                                                self._logger, self._logfilter)
+
+        expression.eval_snippet (self._dbspec,
+                                 BotParser._namespace,
+                                 BotParser._data,
+                                 None,
+                                 BotParser._regexp,
+                                 BotParser._snippet,
+                                 BotParser._user)
 
         # results/
         # -------------------------------------------------------------------------
