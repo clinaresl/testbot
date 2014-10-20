@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 10:03:17 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 15:40:33 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -447,7 +447,23 @@ class BotParser (object):
             evaluation, thus updating the snippet namespace
             """
 
-            # create an expression with this snippet
+            # botparser is responsible only for making sure that data necessary
+            # to evaluate expressions is available in the corresponding
+            # namespaces. Thus, if this snippet is volatile (ie, if any of its
+            # output variables has been declared as volatile) then it is not
+            # evaluated here. Instead, it should be evaluated when the system is
+            # ready for downloading data to the database
+            snippetname = string.split (variable, '.') [0]
+            snippet = self._dbspec.get_snippet (snippetname)
+            if snippet.get_keyword () == 'volatile':
+                return
+
+            # now, in case it is static, it is evaluated never more than once
+            if snippetname in BotParser._snippet:
+                return
+
+            # otherwise, evaluate this snippet create an expression with this
+            # snippet
             expression = dbexpression.DBExpression ('SNIPPET',
                                                     variable,
                                                     self._logger,
@@ -461,7 +477,7 @@ class BotParser (object):
                                      regexp  = BotParser._regexp,
                                      snippet = BotParser._snippet,
                                      user    = BotParser._user)
-            
+
         def _eval_filevar (variable):
             """
             creates a dbexpression that consists of a filevar and requests its
@@ -474,7 +490,7 @@ class BotParser (object):
                                        variable,
                                        self._logger,
                                        self._logfilter).eval_filevar (data=BotParser._data)
-            
+
         def _bz2 (filename, remove=False):
             """
             compress the contents of the given filename and writes the results to a

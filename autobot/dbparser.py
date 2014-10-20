@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 00:48:25 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 15:50:56 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -56,6 +56,7 @@ import ply.yacc as yacc
 
 import dbexpression                     # evaluation of databse expressions
 
+import pdb
 
 # -----------------------------------------------------------------------------
 # DBColumn
@@ -385,6 +386,12 @@ class DBTable:
         evaluates to a list, the tuples are replicated making sure that all
         columns take either the maximum cardinality or one.
 
+        this method is also in charge of computing 'volatile' snippets. If a
+        column is a snippet on its own or it is a regexp whose head is a snippet
+        and it turns out that the snippet is volatile (ie., at least one of its
+        output variables is declared as volatile) then it requests the
+        recomputation of the snippet
+
         this method is likely to raise warnings and errors (along with an
         exception). Therefore, it receives also a logger to show messages
         """
@@ -446,7 +453,53 @@ class DBTable:
                                                     logger,
                                                     logfilter)
 
-            # and evaluate it
+            # foremost, in case this is a volatile snippet, then request its
+            # execution *now*
+
+            # on one hand, because it is a snippet on its own
+            if expression.get_type () == 'SNIPPET':
+
+                snippetexp = dbspec.get_snippet (string.split (icolumn.get_variable (), '.') [0])
+                if snippetexp.get_keyword () == 'volatile':
+                    expression.eval_snippet (dbspec  = dbspec,
+                                             sys     = namespace,
+                                             data    = data,
+                                             param   = param,
+                                             regexp  = regexp,
+                                             snippet = snippet,
+                                             user    = user)
+
+            # or because it is a regexp whose head is a snippet
+            elif expression.get_type () == 'REGEXP':
+
+                # all regexps belong to a context, so access the first one
+                # freely
+                (prefix, var) = string.split (expression.get_context () [0], '.')
+                snippetexp = dbspec.get_snippet (prefix)
+                if snippetexp and snippetexp.get_keyword () == 'volatile':
+
+                    # in this case, a specific expression has to be created to
+                    # represent the head of this regexp
+                    nestedexp = dbexpression.DBExpression ('SNIPPET',
+                                                           expression.get_context () [0],
+                                                           logger,
+                                                           logfilter)
+
+                    # and evaluate it
+                    nestedexp.eval_snippet (dbspec  = dbspec,
+                                            sys     = namespace,
+                                            data    = data,
+                                            param   = param,
+                                            regexp  = regexp,
+                                            snippet = snippet,
+                                            user    = user)
+
+            # at this point we are in good shape to ensure that all necessary
+            # data to evaluate any expression is already present in the
+            # corresponding namespaces, so that evaluate the expression of the
+            # definition of this particular column
+            if expression.get_type () == 'SNIPPET':
+                pdb.set_trace ()
             result = expression.eval (dbspec  = dbspec,
                                       sys     = namespace,
                                       data    = data,
@@ -702,6 +755,11 @@ class DBSnippet:
                       a column
 
         * filecode: contains the name of the python code to execute
+
+        A snippet is said to be volatile if any of its output variables is
+        qualified with the keyword 'volatile' and static otherwise (ie., if all
+        its output variables are either qualified with the keyword 'static' or
+        they are not explicitly qualified since 'static' is applied by default')
         """
 
         # just copy the name and the specification of the snippet
@@ -710,13 +768,23 @@ class DBSnippet:
          (name, inputvars, outputvars,
           filecode)
 
+        # decide whether this is a static or volatile snippet. In case any
+        # output variable is volatile the whole snippet is said to be volatile
+        # as well
+        if (self._outputvars and
+            filter (lambda x:string.upper (x.get_keyword ()) == 'VOLATILE',
+                    self._outputvars)):
+            self._keyword = 'volatile'
+        else:
+            self._keyword = 'static'
+
 
     def __str__ (self):
         """
         output formatting
         """
 
-        output = " snippet %s\n" % self._name
+        output = " snippet %s [keyword: %s]\n" % (self._name, self._keyword)
         for ivar in self._inputvars:
             output += '\t' + ivar.__str__ () + '\n'
         for ivar in self._outputvars:
@@ -756,6 +824,13 @@ class DBSnippet:
         """
 
         return self._filecode
+
+    def get_keyword (self):
+        """
+        return the snippet keyword, either 'volatile' or 'static'
+        """
+
+        return self._keyword
 
 
 # -----------------------------------------------------------------------------
@@ -1159,10 +1234,6 @@ class DBParser :
                 # if not then just concatenate the variable name to the full
                 # expression
                 p[0] = (vartype, p[1][1] + DBParser.t_SLASH + p[3])
-
-    # def p_variable_snippet (self, p):
-    #     '''variable : QUALIFIEDVAR'''
-    #     p[0] = ('SNIPPET', p[1])
 
     def p_action (self, p):
         '''action : NONE

@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Sep 28 00:22:50 2014 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 10:11:09 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 15:36:05 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -184,11 +184,6 @@ class DBExpression:
         (prefix, variable) = string.split (self._expression, '.')
         isnippet = dbspec.get_snippet (prefix)
 
-        # first, verify whether the snippet has been already evaluated. If so,
-        # return immediately
-        if prefix in snippet:
-            return
-        
         # Step #1
         # ---------------------------------------------------------------------
         # first step, initialize a dictionary with the values of all the input
