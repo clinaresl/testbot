@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 15:50:56 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 16:00:36 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -55,8 +55,6 @@ import ply.lex as lex
 import ply.yacc as yacc
 
 import dbexpression                     # evaluation of databse expressions
-
-import pdb
 
 # -----------------------------------------------------------------------------
 # DBColumn
@@ -498,8 +496,6 @@ class DBTable:
             # data to evaluate any expression is already present in the
             # corresponding namespaces, so that evaluate the expression of the
             # definition of this particular column
-            if expression.get_type () == 'SNIPPET':
-                pdb.set_trace ()
             result = expression.eval (dbspec  = dbspec,
                                       sys     = namespace,
                                       data    = data,
