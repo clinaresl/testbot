@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 01:23:27 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 10:03:17 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -441,6 +441,40 @@ class BotParser (object):
         Also, the textfile is backed up to the resultsdir
         """
 
+        def _eval_snippet (variable):
+            """
+            creates a dbexpression that consists of a snippet and requests its
+            evaluation, thus updating the snippet namespace
+            """
+
+            # create an expression with this snippet
+            expression = dbexpression.DBExpression ('SNIPPET',
+                                                    variable,
+                                                    self._logger,
+                                                    self._logfilter)
+
+            # and request its evaluation
+            expression.eval_snippet (dbspec  = self._dbspec,
+                                     sys     = BotParser._namespace,
+                                     data    = BotParser._data,
+                                     param   = None,
+                                     regexp  = BotParser._regexp,
+                                     snippet = BotParser._snippet,
+                                     user    = BotParser._user)
+            
+        def _eval_filevar (variable):
+            """
+            creates a dbexpression that consists of a filevar and requests its
+            evaluation, thus updating the data namespace
+            """
+
+            # create a dbexpression and require its evaluation updating
+            # the data namespace
+            dbexpression.DBExpression ('FILE',
+                                       variable,
+                                       self._logger,
+                                       self._logfilter).eval_filevar (data=BotParser._data)
+            
         def _bz2 (filename, remove=False):
             """
             compress the contents of the given filename and writes the results to a
@@ -479,9 +513,9 @@ class BotParser (object):
                   imatch.group ('value')
 
         # for all database tables (ie, implicitly ignoring snippets) within the
-        # current database specification 
+        # current database specification
         for itable in [itable for itable in self._dbspec
-                         if isinstance (itable, dbparser.DBTable)]:
+                       if isinstance (itable, dbparser.DBTable)]:
 
             # snippets
             # ---------------------------------------------------------------------
@@ -489,20 +523,16 @@ class BotParser (object):
             for icolumn in [icolumn for icolumn in  itable
                             if icolumn.get_vartype () == "SNIPPET"]:
 
-                # create an expression with this snippet
-                expression = dbexpression.DBExpression (icolumn.get_vartype (),
-                                                        icolumn.get_variable (),
-                                                        self._logger,
-                                                        self._logfilter)
+                _eval_snippet (icolumn.get_variable ())
 
-                # and request its evaluation
-                expression.eval_snippet (dbspec  = self._dbspec,
-                                         sys     = BotParser._namespace,
-                                         data    = BotParser._data,
-                                         param   = None,
-                                         regexp  = BotParser._regexp,
-                                         snippet = BotParser._snippet,
-                                         user    = BotParser._user)
+            # filevars
+            # -------------------------------------------------------------------------
+            # populate the data namespace with the contents of files (filevars)
+            # as specified in the database specification file
+            for icolumn in [icolumn for icolumn in itable
+                            if icolumn.get_vartype () == 'FILE']:
+
+                _eval_filevar (icolumn.get_variable ())
 
             # regexps
             # ---------------------------------------------------------------------
@@ -526,26 +556,12 @@ class BotParser (object):
                 # verify whether this is a snippet ...
                 if self._dbspec.get_snippet (prefix):
 
-                    # if so, create a dbexpression and evaluate it updating the
-                    # snippet namespace
-                    head = dbexpression.DBExpression ('SNIPPET',
-                                                      head,
-                                                      self._logger,
-                                                      self._logfilter)
-
-                    head.eval_snippet (dbspec  = self._dbspec,
-                                       sys     = BotParser._namespace,
-                                       data    = BotParser._data,
-                                       param   = None,
-                                       regexp  = BotParser._regexp,
-                                       snippet = BotParser._snippet,
-                                       user    = BotParser._user)
+                    _eval_snippet (head)
 
                 # ... or a file variable
                 elif string.upper (prefix) == 'FILE':
-                    self._logger.debug (" Copying the contents of file '%s' to the data namespace" % variable)
-                    with open (variable, 'r') as stream:
-                        BotParser._data [variable] = stream.read ()
+
+                    _eval_filevar (variable)
 
         # results/
         # -------------------------------------------------------------------------
@@ -608,17 +624,6 @@ class BotParser (object):
             BotParser._data.clear ()
             BotParser._regexp.clear ()
             BotParser._snippet.clear ()
-
-            # - data namespace
-            # -------------------------------------------------------------------------
-            # populate the data namespace with the contents of files (filevars)
-            # as specified in the database specification file
-            for itable in [jtable for jtable in self._dbspec.get_db ()]:
-                for icolumn in [jcolumn for jcolumn in itable if jcolumn.get_vartype () == 'FILE']:
-                    with open (icolumn.get_variable (), 'r') as stream:
-
-                        self._logger.debug (" Copying the contents of file '%s' to the data namespace" % icolumn.get_variable ())
-                        BotParser._data [icolumn.get_variable ()] = stream.read ()
 
             # - main (sys) namespace
             # -------------------------------------------------------------------------

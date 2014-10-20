@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Sep 28 00:22:50 2014 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 00:45:04 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 10:11:09 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -119,6 +119,27 @@ class DBExpression:
         return self._contexts
 
 
+    def eval_filevar (self,  data):
+        """
+        evaluates the filevar given in the expression of this instance and
+        update the data namespace with information from it. It prevents reading
+        the given file if it already exists in the namespace.
+
+        This method actually modifies the data namespace
+        """
+
+        # only in case this file has not been read before
+        if self._expression not in data:
+            self._logger.debug (" Reading the contents of file '%s' in the data namespace" % self._expression)
+
+            # open the file, and store its contents into the data namespace
+            with open (self._expression, 'r') as stream:
+                data [self._expression] = stream.read ()
+
+            # close and exit
+            stream.close
+
+
     def eval_snippet (self, dbspec, sys, data, param, regexp, snippet, user):
         """
         evaluates the expression stored in this instance which is certainly
@@ -136,6 +157,9 @@ class DBExpression:
 
         3. It finally updates the snippet namespace with the information of the
            output variables specified in the definition of the snippet
+
+        This method prevents evaluating the snippet in case it has been already
+        evaluated
 
         Thus, this method actually modifies the snippet namespace whereas it
         uses all the other namespaces for retrieving data
@@ -155,12 +179,16 @@ class DBExpression:
 
             return value
 
-
         # Get information about the snippet whose name is specified in the
         # expression under evaluation
         (prefix, variable) = string.split (self._expression, '.')
         isnippet = dbspec.get_snippet (prefix)
 
+        # first, verify whether the snippet has been already evaluated. If so,
+        # return immediately
+        if prefix in snippet:
+            return
+        
         # Step #1
         # ---------------------------------------------------------------------
         # first step, initialize a dictionary with the values of all the input
