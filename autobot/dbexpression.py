@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Sep 28 00:22:50 2014 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 15:36:05 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 23:16:12 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -298,9 +298,10 @@ class DBExpression:
             return the namespace that should contain the values of a variable of
             the type of this instance or the given type if any.
 
-            This function actually implements the logic that associates prefixes
-            to namespaces as given above. In case no namespace is found for this
-            particular type it returns None
+            This function actually implements the logic that associates
+            namespace types (nst in the jargon of the dbparser) to namespaces as
+            given above. In case no namespace is found for this particular type
+            it returns None
             """
 
             # if no type is given, use the default type of this
@@ -310,12 +311,12 @@ class DBExpression:
             else:
                 prefix = string.upper (self._type)
 
-            if prefix == "SYS" or prefix == "MAIN": return sys
-            elif prefix == "DATA" or prefix == "FILE": return data
-            elif prefix == "PARAM" or prefix == "DIR": return param
-            elif prefix == "REGEXP": return regexp
-            elif prefix == "SNIPPET": return snippet
-            elif prefix == "USER": return user
+            if prefix   == dbparser.SYSNST     or prefix == dbparser.MAINNST: return sys
+            elif prefix == dbparser.DATANST    or prefix == dbparser.FILENST: return data
+            elif prefix == dbparser.PARAMNST   or prefix == dbparser.DIRNST : return param
+            elif prefix == dbparser.REGEXPNST                               : return regexp
+            elif prefix == dbparser.SNIPPETNST                              : return snippet
+            elif prefix == dbparser.USERNST                                 : return user
             else: return None
 
 
@@ -354,7 +355,7 @@ class DBExpression:
 
             # in case this is a regexp/snippet, then we have to compute the
             # projection over the given variable
-            if self._type == "REGEXP" or self._type == "SNIPPET":
+            if self._type == dbparser.REGEXPNST or self._type == dbparser.SNIPPETNST:
 
                 # compute the prefix (either a regexp-name or a snippet-name)
                 # and variable name of this expression

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 15:40:33 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 23:13:32 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -464,7 +464,7 @@ class BotParser (object):
 
             # otherwise, evaluate this snippet create an expression with this
             # snippet
-            expression = dbexpression.DBExpression ('SNIPPET',
+            expression = dbexpression.DBExpression (dbparser.SNIPPETNST,
                                                     variable,
                                                     self._logger,
                                                     self._logfilter)
@@ -486,7 +486,7 @@ class BotParser (object):
 
             # create a dbexpression and require its evaluation updating
             # the data namespace
-            dbexpression.DBExpression ('FILE',
+            dbexpression.DBExpression (dbparser.FILENST,
                                        variable,
                                        self._logger,
                                        self._logfilter).eval_filevar (data=BotParser._data)
@@ -537,7 +537,7 @@ class BotParser (object):
             # ---------------------------------------------------------------------
             # now, for all snippets mentioned in any column of this table
             for icolumn in [icolumn for icolumn in  itable
-                            if icolumn.get_vartype () == "SNIPPET"]:
+                            if icolumn.get_vartype () == dbparser.SNIPPETNST]:
 
                 _eval_snippet (icolumn.get_variable ())
 
@@ -546,7 +546,7 @@ class BotParser (object):
             # populate the data namespace with the contents of files (filevars)
             # as specified in the database specification file
             for icolumn in [icolumn for icolumn in itable
-                            if icolumn.get_vartype () == 'FILE']:
+                            if icolumn.get_vartype () == dbparser.FILENST]:
 
                 _eval_filevar (icolumn.get_variable ())
 
@@ -555,7 +555,7 @@ class BotParser (object):
             # also, for all regular expressions that start with either a snippet
             # or a file
             for icolumn in [icolumn for icolumn in itable
-                            if icolumn.get_vartype () == "REGEXP"]:
+                            if icolumn.get_vartype () == dbparser.REGEXPNST]:
 
                 # create an expression with this regular expression
                 expression = dbexpression.DBExpression (icolumn.get_vartype (),
@@ -575,7 +575,7 @@ class BotParser (object):
                     _eval_snippet (head)
 
                 # ... or a file variable
-                elif string.upper (prefix) == 'FILE':
+                elif string.upper (prefix) == dbparser.FILENST:
 
                     _eval_filevar (variable)
 

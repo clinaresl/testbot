@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 16:00:36 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 17:25:26 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -55,6 +55,35 @@ import ply.lex as lex
 import ply.yacc as yacc
 
 import dbexpression                     # evaluation of databse expressions
+
+
+# globals
+# -----------------------------------------------------------------------------
+
+# nst stands for NameSpace Name and nsv stands for NameSpace Variable. nst does
+# not necessarily refer to a particular namespace. In fact, autobot maps types
+# to namespaces. Here we refer to the particular types recognized by the
+# dbparser
+SYSNST   = 'SYS'
+DATANST  = 'DATA'
+DIRNST   = 'DIR'
+FILENST  = 'FILE'
+MAINNST  = 'MAIN'
+PARAMNST = 'PARAM'
+USERNST  = 'USER'
+
+SYSNSV   = 'SYSVAR'
+DATANSV  = 'DATAVAR'
+DIRNSV   = 'DIRVAR'
+FILENSV  = 'FILEVAR'
+MAINNSV  = 'MAINVAR'
+PARAMNSV = 'PARAMVAR'
+USERNSV  = 'USERVAR'
+
+# the following namespace types do not come with a specific definition of
+# variables since they do generate their own instances
+REGEXPNST  = 'REGEXP'
+SNIPPETNST = 'SNIPPET'
 
 # -----------------------------------------------------------------------------
 # DBColumn
@@ -455,7 +484,7 @@ class DBTable:
             # execution *now*
 
             # on one hand, because it is a snippet on its own
-            if expression.get_type () == 'SNIPPET':
+            if expression.get_type () == SNIPPETNST:
 
                 snippetexp = dbspec.get_snippet (string.split (icolumn.get_variable (), '.') [0])
                 if snippetexp.get_keyword () == 'volatile':
@@ -468,7 +497,7 @@ class DBTable:
                                              user    = user)
 
             # or because it is a regexp whose head is a snippet
-            elif expression.get_type () == 'REGEXP':
+            elif expression.get_type () == REGEXPNST:
 
                 # all regexps belong to a context, so access the first one
                 # freely
@@ -478,7 +507,7 @@ class DBTable:
 
                     # in this case, a specific expression has to be created to
                     # represent the head of this regexp
-                    nestedexp = dbexpression.DBExpression ('SNIPPET',
+                    nestedexp = dbexpression.DBExpression (SNIPPETNST,
                                                            expression.get_context () [0],
                                                            logger,
                                                            logfilter)
@@ -843,8 +872,8 @@ class DBParser :
 
     # reserved words
     reserved_words = {
-        'regexp'    : 'REGEXP',
-        'snippet'   : 'SNIPPET',
+        'regexp'    : REGEXPNST,
+        'snippet'   : SNIPPETNST,
         'static'    : 'STATIC',
         'volatile'  : 'VOLATILE',
         'return'    : 'RETURN',
@@ -867,13 +896,13 @@ class DBParser :
         'EQ',
         'SEMICOLON',
         'SLASH',
-        'SYSVAR',
-        'DATAVAR',
-        'DIRVAR',
-        'FILEVAR',
-        'MAINVAR',
-        'PARAM',
-        'USERVAR',
+        SYSNSV,
+        DATANSV,
+        DIRNSV,
+        FILENSV,
+        MAINNSV,
+        PARAMNSV,
+        USERNSV,
         'QUALIFIEDVAR',
         'ID',
         'TABLEID'
@@ -995,10 +1024,10 @@ class DBParser :
                 t.value = t.value[5:]
         return t
 
-    # param: any number preceded by the dollar sign. They stand for the
-    # particular parameter passed to the solver identified by its
+    # param variables: any number preceded by the dollar sign. They stand for
+    # the particular parameter passed to the solver identified by its
     # location. Examples are $0, $1, ...
-    def t_PARAM (self, t):
+    def t_PARAMVAR (self, t):
         r"(\$|param\.)\d+"
         if t.value[0]=='$':
             t.value = int (t.value[1:])
@@ -1170,31 +1199,31 @@ class DBParser :
 
     def p_variable_sysvar (self, p):
         '''variable : SYSVAR'''
-        p[0] = ('SYS', p[1])
+        p[0] = (SYSNST, p[1])
 
     def p_variable_datavar (self, p):
         '''variable : DATAVAR'''
-        p[0] = ('DATA', p[1])
+        p[0] = (DATANST, p[1])
 
     def p_variable_dirvar (self, p):
         '''variable : DIRVAR'''
-        p[0] = ('DIR', p[1])
+        p[0] = (DIRNST, p[1])
 
-    def p_variable_param (self, p):
-        '''variable : PARAM'''
-        p[0] = ('PARAM', p[1])
+    def p_variable_paramvar (self, p):
+        '''variable : PARAMVAR'''
+        p[0] = (PARAMNST, p[1])
 
     def p_variable_file (self, p):
         '''variable : FILEVAR'''
-        p[0] = ('FILE', p[1])
+        p[0] = (FILENST, p[1])
 
     def p_variable_main (self, p):
         '''variable : MAINVAR'''
-        p[0] = ('MAIN', p[1])
+        p[0] = (MAINNST, p[1])
 
     def p_variable_user (self, p):
         '''variable : USERVAR'''
-        p[0] = ('USER', p[1])
+        p[0] = (USERNST, p[1])
 
     def p_variable_qualified (self, p):
         '''variable : QUALIFIEDVAR
@@ -1204,8 +1233,8 @@ class DBParser :
         prefix = string.split (p[len (p)-1], '.') [0]
 
         # check whether it refers to a regexp or a snippet
-        if prefix in self._regexptable: vartype = 'REGEXP'
-        elif prefix in self._snippettable: vartype = 'SNIPPET'
+        if prefix in self._regexptable: vartype = REGEXPNST
+        elif prefix in self._snippettable: vartype = SNIPPETNST
         else:
             print "Line %i: The qualified var '%s' has been found but it does not appear to be either a REGEXP or a SNIPPET" % (p.lineno (1), p[1])
             self.p_error (p)
@@ -1221,7 +1250,7 @@ class DBParser :
                 # and only if it is not a regexp or a snippet. In case it is
                 # either a regexp or a snippet then avoid writing down its type
                 # (since they are qualified by their name solely)
-                if p[1][0] != 'REGEXP' and p[1][0] != 'SNIPPET':
+                if p[1][0] != REGEXPNST and p[1][0] != SNIPPETNST:
                     p[0] = (vartype, string.lower (p[1][0]) + '.' + p[1][1] + DBParser.t_SLASH + p[3])
                 else:
                     p[0] = (vartype, p[1][1] + DBParser.t_SLASH + p[3])

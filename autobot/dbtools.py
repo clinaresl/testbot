@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <lunes, 06 octubre 2014 03:05:16 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 octubre 2014 17:24:40 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -337,7 +337,7 @@ class DBSpec(object):
             for icolumn in itable:
 
                 # in case this is a regexp
-                if icolumn.get_vartype () == 'REGEXP':
+                if icolumn.get_vartype () == dbparser.REGEXPNST:
 
                     # split the constituents of the variable field of this
                     # column into two different parts: the regexp name and the
