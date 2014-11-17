@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 17:25:26 Carlos Linares Lopez (clinares)>
+# Last update <martes, 21 octubre 2014 07:56:38 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -54,7 +54,7 @@ import string                           # split
 import ply.lex as lex
 import ply.yacc as yacc
 
-import dbexpression                     # evaluation of databse expressions
+import dbexpression                     # evaluation of database expressions
 
 
 # globals
@@ -272,10 +272,11 @@ class DBTableIter(object):
 
 
 # -----------------------------------------------------------------------------
-# The db specification language acknowledges two different types of objets:
+# The db specification language acknowledges the following types of objets:
 #
-#       1. Database specification tables
-#       2. Regular expressions
+#       1. Regular expressions
+#       2. Database specification tables
+#       3. Snippets of Python code
 #
 # These are created as instances of DBTable and DBRegexp
 # -----------------------------------------------------------------------------
@@ -582,6 +583,53 @@ class DBTable:
         # and finally replicate this tuple and return the result
         return _replicate (t, cardinality)
 
+
+# -----------------------------------------------------------------------------
+# DBQualifiedVar
+#
+# Qualified vars are used to reference snippets and contexts of a regular
+# expression. They consist of an alphanumeric prefix and suffix which stands for
+# the snippet-name/output-variable-name or the regexp-name/regexp-group
+# respectively
+# -----------------------------------------------------------------------------
+class DBQualifiedVar:
+    """
+    Qualified vars are used to reference snippets and contexts of a regular
+    expression. They consist of an alphanumeric prefix and suffix which stands
+    for the snippet-name/output-variable-name or the regexp-name/regexp-group
+    respectively
+    """
+
+    def __init__ (self, prefix, suffix):
+        """
+        creates a qualified variable with the given prefix and suffix
+        """
+
+        # just copy the given fields
+        (self._prefix, self._suffix) = (prefix, suffix)
+
+
+    def __str__ (self):
+        """
+        output formatting
+        """
+
+        return "%s.%s" % (self._prefix, self._suffix)
+
+
+    def get_prefix (self):
+        """
+        return the prefix of this qualified variable
+        """
+
+        return self._prefix
+
+    def get_suffix (self):
+        """
+        return the suffix of this qualified variable
+        """
+
+        return self._suffix
 
 # -----------------------------------------------------------------------------
 # DBRegexp
@@ -1053,9 +1101,9 @@ class DBParser :
         return t
 
     # qualified variables: any variable preceded by a name and a dot. They are
-    # used to refer to regexps and snippets. In the case of regexps the format
-    # is <regexp-name>.<group-name>. In the case of snippets the format is
-    # <snippet-name>.<output-variable-name>
+    # used to form regexps and also to refer to arbitrary snippets. In the case
+    # of regexps the format is <regexp-name>.<group-name>. In the case of
+    # snippets the format is <snippet-name>.<output-variable-name>
     def t_QUALIFIEDVAR (self, t):
         r"[a-zA-Z][a-zA-Z_0-9]+\.[a-zA-Z_][a-zA-Z_0-9]+"
         return t
@@ -1225,6 +1273,10 @@ class DBParser :
         '''variable : USERVAR'''
         p[0] = (USERNST, p[1])
 
+    # the following production rule identifies references to regexp and snippets
+    # and allows the user to concatenate them with the operator slash (ie,
+    # creating contexts). It is therefore very important to place it after the
+    # other production rules (so that simpler ones get precedence).
     def p_variable_qualified (self, p):
         '''variable : QUALIFIEDVAR
                     | variable SLASH QUALIFIEDVAR'''
@@ -1247,9 +1299,9 @@ class DBParser :
             if string.find (p[1][1], DBParser.t_SLASH) < 0:
 
                 # in case it is, keep track of the type of the first context if
-                # and only if it is not a regexp or a snippet. In case it is
-                # either a regexp or a snippet then avoid writing down its type
-                # (since they are qualified by their name solely)
+                # and only if it is neither a regexp nor a snippet. Otherwise,
+                # avoid writing down its type (since they are qualified by their
+                # name solely)
                 if p[1][0] != REGEXPNST and p[1][0] != SNIPPETNST:
                     p[0] = (vartype, string.lower (p[1][0]) + '.' + p[1][1] + DBParser.t_SLASH + p[3])
                 else:
