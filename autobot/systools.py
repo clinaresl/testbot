@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 09:26:14 2011 Carlos Linares Lopez>
-# Last update <martes, 18 febrero 2014 15:37:51 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:05:25 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: systools.py 306 2011-11-11 22:25:37Z clinares                        $
@@ -595,5 +595,5 @@ class ProcessTimeline(object):
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

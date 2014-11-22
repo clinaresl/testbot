@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <viernes, 26 septiembre 2014 00:42:52 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:05:19 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -247,5 +247,5 @@ class BotMain:
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

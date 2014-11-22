@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 11 18:09:23 2013 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 17:24:40 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:05:34 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -416,5 +416,5 @@ class DBFile(DBSpec):
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 11:54:22 2011 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 01:29:05 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:05:22 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id:: timetools.py 306 2011-11-11 22:25:37Z clinares                       $
@@ -95,5 +95,5 @@ class Timer(object):
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

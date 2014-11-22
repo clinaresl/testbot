@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:03:37 2014 Carlos Linares Lopez>
-# Last update <viernes, 26 septiembre 2014 00:17:56 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:05:40 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -1093,7 +1093,7 @@ class BotTester (object):
             # propagated upwards in the logging hierarchy
             self._logger.propagate = False
 
-        self._logger.debug (" Starting automated execution ...")
+        self._logger.debug(" Starting automated execution ...")
 
         # make the specification of solvers to be a list of solvers even if just
         # a single solver was given
@@ -1245,5 +1245,5 @@ class BotTester (object):
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

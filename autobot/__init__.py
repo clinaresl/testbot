@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May 25 19:22:08 2013 Carlos Linares Lopez>
-# Last update <viernes, 26 septiembre 2014 00:41:17 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:05:09 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -74,5 +74,5 @@ from . import parsetools
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

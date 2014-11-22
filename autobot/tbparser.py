@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Aug  2 09:16:49 2013 Carlos Linares Lopez>
-# Last update <sábado, 04 enero 2014 01:29:15 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:04:57 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -386,5 +386,5 @@ class FileTBParser (TBParser):
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

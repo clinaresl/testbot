@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Sep 28 00:22:50 2014 Carlos Linares Lopez>
-# Last update <lunes, 20 octubre 2014 23:16:12 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 22 noviembre 2014 00:55:19 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -26,19 +26,18 @@ with data in different namespaces
 
 # globals
 # -----------------------------------------------------------------------------
-__version__  = '1.0'
+__version__ = '1.0'
 __revision__ = '$Revision$'
-__date__     = '$Date$'
+__date__ = '$Date$'
 
 
 # imports
 # -----------------------------------------------------------------------------
-import colors                           # terminal colors
-import logging                          # logging services
 import re                               # regular expressions (finditer)
 import string                           # split, find
 
 import dbparser                         # t_SLASH
+
 
 # -----------------------------------------------------------------------------
 # DBExpression
@@ -60,57 +59,52 @@ class DBExpression:
     namespaces have the values of all the involved variables
     """
 
-    def __init__ (self, exptype, expression, logger, logfilter):
-        """
-        creates an instance of DBExpression with the specified expression of the
-        given type (exptype)
+    def __init__(self, exptype, expression, logger, logfilter):
+        """creates an instance of DBExpression with the specified expression of
+        the given type (exptype)
 
         the services of this class handle fatal errors and thus, a logger is
         given to it to let the user know about them
         """
 
         # update information about the logger ---the child and its filter
-        self._logger = logger.getChild ("DBExpression.dbexpression")
-        self._logger.addFilter (logfilter)
+        self._logger = logger.getChild("DBExpression.dbexpression")
+        self._logger.addFilter(logfilter)
 
         # copy the expression (and its type) given to this instance
         self._type, self._expression, self._logfilter = \
-          (exptype, expression, logfilter)
+            (exptype, expression, logfilter)
 
-        # Do this expression contain a context? If so, process them in a list
-        if string.count (expression, dbparser.DBParser.t_SLASH) > 0:
+        # # Do this expression contain a context? If so, process them in a list
+        if string.count(expression, dbparser.DBParser.t_SLASH) > 0:
             self._hascontext = True
-            self._contexts = string.split (expression, dbparser.DBParser.t_SLASH)
+            self._contexts = string.split(expression, dbparser.DBParser.t_SLASH)
         else:
             self._hascontext = False
             self._contexts = None
 
-
-    def get_expression (self):
+    def get_expression(self):
         """
         return the expression of this instance
         """
 
         return self._expression
 
-
-    def get_type (self):
+    def get_type(self):
         """
         return the type of the expression of this instance
         """
 
         return self._type
 
-
-    def has_context (self):
-        """
-        returns True if expression is given within a context and False otherwise
+    def has_context(self):
+        """returns True if expression is given within a context and False
+        otherwise
         """
 
         return self._hascontext
 
-
-    def get_context (self):
+    def get_context(self):
         """
         returns the context of this expression in case it has any and None
         otherwise
@@ -118,32 +112,29 @@ class DBExpression:
 
         return self._contexts
 
-
-    def eval_filevar (self,  data):
-        """
-        evaluates the filevar given in the expression of this instance and
-        update the data namespace with information from it. It prevents reading
-        the given file if it already exists in the namespace.
+    def eval_filevar(self,  data):
+        """evaluates the filevar given in the expression of this instance and update
+        the data namespace with information from it. It prevents reading the
+        given file if it already exists in the namespace.
 
         This method actually modifies the data namespace
         """
 
         # only in case this file has not been read before
         if self._expression not in data:
-            self._logger.debug (" Reading the contents of file '%s' in the data namespace" % self._expression)
+            self._logger.debug(" Reading file '%s' in the data namespace" %
+                               self._expression)
 
             # open the file, and store its contents into the data namespace
-            with open (self._expression, 'r') as stream:
-                data [self._expression] = stream.read ()
+            with open(self._expression, 'r') as stream:
+                data[self._expression] = stream.read()
 
             # close and exit
             stream.close
 
-
-    def eval_snippet (self, dbspec, sys, data, param, regexp, snippet, user):
-        """
-        evaluates the expression stored in this instance which is certainly
-        known to be a snippet.
+    def eval_snippet(self, dbspec, sys, data, param, regexp, snippet, user):
+        """evaluates the expression stored in this instance which is certainly known
+        to be a snippet.
 
         The evaluation of a snippet goes through the following steps:
 
@@ -165,24 +156,27 @@ class DBExpression:
         uses all the other namespaces for retrieving data
         """
 
-        def _cast_value (value, itype):
+        def _cast_value(value, itype):
             """
             converts the given value to the specified type
             """
 
-            if itype == "text": value = str (value)
-            elif itype == "integer": value = int (value)
-            elif itype == "real": value = float (value)
+            if itype == "text":
+                value = str(value)
+            elif itype == "integer":
+                value = int(value)
+            elif itype == "real":
+                value = float(value)
             else:
-                self._logger.error (" Unknown type '%s'" % itype)
+                self._logger.error(" Unknown type '%s'" % itype)
                 raise TypeError
 
             return value
 
         # Get information about the snippet whose name is specified in the
         # expression under evaluation
-        (prefix, variable) = string.split (self._expression, '.')
-        isnippet = dbspec.get_snippet (prefix)
+        (prefix, variable) = string.split(self._expression, '.')
+        isnippet = dbspec.get_snippet(prefix)
 
         # Step #1
         # ---------------------------------------------------------------------
@@ -192,44 +186,44 @@ class DBExpression:
 
         # for every input variable, compute its value and update the dictionary
         # of globals
-        for ivariable in isnippet.get_inputvars ():
+        for ivariable in isnippet.get_inputvars():
 
             # simply create a dbexpression and requests its evaluation
-            result = DBExpression (ivariable.get_vartype (),
-                                   ivariable.get_variable (),
-                                   self._logger, self._logfilter).eval (dbspec,
-                                                                        sys,
-                                                                        data,
-                                                                        param,
-                                                                        regexp,
-                                                                        snippet,
-                                                                        user)
+            result = DBExpression(ivariable.get_vartype(),
+                                  ivariable.get_variable(),
+                                  self._logger, self._logfilter).eval(dbspec,
+                                                                      sys,
+                                                                      data,
+                                                                      param,
+                                                                      regexp,
+                                                                      snippet,
+                                                                      user)
 
             # cast this value to its corresponding type as specified by the
             # user. Two different cases are allowed: either the input variable
             # is a list or it is a scalar value. In the first case, all items
             # are casted, in the second one just the scalar is casted to the
             # desiredy type
-            if isinstance (result, list):
-                result = map (lambda x:_cast_value (x, ivariable.get_type ()),
-                              result)
+            if isinstance(result, list):
+                result = map(lambda x: _cast_value(x, ivariable.get_type()),
+                             result)
             else:
-                result = _cast_value (result, ivariable.get_type ())
+                result = _cast_value(result, ivariable.get_type())
 
             # and now add this variable to the dictionary of globals
-            dglobals [ivariable.get_identifier ()] = result
+            dglobals[ivariable.get_identifier()] = result
 
         # Step #2
         # ---------------------------------------------------------------------
         # compile the python file and execute it
-        with open (isnippet.get_filecode ()) as stream:
+        with open(isnippet.get_filecode()) as stream:
 
-            contents = stream.read ()
-            fobject = compile (contents, isnippet.get_filecode (), 'exec')
+            contents = stream.read()
+            fobject = compile(contents, isnippet.get_filecode(), 'exec')
 
             # and now evaluate its contants using the dictionary of globals
             # computed in the previous step
-            eval (fobject, dglobals)
+            eval(fobject, dglobals)
 
         # Step #3
         # ---------------------------------------------------------------------
@@ -241,18 +235,17 @@ class DBExpression:
         # different snippets (which are then distinguished by their
         # name). Compute the keys and values as the output variable names and
         # values returned by the evaluation of the snippet
-        keys = tuple ([jvariable.get_identifier ()
-                       for jvariable in isnippet.get_outputvars ()])
-        values = [dglobals [jvariable.get_identifier ()]
-                  for jvariable in isnippet.get_outputvars ()]
+        keys = tuple([jvariable.get_identifier()
+                      for jvariable in isnippet.get_outputvars()])
+        values = [dglobals[jvariable.get_identifier()]
+                  for jvariable in isnippet.get_outputvars()]
 
         # Now, declare this snippet as a multi-key attribute whose keys are the
         # output variables
-        snippet.setkeynames (prefix, *keys)
-        snippet.setattr (prefix,
-                         key = dict (zip (keys, keys)),
-                         value = [tuple (values)])
-
+        snippet.setkeynames(prefix, *keys)
+        snippet.setattr(prefix,
+                        key=dict(zip(keys, keys)),
+                        value=[tuple(values)])
 
     def eval (self, dbspec, sys, data, param, regexp, snippet, user):
         """
@@ -502,5 +495,5 @@ class DBExpression:
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

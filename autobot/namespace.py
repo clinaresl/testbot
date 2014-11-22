@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Feb 19 18:17:04 2014 Carlos Linares Lopez>
-# Last update <domingo, 19 octubre 2014 15:19:59 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:05:05 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -686,5 +686,5 @@ if __name__ != '__main__':
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

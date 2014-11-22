@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 10 00:58:44 2014 Carlos Linares Lopez>
-# Last update <domingo, 10 agosto 2014 01:12:35 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 22 noviembre 2014 00:56:02 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -24,9 +24,9 @@ tty color definitions
 
 # globals
 # -----------------------------------------------------------------------------
-__version__  = '1.0'
+__version__ = '1.0'
 __revision__ = '$Revision$'
-__date__     = '$Date$'
+__date__ = '$Date$'
 
 # global variables
 # -----------------------------------------------------------------------------
@@ -79,5 +79,5 @@ darkwhiteunderlined = "\033[4;37m"
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

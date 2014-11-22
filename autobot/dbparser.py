@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <martes, 21 octubre 2014 07:56:38 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:05:12 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -1399,5 +1399,5 @@ class FileDBParser (DBParser):
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

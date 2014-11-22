@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <miércoles, 24 septiembre 2014 07:41:03 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:05:01 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -179,5 +179,5 @@ class dbaccess(sqldb):
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:

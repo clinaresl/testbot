@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 19 16:34:26 2014 Carlos Linares Lopez>
-# Last update <viernes, 19 septiembre 2014 17:31:12 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 20 noviembre 2014 14:05:31 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -127,5 +127,5 @@ class ContextFilter(logging.Filter):
 
 # Local Variables:
 # mode:python
-# fill-column:80
+# fill-column:79
 # End:
