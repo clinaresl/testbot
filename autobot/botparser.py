@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <jueves, 20 noviembre 2014 17:12:09 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 24 noviembre 2014 23:36:30 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -665,7 +665,7 @@ class BotParser (object):
             # Note that other fields are added below to register the right
             # timings when every parsing started/ended
             BotParser._namespace.index = idx
-            BotParser._namespace.name = itxtfile
+            BotParser._namespace.name = os.path.basename(itxtfile)
             BotParser._namespace.date = datetime.datetime.now().strftime("%Y-%m-%d")
             BotParser._namespace.time = datetime.datetime.now().strftime("%H:%M:%S")
             BotParser._namespace.startfullparsedatetime = datetime.datetime.now()
