@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 15 10:29:48 2015 Carlos Linares Lopez>
-# Last update <miércoles, 15 abril 2015 18:01:13 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 15 abril 2015 22:23:59 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -38,8 +38,11 @@ from autobot import logutils            # logging utils
 
 import logging                          # loggers
 import os                               # operating system utilities
+import shutil                           # for copying trees
+import site                             # to find Python installation dirs
 import string                           # string services: find
 import subprocess                       # services to launch other execs
+import sys                              # binaries/modules path
 
 # -----------------------------------------------------------------------------
 # CondorDescriptionFile
@@ -100,10 +103,7 @@ class CondorDescriptionFile(object):
         
         # show the parameters provided by the command line on the console
         self.show_switches ()
-
-            
-        self._logger.debug (" A Condor submission description file for executable '%s' has been created" % self._solver)
-
+        
 
     # -----------------------------------------------------------------------------
     # check_flags
@@ -176,6 +176,66 @@ class CondorDescriptionFile(object):
       * Notify               : %s
      -----------------------------------------------------------------------------""" % (__revision__[1:-1], __date__[1:-2], __version__, self._solver, self._tstfile, self._dbfile, self._check, self._directory, {False: 'disabled', True: 'enabled'}[self._compress], self._timeout, self._memory * 1024**3, self._jobname, {False: 'True', True: 'False'}[self._nonice], {False: 'disabled', True: self._notify}[self._notify!=None]))
 
+    # -----------------------------------------------------------------------------
+    # copy_autobot
+    #
+    # it copies the installation of autobot and testbot in the current machine
+    # to a dedicated directory with the given name.
+    # -----------------------------------------------------------------------------
+    def copy_autobot (self, dst):
+        """
+        it copies the installation of autobot and testbot in the current machine to
+        a dedicated directory with the given name.
+        """
+
+        # for every directory where autobot might be found
+        for idir in site.getsitepackages():
+
+            # in case autobot resides here
+            if os.path.exists(os.path.join(idir, 'autobot')):
+
+                # copy it ignoring the pyc files and exit
+                shutil.copytree(os.path.join(idir, 'autobot'),
+                                os.path.join(os.getcwd(), dst),
+                                ignore=shutil.ignore_patterns("*.pyc"))
+                break
+
+        # if control reaches this point then autobot has not been found, raise
+        # then an error
+        else:
+            raise ValueError(" 'autobot' has not been found in the current Python installation!")
+    
+
+    # -----------------------------------------------------------------------------
+    # copy_testbot
+    #
+    # it copies the installation of testbot.py in the current machine to a
+    # dedicated directory with the given name.
+    # -----------------------------------------------------------------------------
+    def copy_testbot (self, dst):
+        """
+        it copies the installation of testbot.py in the current machine to a
+        dedicated directory with the given name.
+        """
+
+        # for every directory where autobot might be found
+        for idir in sys.path:
+
+            print " * idir: %s" % idir
+            
+            # in case autobot resides here
+            if os.path.exists(os.path.join(idir, 'testbot.py')):
+
+                # copy it and exit
+                shutil.copy(os.path.join(idir, 'testbot.py'),
+                            os.path.join(os.getcwd(), dst))
+                break
+                
+        # if control reaches this point then testbot.py has not been found,
+        # raise then an error
+        else:
+            raise ValueError(" 'testbot.py' has not been found in the current Python installation!")
+    
 
     # -----------------------------------------------------------------------------
     # generate
@@ -311,7 +371,8 @@ class CondorDescriptionFile(object):
     # submit
     #
     # this function submits the specified condor submission description file to
-    # the condor queue
+    # the condor queue. If necessary, it copies autobot and testbot so that
+    # condor can get them
     # -----------------------------------------------------------------------------
     def submit (self, condordesc):
         """
@@ -319,6 +380,21 @@ class CondorDescriptionFile(object):
         the condor queue
         """
 
+        # in case copy-files was requested
+        target = 'testbot'
+        if self._copyfiles:
+        
+            # first, make sure there is no directory called 'testbot'
+            if os.path.exists(os.path.join(os.getcwd(), target)):
+                self._logger.fatal(" The target directory '%s' already exists!" % target)
+                raise ValueError(" The target directory '%s' already exists!" % target)
+
+            # now, copy the installation of autobot
+            self.copy_autobot(target)
+
+            # and also the installation of testbot.py
+            self.copy_testbot(target)
+        
         # redirect the log and standard output to different files so that the
         # whole output is recorded
         (fdlog, fderr) = (os.open (os.path.join (os.getcwd (), condordesc + "_q.log"),
