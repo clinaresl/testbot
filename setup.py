@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Dec 11 21:27:32 2013 Carlos Linares Lopez>
-# Last update <viernes, 19 septiembre 2014 16:39:56 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 15 abril 2015 10:37:59 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -82,7 +82,7 @@ setup(name='testbot',
       description='automates the tests of (hopefully) any executable under Linux OSs',
       long_description=read ('README.md'),
       packages = ['autobot'],
-      scripts = ['scripts/testbot.py', 'scripts/parsebot.py'],
+      scripts = ['scripts/testbot.py', 'scripts/parsebot.py', 'scripts/condorize.py'],
       requires = ['ply (>=3.4)'],
       provides = ['autobot', 'testbot', 'parsebot'],
       classifiers = [

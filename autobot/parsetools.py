@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Dec 14 00:04:20 2013 Carlos Linares Lopez>
-# Last update <jueves, 20 noviembre 2014 14:05:28 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 15 abril 2015 12:32:06 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -166,7 +166,7 @@ class ShowDatabaseSpec (argparse.Action):
 #
 # Provides an argument parser that can be reused/extended for the BotTester
 # -----------------------------------------------------------------------------
-class BotTestArgParser ():
+class BotTestArgParser (object):
     """
     Provides an argument parser that can be reused/extended for the BotTester
     """
@@ -262,6 +262,44 @@ class BotTestArgParser ():
 
         return self._parser.parse_args ()
 
+
+# -----------------------------------------------------------------------------
+# CondorArgParser
+#
+# Provides an argument parser that can be reused/extended for Condorize
+# -----------------------------------------------------------------------------
+class CondorArgParser ( BotTestArgParser ):
+    """
+    Provides an argument parser that can be reused/extended for Condorize
+    """
+
+    def __init__ (self):
+        """
+        create a parser and store its contents in this instance
+        """
+
+        # invoke the constructor of the base class so that all the parsing
+        # options for testbot are available here as well
+        super(CondorArgParser, self).__init__()
+
+        # and now add new optional arguments
+        self._optional.add_argument('-J', '--job-name',
+                                    type=str,
+                                    help='sets the condor job name as shown in the condor queue')
+        self._optional.add_argument('-U', '--no-nice-user',
+                                    dest='nonice',
+                                    action='store_true',
+                                    help="runs the condor job as a no nice user, hence getting additional privileges")
+        self._optional.add_argument('-E', '--notify',
+                                    default=None,
+                                    help='if given condor notifies the given e-mail address upon termination')
+        self._optional.add_argument('-C', '--copy-files',
+                                    action='store_true',
+                                    help="in case testbot is not available in the pool machines, copy-files distributes it automatically")
+        self._optional.add_argument('-R', '--submit',
+                                    action='store_true',
+                                    help='if given, this script also submits the newly created condor job to the condor queue')
+        
 
 # -----------------------------------------------------------------------------
 # ShowPlaceHoldersParser
