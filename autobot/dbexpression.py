@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Sep 28 00:22:50 2014 Carlos Linares Lopez>
-# Last update <sábado, 22 noviembre 2014 00:55:19 Carlos Linares Lopez (clinares)>
+# Last update <jueves, 16 abril 2015 00:04:47 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -75,7 +75,7 @@ class DBExpression:
         self._type, self._expression, self._logfilter = \
             (exptype, expression, logfilter)
 
-        # # Do this expression contain a context? If so, process them in a list
+        # Do this expression contain a context? If so, process them in a list
         if string.count(expression, dbparser.DBParser.t_SLASH) > 0:
             self._hascontext = True
             self._contexts = string.split(expression, dbparser.DBParser.t_SLASH)
