@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 15 10:29:48 2015 Carlos Linares Lopez>
-# Last update <miércoles, 15 abril 2015 22:23:59 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 19 abril 2015 01:07:04 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -59,9 +59,9 @@ class CondorDescriptionFile(object):
 
     def __init__(self, solver, tstfile, dbfile, timeout, memory,
                  output, check, directory, compress, 
-                 jobname, nonice, notify, copyfiles, submit,
-                 logfile, loglevel,
-                 quiet):
+                 jobname, nonice, notify, copyfiles,
+                 transfer_input_files, transfer_output_files, submit,
+                 logfile, loglevel, quiet):
         """
         creates an instance of a new Condor Description File which is used to
         run testbot with the given parameters considering only a single solver
@@ -71,15 +71,27 @@ class CondorDescriptionFile(object):
         # normalizedq
         (self._solver, self._tstfile, self._dbfile, self._timeout, self._memory,
          self._output, self._check, self._directory, self._compress, 
-         self._jobname, self._nonice, self._notify, self._copyfiles, self._submit,
-         self._logfile, self._loglevel,
-         self._quiet) = \
+         self._jobname, self._nonice, self._notify, self._copyfiles,
+         self._transfer_input_files, self._transfer_output_files, self._submit,
+         self._logfile, self._loglevel, self._quiet) = \
         (solver, tstfile, dbfile, timeout, memory,
          output, check, os.path.normpath(directory), compress,
-         jobname, nonice, notify, copyfiles, submit,
-         os.path.normpath(logfile), loglevel,
-         quiet)
+         jobname, nonice, notify, copyfiles,
+         transfer_input_files, transfer_output_files, submit,
+         logfile, loglevel, quiet)
 
+        # make sure to process the logfile correctly in case it was given a
+        # value
+        if logfile:
+            self._logfile = os.path.normpath(logfile)
+
+        # likewise, normalize the directories given in
+        # transfer_input/output_files as well
+        self._transfer_input_files = map (lambda x:os.path.normpath(x),
+                                          self._transfer_input_files)
+        self._transfer_output_files = map(lambda x:os.path.normpath(x),
+                                          self._transfer_output_files)
+        
         # set up a logger
         logutils.configure_logger (os.getcwd (), None, args.level)
         self._logger = logging.getLogger ("Main")
@@ -136,7 +148,20 @@ class CondorDescriptionFile(object):
         if(self._jobname and string.find(self._jobname, os.path.sep)>=0):
             self._logger.fatal(" The job name can not contain the character '%s'" % os.path.sep)
             raise ValueError(" The job name can not contain the character '%s'" % os.path.sep)
-        
+
+        # verify also that all directories referred in transfier_input_files and
+        # transfer_output_files exist, are accessible and are rooted in the
+        # current working directory
+        for ifile in self._transfer_input_files:
+            if os.path.dirname(ifile):
+                self._logger.fatal(" The directory %s given in transfer_input_files should be local to the current working directory" % ifile)
+                raise ValueError(" The directory %s given in transfer_input_files should be local to the current working directory" % ifile)
+
+        for ifile in self._transfer_output_files:
+            if os.path.dirname(ifile):
+                self._logger.fatal(" The directory %s given in transfer_output_files should be local to the current working directory" % ifile)
+                raise ValueError(" The directory %s given in transfer_output_files should be local to the current working directory" % ifile)
+            
         # show a warning in case nonice is enabled
         if self._nonice:
             self._logger.warning("""
@@ -160,21 +185,23 @@ class CondorDescriptionFile(object):
         self._logger.info ("""
       %s %s %s
      -----------------------------------------------------------------------------
-      * Solver               : %s
-      * Tests                : %s
-      * Database             : %s
+      * Solver                : %s
+      * Tests                 : %s
+      * Database              : %s
 
-      * Check flag           : %.2f seconds
+      * Check flag            : %.2f seconds
 
-      * Directory            : %s
-      * Compression          : %s
-      * Time limit           : %i seconds
-      * Memory bound         : %i bytes
+      * Directory             : %s
+      * Compression           : %s
+      * Time limit            : %i seconds
+      * Memory bound          : %i bytes
 
-      * Job name             : %s
-      * Nice user            : %s
-      * Notify               : %s
-     -----------------------------------------------------------------------------""" % (__revision__[1:-1], __date__[1:-2], __version__, self._solver, self._tstfile, self._dbfile, self._check, self._directory, {False: 'disabled', True: 'enabled'}[self._compress], self._timeout, self._memory * 1024**3, self._jobname, {False: 'True', True: 'False'}[self._nonice], {False: 'disabled', True: self._notify}[self._notify!=None]))
+      * Job name              : %s
+      * Nice user             : %s
+      * Notify                : %s
+      * transfer_input_files  : %s
+      * transfer_output_files : %s
+     -----------------------------------------------------------------------------""" % (__revision__[1:-1], __date__[1:-2], __version__, self._solver, self._tstfile, self._dbfile, self._check, self._directory, {False: 'disabled', True: 'enabled'}[self._compress], self._timeout, self._memory * 1024**3, self._jobname, {False: 'True', True: 'False'}[self._nonice], {False: 'disabled', True: self._notify}[self._notify!=None], self._transfer_input_files, self._transfer_output_files))
 
     # -----------------------------------------------------------------------------
     # copy_autobot
@@ -305,7 +332,6 @@ class CondorDescriptionFile(object):
         spec += " --check %s" % self._check
         spec += " --directory '%s'" % self._directory
         spec += " --output '%s'" % self._output
-        spec += " --logfile '%s'" % self._logfile
         spec += " --loglevel %s" % self._loglevel
 
         # second, other optional parameters that might affect its behaviour
@@ -337,7 +363,9 @@ class CondorDescriptionFile(object):
         # requested
         spec += "transfer_input_files = %s, %s, %s" % (self._solver, self._tstfile, self._dbfile)
         if self._copyfiles:
-            spec+= ", testbot"
+            spec += ", testbot"
+        for ifile in self._transfer_input_files:
+            spec += ", %s" % ifile
         spec += '\n'
 
         # files to transfer from the backend node - just the output directory
@@ -345,6 +373,8 @@ class CondorDescriptionFile(object):
         spec += "transfer_output_files = %s" % self._directory
         if self._logfile:
             spec += ", %s" % self._logfile
+        for ifile in self._transfer_output_files:
+            spec += ", %s" % ifile
         spec += '\n'
 
         spec += '\n'
@@ -438,7 +468,8 @@ if __name__ == '__main__':
         condorfile = CondorDescriptionFile(ijob, args.tests, args.db, args.timeout, args.memory,
                                            args.output, args.check, args.directory, args.bz2,
                                            args.job_name, args.nonice, args.notify,
-                                           args.copy_files, args.submit,
+                                           args.copy_files, args.transfer_input_files,
+                                           args.transfer_output_files, args.submit,
                                            args.logfile, args.level,
                                            args.quiet)
 

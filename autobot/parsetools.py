@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Dec 14 00:04:20 2013 Carlos Linares Lopez>
-# Last update <miércoles, 15 abril 2015 12:32:06 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 19 abril 2015 01:08:20 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -296,9 +296,17 @@ class CondorArgParser ( BotTestArgParser ):
         self._optional.add_argument('-C', '--copy-files',
                                     action='store_true',
                                     help="in case testbot is not available in the pool machines, copy-files distributes it automatically")
+        self._optional.add_argument('-I', '--transfer-input-files',
+                                    nargs='*',
+                                    default=[],
+                                    help='if any files/directories are given here they are then added to transfer_input_files. There is no need to select here files/directories referred to with other directives')
+        self._optional.add_argument('-O', '--transfer-output-files',
+                                    nargs='*',
+                                    default=[],
+                                    help='if any files/directories are given here they are then added to transfer_output_files. There is no need to select here files/directories referred to with other directives')
         self._optional.add_argument('-R', '--submit',
                                     action='store_true',
-                                    help='if given, this script also submits the newly created condor job to the condor queue')
+                                    help='if given, this script also submits the newly created condor job to the condor queue. It generates two files named after the job name and suffixes ".log" and ".err" that show the standard output and error respectively')
         
 
 # -----------------------------------------------------------------------------
