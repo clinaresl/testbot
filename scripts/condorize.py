@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 15 10:29:48 2015 Carlos Linares Lopez>
-# Last update <domingo, 19 abril 2015 23:43:11 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 19 abril 2015 23:46:47 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -302,7 +302,7 @@ class CondorDescriptionFile(object):
         
 
         # first of all, make sure the logs directory exists. If not, create it
-        if not os.access('logs', F_OK):
+        if not os.path.exists ('logs'):
             os.mkdir ('logs')
         
         # initialization
