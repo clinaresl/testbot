@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 15 10:29:48 2015 Carlos Linares Lopez>
-# Last update <lunes, 20 abril 2015 00:12:52 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 abril 2015 00:21:07 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -371,7 +371,7 @@ class CondorDescriptionFile(object):
         spec += " --memory %s" % self._memory
         spec += " --check %s" % self._check
         spec += " --output %s" % self._output
-        spec += " --loglevel %s" % self._loglevel
+        spec += " --level %s" % self._loglevel
 
         # second, other optional parameters that might affect its behaviour
         if os.getcwd()!=os.path.abspath('./'):
