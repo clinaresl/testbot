@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 15 10:29:48 2015 Carlos Linares Lopez>
-# Last update <domingo, 19 abril 2015 01:07:04 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 19 abril 2015 23:21:42 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -91,7 +91,7 @@ class CondorDescriptionFile(object):
                                           self._transfer_input_files)
         self._transfer_output_files = map(lambda x:os.path.normpath(x),
                                           self._transfer_output_files)
-        
+
         # set up a logger
         logutils.configure_logger (os.getcwd (), None, args.level)
         self._logger = logging.getLogger ("Main")
@@ -161,6 +161,14 @@ class CondorDescriptionFile(object):
             if os.path.dirname(ifile):
                 self._logger.fatal(" The directory %s given in transfer_output_files should be local to the current working directory" % ifile)
                 raise ValueError(" The directory %s given in transfer_output_files should be local to the current working directory" % ifile)
+
+        # more over, make sure that files in transfer-input-files consist of a
+        # single level(dunno exactly why, I am not able to make condor transfer
+        # files correctly when more than one level is given ...)
+        for ifile in self._transfer_input_files:
+            if len(string.split(os.path.dirname(os.path.normpath(ifile)), '/')) > 1:
+                self._logger.fatal(" It is not possible to specify files to be transferred in the input which are nested more than one level")
+                raise ValueError(" It is not possible to specify files to be transferred in the input which are nested more than one level")
             
         # show a warning in case nonice is enabled
         if self._nonice:
@@ -283,6 +291,14 @@ class CondorDescriptionFile(object):
         It returns the name of the condor submission description file generated
         """
 
+        def _normdirname(path):
+            """
+            returns the directory of the given path after normalizing it
+            """
+
+            return os.path.dirname(os.path.normpath(path))
+        
+        
         # initialization
         spec = str()
 
@@ -360,12 +376,38 @@ class CondorDescriptionFile(object):
         # ---------------------------------------------------------------------
         # files to transfer to the backend node: the solver, and the tests and
         # db specification files and the directory testbot in case copyfiles was
-        # requested
-        spec += "transfer_input_files = %s, %s, %s" % (self._solver, self._tstfile, self._dbfile)
+        # requested. Regarding the solver and the configuration files, only the
+        # directories have to be specified
+
+        # create a list with these directories
+        paths = []
+        for ifile in [self._solver, self._tstfile, self._dbfile]:
+
+            # if this path starts with a directory
+            if string.split(_normdirname(ifile), '/') [0]:
+                paths.append(string.split(_normdirname(ifile), '/') [0])
+
+        # also, add to the list of paths to transfer, the testbot directory in
+        # case copy-files was requested and also all directories specified in
+        # transfer-input-files
         if self._copyfiles:
-            spec += ", testbot"
+            paths.append("testbot")
         for ifile in self._transfer_input_files:
-            spec += ", %s" % ifile
+            paths.append(ifile)
+                
+        # now, ensure that there are no duplicates
+        paths=list(set(paths))
+
+        # in case there is at least one file in paths, or copy-files has been
+        # requested or transfer-input-files has been given, then create an entry
+        # for this directive
+        if len(paths) > 0:
+            spec += "transfer_input_files = %s" % paths[0]
+
+            # and copy the rest all one after the other
+            for ipath in paths[1:]:
+                spec += ", %s" % ipath
+            
         spec += '\n'
 
         # files to transfer from the backend node - just the output directory
