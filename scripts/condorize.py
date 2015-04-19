@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 15 10:29:48 2015 Carlos Linares Lopez>
-# Last update <lunes, 20 abril 2015 00:21:07 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 abril 2015 00:30:29 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -513,7 +513,7 @@ class CondorDescriptionFile(object):
         # condor submission description file. The standard output and standard
         # error are written to specific files.
         try:
-            child = subprocess.Popen (["condor_q", condordesc],
+            child = subprocess.Popen (["condor_submit", condordesc],
                                       stdout = fdlog,
                                       stderr = fderr,
                                       cwd=os.getcwd())
