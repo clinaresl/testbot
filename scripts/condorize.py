@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 15 10:29:48 2015 Carlos Linares Lopez>
-# Last update <domingo, 19 abril 2015 23:37:50 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 19 abril 2015 23:43:11 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -112,10 +112,9 @@ class CondorDescriptionFile(object):
         else:
             self._jobname += '.condor'
 
-        
         # show the parameters provided by the command line on the console
         self.show_switches ()
-        
+
 
     # -----------------------------------------------------------------------------
     # check_flags
@@ -156,7 +155,7 @@ class CondorDescriptionFile(object):
             if os.path.dirname(ifile):
                 self._logger.fatal(" The directory %s given in transfer_input_files should be local to the current working directory" % ifile)
                 raise ValueError(" The directory %s given in transfer_input_files should be local to the current working directory" % ifile)
-            if not os.access (ifile, os.F_OK || os.X_OK):
+            if not os.access (ifile, os.F_OK | os.X_OK):
                 self._logger.fatal(" The directory %s does not exist or it is unaccessible" % ifile)
                 raise ValueError(" The directory %s does not exist or it is unaccessible" % ifile)
 
@@ -301,6 +300,10 @@ class CondorDescriptionFile(object):
 
             return os.path.dirname(os.path.normpath(path))
         
+
+        # first of all, make sure the logs directory exists. If not, create it
+        if not os.access('logs', F_OK):
+            os.mkdir ('logs')
         
         # initialization
         spec = str()
