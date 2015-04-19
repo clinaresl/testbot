@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 15 10:29:48 2015 Carlos Linares Lopez>
-# Last update <domingo, 19 abril 2015 23:46:47 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 abril 2015 00:12:52 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -126,6 +126,24 @@ class CondorDescriptionFile(object):
         check the parameters given
         """
 
+        # make sure that neither the solver nor the specification files are
+        # given as a path which is nested more than one level.
+        for ifile in [self._solver, self._tstfile, self._dbfile]:
+            if len(string.split(os.path.dirname(os.path.normpath(ifile)), '/')) > 1:
+                self._logger.fatal(" It is not possible to specify files which are nested more than one level: %s" % ifile)
+                raise ValueError(" It is not possible to specify files which are nested more than one level: %s" % ifile)
+            
+        # Also, ensure that these files exist and, in the specific case of the
+        # solver, that it can be executed
+        if not os.access(self._solver, os.F_OK | os.X_OK):
+            self._logger.fatal(" The solver %s does not exist or it is not executable" % ifile)
+            raise ValueError(" The solver %s does not exist or it is not executable" % ifile)
+
+        for ifile in [self._tstfile, self._dbfile]:
+            if not os.access(ifile, os.F_OK):
+                self._logger.fatal(" The configuration file %s does not exist or it is unaccessible" % ifile)
+                raise ValueError(" The configuration file %s does not exist or it is unaccessible" % ifile)
+        
         # issue an error if logfile refers to a directory different than the
         # current one
         if(self._logfile and os.path.dirname(self._logfile)):
@@ -352,11 +370,20 @@ class CondorDescriptionFile(object):
         spec += " --timeout %s" % self._timeout
         spec += " --memory %s" % self._memory
         spec += " --check %s" % self._check
-        spec += " --directory '%s'" % self._directory
-        spec += " --output '%s'" % self._output
+        spec += " --output %s" % self._output
         spec += " --loglevel %s" % self._loglevel
 
         # second, other optional parameters that might affect its behaviour
+        if os.getcwd()!=os.path.abspath('./'):
+            # if the --directory directive took its default value, then do not
+            # add it!
+            spec += " --directory %s" % self._directory
+
+        else:
+            # otherwise, make sure that transfer_output_files contains the name
+            # of the solver. For this, it just suffices to overwrite the value
+            # of self._directory
+            self._directory = os.path.basename(self._solver)
         if self._compress:
             spec += " --bz2"
         if self._logfile:
