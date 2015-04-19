@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 15 10:29:48 2015 Carlos Linares Lopez>
-# Last update <domingo, 19 abril 2015 23:21:42 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 19 abril 2015 23:37:50 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -156,6 +156,9 @@ class CondorDescriptionFile(object):
             if os.path.dirname(ifile):
                 self._logger.fatal(" The directory %s given in transfer_input_files should be local to the current working directory" % ifile)
                 raise ValueError(" The directory %s given in transfer_input_files should be local to the current working directory" % ifile)
+            if not os.access (ifile, os.F_OK || os.X_OK):
+                self._logger.fatal(" The directory %s does not exist or it is unaccessible" % ifile)
+                raise ValueError(" The directory %s does not exist or it is unaccessible" % ifile)
 
         for ifile in self._transfer_output_files:
             if os.path.dirname(ifile):
@@ -360,7 +363,7 @@ class CondorDescriptionFile(object):
         spec += '\n'
             
         # memory
-        spec += "request_memory = %i\n" % (self._memory * 1024)
+        # spec += "request_memory = %i\n" % (self._memory * 1024)
 
         # log files - to keep the current directory as clean as possible, these
         # are written in a subdirectory
