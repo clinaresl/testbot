@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Dec 14 00:04:20 2013 Carlos Linares Lopez>
-# Last update <domingo, 19 abril 2015 01:08:20 Carlos Linares Lopez (clinares)>
+# Last update <lunes, 20 abril 2015 14:55:32 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -176,7 +176,8 @@ class BotTestArgParser (object):
         create a parser and store its contents in this instance
         """
 
-        self._parser = argparse.ArgumentParser (description="Automatically executes any program and records various data. Arguments are processed in the same order they are provided")
+        # initialize a parser
+        self._parser = argparse.ArgumentParser (description="Automatically executes any program and records various data")
 
         # now, add the arguments
 
@@ -277,36 +278,39 @@ class CondorArgParser ( BotTestArgParser ):
         """
         create a parser and store its contents in this instance
         """
-
         # invoke the constructor of the base class so that all the parsing
         # options for testbot are available here as well
         super(CondorArgParser, self).__init__()
 
+        # Group of optional arguments
+        self._condor = self._parser.add_argument_group ('Condor', 'The following arguments are related to HTCondor and they are all optional')
+
+        
         # and now add new optional arguments
-        self._optional.add_argument('-J', '--job-name',
-                                    type=str,
-                                    help='sets the condor job name as shown in the condor queue')
-        self._optional.add_argument('-U', '--no-nice-user',
-                                    dest='nonice',
-                                    action='store_true',
-                                    help="runs the condor job as a no nice user, hence getting additional privileges")
-        self._optional.add_argument('-E', '--notify',
-                                    default=None,
-                                    help='if given condor notifies the given e-mail address upon termination')
-        self._optional.add_argument('-C', '--copy-files',
-                                    action='store_true',
-                                    help="in case testbot is not available in the pool machines, copy-files distributes it automatically")
-        self._optional.add_argument('-I', '--transfer-input-files',
-                                    nargs='*',
-                                    default=[],
-                                    help='if any files/directories are given here they are then added to transfer_input_files. There is no need to select here files/directories referred to with other directives')
-        self._optional.add_argument('-O', '--transfer-output-files',
-                                    nargs='*',
-                                    default=[],
-                                    help='if any files/directories are given here they are then added to transfer_output_files. There is no need to select here files/directories referred to with other directives')
-        self._optional.add_argument('-R', '--submit',
-                                    action='store_true',
-                                    help='if given, this script also submits the newly created condor job to the condor queue. It generates two files named after the job name and suffixes ".log" and ".err" that show the standard output and error respectively')
+        self._condor.add_argument('-J', '--job-name',
+                                  type=str,
+                                  help='sets the condor job name as shown in the condor queue')
+        self._condor.add_argument('-U', '--no-nice-user',
+                                  dest='nonice',
+                                  action='store_true',
+                                  help="runs the condor job as a no nice user, hence getting additional privileges")
+        self._condor.add_argument('-E', '--notify',
+                                  default=None,
+                                  help='if given condor notifies the given e-mail address upon termination')
+        self._condor.add_argument('-C', '--copy-files',
+                                  action='store_true',
+                                  help="in case testbot is not available in the pool machines, copy-files distributes it automatically")
+        self._condor.add_argument('-I', '--transfer-input-files',
+                                  nargs='*',
+                                  default=[],
+                                  help='if any files/directories are given here they are then added to transfer_input_files. There is no need to select here files/directories referred to with other directives')
+        self._condor.add_argument('-O', '--transfer-output-files',
+                                  nargs='*',
+                                  default=[],
+                                  help='if any files/directories are given here they are then added to transfer_output_files. There is no need to select here files/directories referred to with other directives')
+        self._condor.add_argument('-R', '--submit',
+                                  action='store_true',
+                                  help='if given, this script also submits the newly created condor job to the condor queue. It generates two files named after the job name and suffixes ".log" and ".err" that show the standard output and error respectively')
         
 
 # -----------------------------------------------------------------------------
