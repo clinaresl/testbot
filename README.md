@@ -62,47 +62,47 @@ run under simple scenarios.
 	`testbot`. They are preceded by the character `@` or the
 	prefix `dir`
 
-        + Parameters: the value of any directive passed to the
-        executable (which are specified in the test specification
-        file) identified by their location. They are used only by
-        `testbot`. They are preceded by the character `$` or the
-        prefix `param`
+	+ Parameters: the value of any directive passed to the
+	executable (which are specified in the test specification
+	file) identified by their location. They are used only by
+	`testbot`. They are preceded by the character `$` or the
+	prefix `param`
 
-        + User variables: strings (either single or doubled quoted
-        just in case they contain blank characters) that contain
-        information specific to third-party software. They are
-        preceded by the character `~` or the prefix `user`
+	+ User variables: strings (either single or doubled quoted
+	just in case they contain blank characters) that contain
+	information specific to third-party software. They are
+	preceded by the character `~` or the prefix `user`
 
-        + Regular expressions: regexps are defined separately in the
-        database specification file and can be used in the
-        specification of database tables to refer to the various
-        groups that result every time a match is found. Importantly,
-        regexps can be compound to create *contexts* where the output
-        of one regular expression is given to the next one. The head
-        of a context can be any variable (or a snippet defined below),
-        but a regexp.
+	+ Regular expressions: regexps are defined separately in the
+	database specification file and can be used in the
+	specification of database tables to refer to the various
+	groups that result every time a match is found. Importantly,
+	regexps can be compound to create *contexts* where the output
+	of one regular expression is given to the next one. The head
+	of a context can be any variable (or a snippet defined below),
+	but a regexp.
 
-        + Snippets: (Python) snippets are also defined separately in
-        the database specification file and can be used in the
-        specification of database tables to refer to the different
-        output variables that are computed by the (Python) snippet.
+	+ Snippets: (Python) snippets are also defined separately in
+	the database specification file and can be used in the
+	specification of database tables to refer to the different
+	output variables that are computed by the (Python) snippet.
 
   Depending upon the information stored in every table, they can be of
   different types:
 
-        + Sys tables: they store *only* sys variables. Sys tables are
-        populated with information extracted in every cycle of the
-        execution
+	+ Sys tables: they store *only* sys variables. Sys tables are
+	populated with information extracted in every cycle of the
+	execution
 
-        + Data tables: they hold any type of variable but sys
-        variables. They are populated with information extracted after
-        the execution of a particular solver or the parsing of a
-        specific file.
+	+ Data tables: they hold any type of variable but sys
+	variables. They are populated with information extracted after
+	the execution of a particular solver or the parsing of a
+	specific file.
 
-        + User tables: they can not contain sys variables and are
-        never used by autobot. They are just defined for giving
-        third-party software the possibility to store private
-        information.
+	+ User tables: they can not contain sys variables and are
+	never used by autobot. They are just defined for giving
+	third-party software the possibility to store private
+	information.
 
 While `autobot` accepts an arbitrary selection of text files,
 `testbot` accepts an arbitrary selection of *solvers* specified with
@@ -155,7 +155,7 @@ Other optional parameters that affect the behaviour of testbot are:
   can be used. To see a comprehensive list of the available
   placeholders type:
 
-    $ testbot.py --show-placeholders
+      $ testbot.py --show-placeholders
 
 * directory: target directory where all information is
   recorded. autobot automatically creates a subdirectory per
