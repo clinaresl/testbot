@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:03:37 2014 Carlos Linares Lopez>
-# Last update <viernes, 24 abril 2015 23:22:47 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 25 abril 2015 01:29:19 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -187,6 +187,7 @@ class BotTester (object):
     _user      = namespace.Namespace ()         # user space
     _param     = namespace.Namespace ()         # param, dirvar
     _regexp    = namespace.Namespace ()         # regexp
+    _snippet   = namespace.Namespace ()         # snippets of python code
 
     # -----------------------------------------------------------------------------
     # check_flags
@@ -669,12 +670,15 @@ class BotTester (object):
                 # poll all sys tables
                 for itable in self._dbspec.get_db ():
                     if itable.sysp ():
-                        stats [itable.get_name ()] += itable.poll (BotTester._namespace,
-                                                                   BotTester._data,
-                                                                   BotTester._user,
-                                                                   BotTester._param,
-                                                                   BotTester._regexp,
-                                                                   self._logger)
+                        stats [itable.get_name ()] += itable.poll (dbspec=self._dbspec,
+                                                                   namespace=BotTester._namespace,
+                                                                   data=BotTester._data,
+                                                                   param=BotTester._param,
+                                                                   regexp=BotTester._regexp,
+                                                                   snippet=BotTester._snippet,
+                                                                   user=BotTester._user,
+                                                                   logger=self._logger,
+                                                                   logfilter=self._logfilter)
 
                 # update the maximum memory usage
                 max_mem = max (max_mem, total_vsize)
@@ -848,12 +852,15 @@ class BotTester (object):
         # information from the namespace
         for itable in self._dbspec.get_db ():
             if itable.datap ():
-                stats [itable.get_name ()] += itable.poll (BotTester._namespace,
-                                                           BotTester._data,
-                                                           BotTester._user,
-                                                           BotTester._param,
-                                                           BotTester._regexp,
-                                                           self._logger)
+                stats [itable.get_name ()] += itable.poll (dbspec=self._dbspec,
+                                                           namespace=BotTester._namespace,
+                                                           data=BotTester._data,
+                                                           param=BotTester._param,
+                                                           regexp=BotTester._regexp,
+                                                           snippet=BotTester._snippet,
+                                                           user=BotTester._user,
+                                                           logger=self._logger,
+                                                           logfilter=self._logfilter)
 
 
     # -----------------------------------------------------------------------------
@@ -1092,7 +1099,9 @@ class BotTester (object):
           prologue, epilogue, quiet)
 
         # logger settings - if a logger has been passed, just create a child of
-        # it
+        # it and save the log filter since it might be given to other methods
+        # invoked from this class
+        self._logfilter = logfilter
         if logger:
             self._logger = logger.getChild ('bots.BotTester')
 

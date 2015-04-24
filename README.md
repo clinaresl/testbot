@@ -97,15 +97,19 @@ Depending upon the information stored in every table, they can be of
 different types:
 
 * Sys tables: they store *only* sys variables. Sys tables are
-populated with information extracted in every cycle of the execution
+populated with information extracted in every cycle of the
+execution. They have to be preceded by the prefix `sys_`
 
-* Data tables: they hold any type of variable but sys variables. They
-are populated with information extracted after the execution of a
-particular solver or the parsing of a specific file.
+* Data tables: they hold any type of variable (and also sys
+variables). They are populated with information extracted after the
+execution of a particular solver or the parsing of a specific
+file. Thus, if sys variables are included then the last value they
+take is inserted into the database. They have to be preceded by the
+prefix `data_`
 
-* User tables: they can not contain sys variables and are never used
-by autobot. They are just defined for giving third-party software the
-possibility to store private information.
+* User tables: they are never used by autobot. They are just defined
+for giving third-party software the possibility to store private
+information. They have to be preceded by the prefix `user_`
 
 
 # Installation #
