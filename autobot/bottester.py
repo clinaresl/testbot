@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:03:37 2014 Carlos Linares Lopez>
-# Last update <jueves, 20 noviembre 2014 14:05:40 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 24 abril 2015 23:22:47 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -420,12 +420,16 @@ class BotTester (object):
         # now, for each test case
         for itst in self._tstspec:
 
-            # initialize the contents of the main namespace, data and regexp
-            # namespace
+            # namespaces
+            # -------------------------------------------------------------------------
+            # initialize the contents of the namespaces that hold variables
+            # whose value depends upon the output of the current execution
             BotTester._namespace.clear ()
             BotTester._data.clear ()
             BotTester._regexp.clear ()
 
+            # - main (sys) namespace
+            # -------------------------------------------------------------------------
             # initialize the namespace with the parameters passed to the main
             # script (ie., the testbot), mainvars. These are given in
             # self._argnamespace. Since the argparser automatically casts type
@@ -435,9 +439,19 @@ class BotTester (object):
                 for index, value in self._argnamespace.__dict__.items ():
                     BotTester._namespace [index] = str (value)
 
-            # initialize the namespace with the value of some sysvar attributes
-            # (thse are catalogued as sysvar though they are not computed at
-            # every cycle of the execution of the solver)
+            # and also with the following sys variables
+            #
+            #   index         - index of this file in the range [0, ...)
+            #   name          - name of this text file
+            #   date          - current date
+            #   time          - current time
+            #   startdatetime - when the whole parsing started in date/time
+            #                   format
+            #   startruntime - when the whole parsing started in secs from
+            #                  Epoch
+            #
+            # Note that other fields are added below to register the right
+            # timings when every parsing started/ended
             BotTester._namespace.index = itst.get_id ()
             BotTester._namespace.name  = os.path.basename (solver)
             BotTester._namespace.date  = datetime.datetime.now ().strftime ("%Y-%m-%d")
@@ -447,6 +461,8 @@ class BotTester (object):
             # the current namespace
             outputprefix = _sub (self._output)
 
+            # - param namespace
+            # -------------------------------------------------------------------------
             # and now, add the values of all the directives in this testcase in
             # the namespace param. These are automatically casted to string for
             # the convenience of other functions
@@ -462,6 +478,8 @@ class BotTester (object):
                 BotTester._param [str (counter)] = str (iarg)
                 counter += 1
 
+            # running
+            # -------------------------------------------------------------------------
             # if a prologue was given, execute it now passing all parameters
             # (including the start run time which is computed right now)
             startruntime = time.time ()
@@ -679,6 +697,9 @@ class BotTester (object):
      children found: %s""" % timeline.pids ())
                     timeline.terminate ()
 
+
+            # Execution has been completed!
+            # -----------------------------------------------------------------
             # record the exit status of this process
             stats ['admin_status'].append ((itst.get_id (), status))
 
@@ -1146,7 +1167,7 @@ class BotTester (object):
             self.show_switches (solver, self._tstfile, self._dbfile, timeout, memory,
                                 check, directory, compress)
 
-        # is the user overridden the definition of the data regexp?
+        # is the user overriding the definition of the data regexp?
         for iregexp in self._dbspec.get_regexp ():
 
             # if so, override the current definition and show an info message

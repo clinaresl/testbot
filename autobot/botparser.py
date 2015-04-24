@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <lunes, 24 noviembre 2014 23:36:30 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 24 abril 2015 23:10:44 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -628,8 +628,8 @@ class BotParser (object):
 
             # namespaces
             # -------------------------------------------------------------------------
-            # initialize the contents of the main namespace, data, regexp
-            # and snippet namespaces
+            # initialize the contents of the namespaces that hold variables
+            # whose value is dependent upon the contents of the current file
             BotParser._namespace.clear()
             BotParser._data.clear()
             BotParser._regexp.clear()
@@ -913,7 +913,7 @@ class BotParser (object):
         # used
         (resultsdir, configdir) = self.setup (self._directory)
 
-        # is the user overridden the definition of the data regexp?
+        # is the user overriding the definition of the default data regexp?
         for iregexp in self._dbspec.get_regexp ():
 
             # if so, override the current definition and show an info message
