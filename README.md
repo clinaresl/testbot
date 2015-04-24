@@ -87,28 +87,25 @@ run under simple scenarios.
 	specification of database tables to refer to the different
 	output variables that are computed by the (Python) snippet.
 
-Depending upon the information stored in every table, they can be of
-different types:
-
-	+ Sys tables: they store *only* sys variables. Sys tables are
-	populated with information extracted in every cycle of the
-	execution
-
-	+ Data tables: they hold any type of variable but sys
-	variables. They are populated with information extracted after
-	the execution of a particular solver or the parsing of a
-	specific file.
-
-	+ User tables: they can not contain sys variables and are
-	never used by autobot. They are just defined for giving
-	third-party software the possibility to store private
-	information.
-
 While `autobot` accepts an arbitrary selection of text files,
 `testbot` accepts an arbitrary selection of *solvers* specified with
 regular expressions. The information retrieved from either script is
 then available in sqlite3 databases that can be used later to access
 data or to plot figures directly (e.g., using pipelines in gnuplot).
+
+Depending upon the information stored in every table, they can be of
+different types:
+
+* Sys tables: they store *only* sys variables. Sys tables are
+populated with information extracted in every cycle of the execution
+
+* Data tables: they hold any type of variable but sys variables. They
+are populated with information extracted after the execution of a
+particular solver or the parsing of a specific file.
+
+* User tables: they can not contain sys variables and are never used
+by autobot. They are just defined for giving third-party software the
+possibility to store private information.
 
 
 # Installation #
