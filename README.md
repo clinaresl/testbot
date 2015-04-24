@@ -87,8 +87,8 @@ run under simple scenarios.
 	specification of database tables to refer to the different
 	output variables that are computed by the (Python) snippet.
 
-  Depending upon the information stored in every table, they can be of
-  different types:
+Depending upon the information stored in every table, they can be of
+different types:
 
 	+ Sys tables: they store *only* sys variables. Sys tables are
 	populated with information extracted in every cycle of the
