@@ -123,7 +123,7 @@ a directory called `testbot` will be automatically created. Go to that
 directory and execute the script `setup.py` as indicated below:
 
     $ cd testbot
-    $ sudo ./setup.py install
+    $ sudo python2 ./setup.py install
 
 In case this software is being reinstalled, make sure to add `--force`
 to overwrite the previous package.
@@ -134,37 +134,35 @@ to overwrite the previous package.
 The simplest usage of autobot is exemplified with the script
 `testbot`. It takes the following mandatory arguments:
 
-* solver: regular expression that identifies all executables to
+* *solver*: regular expression that identifies all executables to
   monitor
 
-* test: test specification file in the tb language
+* *test*: test specification file in the tb language
 
-* db: db specification file in the db language
+* *db*: db specification file in the db language
 
-* timeout: maximum allotted time in seconds
+* *timeout*: maximum allotted time in seconds
 
-* memory: maximum allotted memory in gigabytes
+* *memory*: maximum allotted memory in gigabytes
 
 Other optional parameters that affect the behaviour of testbot are:
 
-* check: seconds elapsed between successive pings to the running
-  executable. Autobot will gather some statistics at every ping (sys
-  variables)
+* *check*: seconds elapsed between successive pings to the running
+  executable. `autobot` will gather the values of all sys variables at
+  every ping.
 
-* output: prefix used in the name of the files that record the
+* *output*: prefix used in the name of the files that record the
   standard output and standard error of every execution. Placeholders
   can be used. To see a comprehensive list of the available
-  placeholders type:
+  placeholders type: `$ testbot.py --show-placeholders`
 
-      $ testbot.py --show-placeholders
-
-* directory: target directory where all information is
-  recorded. autobot automatically creates a subdirectory per
+* *directory*: target directory where all information is
+  recorded. `autobot` automatically creates a subdirectory per
   executable and stores: config information, system information and
   the standard output and standard error generated
 
-* bz2: in case the standard output/error might be huge, it is feasible
-  to compress it with bzip2.
+* *bz2*: in case the standard output/error might be huge, it is
+  feasible to compress it with bzip2.
 
 It also provides additional services for configuring the logging
 services or to test whether the db/tb files are correctly parsed. In
@@ -184,12 +182,12 @@ All of this information can be accessed with:
 
 Configuration files are provided under examples/ For instance, try:
 
-    $ testbot.py --solver examples/solvers/eperimeter 
-    --test examples/tests/8puzzle.tb 
-    --db examples/db/example.db 
-    --timeout 5 --memory 2 --check 0 --bz2
+    $ testbot.py --solver /usr/bin/find
+    --test examples/find/find.tb 
+    --db examples/find/find.db 
+    --timeout 5 --memory 2 --check 0
 
-and examine the contents of the directory eperimeter/ just created
+and examine the contents of the directory `find/` just created
 
 Further information is offered at the User's Manual and the
 Programmer's Guide of testbot
@@ -197,8 +195,10 @@ Programmer's Guide of testbot
 
 # Requirements #
 
-autobot requires [PLY 3.4](http://www.dabeaz.com/ply/) or greater. It
-is currently designed for Python 2.7.
+`autobot` requires [PLY 3.4](http://www.dabeaz.com/ply/) or
+greater. It is currently designed for Python 2.7.
+
+Additionally, `testbot.py` only executes in GNU/Linux OSs.
 
 
 # License #
