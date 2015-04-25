@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <sábado, 25 abril 2015 02:29:01 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 25 abril 2015 12:14:19 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -326,6 +326,47 @@ class BotParser (object):
         return (resultsdir, configdir)
 
     # -----------------------------------------------------------------------------
+    # copy_file
+    #
+    # copy the contents of src to the directory given in target and give it the
+    # name specified in dst. If move is given, the file is moved to the target
+    # directory, otherwise, it is copied
+    #
+    # If compression was requested it compresses the
+    # copied file
+    # -----------------------------------------------------------------------------
+    def copy_file(self, src, target, dst, move=False):
+        """
+        copy the contents of src to the directory given in target and give it
+        the name specified in dst. If compression was requested it compresses the
+        copied file
+        """
+
+        # take care of the compress flag. If bzip2 compression was requested
+        # apply it
+        if (self._compress):
+            self._logger.debug(" Compressing file '%s'" % src)
+
+            _bz2(src, remove=False)
+
+            # and now, move it to its target location with the suffix 'bz2'
+            # taking care of the substitution provided with the output flag
+            shutil.move(src + '.bz2',
+                        os.path.join(target, dst + '.bz2'))
+
+        # otherwise, just perform a backup copy of the parsed file
+        else:
+
+            # if move was requested, then just move this file
+            if move:
+                shutil.move(src, target)
+
+            # otherwise, copy it
+            else:
+                shutil.copy(src, os.path.join(target,dst))
+
+            
+    # -----------------------------------------------------------------------------
     # eval_regexp
     #
     # compute the value of the regexp defined in the specified struct with the
@@ -575,29 +616,7 @@ class BotParser (object):
 
                     _eval_filevar(variable)
 
-        # results/
-        # -------------------------------------------------------------------------
-        # once this file has been processed, copy it to the results directory
-        # after applying the substitution specified in the output directive.
-
-        # take care of the compress flag. If bzip2 compression was requested
-        # apply it
-        if (self._compress):
-            self._logger.debug(" Compressing file '%s'" % txtfile)
-
-            _bz2(txtfile, remove=False)
-
-            # and now, move it to its target location with the suffix 'bz2'
-            # taking care of the substitution provided with the output flag
-            shutil.move(txtfile + '.bz2',
-                        os.path.join(resultsdir,
-                                     self._sub(self._output) + '.bz2'))
-
-        # otherwise, just perform a backup copy of the parsed file
-        else:
-            shutil.copy(txtfile, os.path.join(resultsdir,
-                                              self._sub(self._output)))
-
+                    
     # -----------------------------------------------------------------------------
     # parse_all_files
     #
@@ -720,6 +739,12 @@ class BotParser (object):
             # (endruntime) and in date/time format (enddatetime)
             BotParser._namespace.endfullparsetime = time.time()
             BotParser._namespace.endfullparsedatetime = datetime.datetime.now()
+
+            # results/
+            # -------------------------------------------------------------------------
+            # once this file has been processed, copy it to the results directory
+            # after applying the substitution specified in the output directive.
+            self.copy_file(itxtfile, resultsdir, self._sub(self._output))
 
             # database
             # -------------------------------------------------------------------------
