@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:03:37 2014 Carlos Linares Lopez>
-# Last update <sábado, 25 abril 2015 01:29:19 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 25 abril 2015 02:30:33 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -36,6 +36,7 @@ import time                     # time management
 
 from collections import defaultdict
 
+from botparser import BotParser # services for automated parsing of text files
 import dbparser                 # parsing of database specification files
 import dbtools                  # database specification files
 import namespace                # single and multi key attributes
@@ -55,17 +56,20 @@ __date__     = '$Date$'
 # -----------------------------------------------------------------------------
 # BotTester
 #
-# Base class of all testbots.
+# Base class of all testbots. It inherits from BotParser to automatically
+# access the services provided by it.
 #
 # It automates the execution of any testbot and the automated extraction of
 # information according to the specification of a database specification file
 # -----------------------------------------------------------------------------
-class BotTester (object):
+class BotTester (BotParser):
     """
-    Base class of all testbots
+    Base class of all testbots. It inherits from BotParser to automatically
+    access the services provided by it.
 
     It automates the execution of any testbot and the automated extraction of
     information according to the specification of a database specification file
+
     """
 
     # how long to wait between SIGTERM and SIGKILL
@@ -77,61 +81,20 @@ class BotTester (object):
     # -----------------------------------------------------------------------------
     defaultname = "<processed>"
 
-    # regular epression for recognizing pairs (var, val)
-    # -----------------------------------------------------------------------------
-    # the following regexp is used by default: first, the user can provide its
-    # own regexps (see below) or it can overwrite the current regexp which is
-    # distinguished with the special name 'data'
-    #
-    # the following regexp correctly matches strings with two groups 'varname'
-    # and 'value' such as:
-    #
-    # > Cost     : 359
-    # > CPU time : 16.89311
-    #
-    # since these fields are written into the data namespace (see below) they
-    # can be accessed by the user in the database specification file with the
-    # format data.Cost and data.'CPU time'
-    statregexp = r" >[\t ]*(?P<varname>[a-zA-Z ]+):[ ]+(?P<value>([0-9]+\.[0-9]+|[0-9]+))"
-
-    # logging services
-    # -----------------------------------------------------------------------------
-    _loglevel = logging.INFO            # default logging level
-
     # namespaces - a common place to exchange data in the form of single and
     # multi key attributes. The following namespaces are mapped (in the
     # comments) with the type of variables recognized by the dbparser (see
     # dbparser.py)
     #
-    # the purpose of every namespace is described below:
-    #
-    # * namespace: denoted also as the main namespace. It contains sys
-    #              information and main variables
-    # * data: It contains datavar and filevar
-    # * user: this namespace is never used by autobot and it is created only for
-    #         user specifics
-    # * param: it stores param and dirvar
-    # * regexp : it stores the results of processing the standard output with
-    #            the regexps found in the database specification
+    # BotTester uses all the namespaces defined in BotParser. For a full
+    # description of them refer to the documentation of BotParser (and/or the
+    # documentation provided there). In particular, BotTester defines a
+    # namespace _param specifically to be used here.
     #
     # These namespaces automatically use the different variables (most of them
-    # defined in the dbparser) whose purpose is defined below:
-    #
-    # * sysvar: these are variables computed by autobot at every cycle of the
-    #           execution of the solver. Every 'check' seconds the new contents
-    #           of these variables is computed
-    #
-    # * mainvar: these are the flags given to the main script using autobot
-    #            (ie., testbot) These variables can be used to create a template
-    #            for the 'output' file
-    #
-    # * datavar: data processed from the stdout of the executable. These data is
-    #            retrieved using the default regular expression and they are
-    #            processed only once after the execution of the solver over
-    #            every test case
-    #
-    # * filevar: these variables are given as filenames whose value are the
-    #            contents of the file
+    # defined in the dbparser) whose purpose is defined in the documentation of
+    # BotParser (and/or the comments provided there). Additionally, BotTester
+    # uses the following variables:
     #
     # * param: these are the flags given to the executable. They are retrieved
     #          from the specification of the current test case under execution
@@ -139,37 +102,26 @@ class BotTester (object):
     # * dirvar: these are also the flags given to the executable but they are
     #           named after their position
     #
-    # * regexp: regexps are defined separately in the database specification
-    #           file and can be used in the specification of database tables to
-    #           refer to the various groups that result every time a match is
-    #           found
-    #
     # to make these relationships more apparent, the variables given in the
-    # database specification file can be preceded by a prefix that provide
-    # information about the namespace they are written to:
+    # database specification file can be preceded by a prefix that provides
+    # information about the namespace they are written to (all listed below):
     #
     # type of variable   prefix
     # -----------------+-----------
     # sysvar           | 'sys.'
     # datavar          | 'data.'
-    # dirvar           | 'dir.'
     # filevar          | 'file.'
     # mainvar          | "main.'
+    # dirvar           | 'dir.'
     # param            | 'param.'
     # -----------------+-----------
     #
-    # the case of regexp variables is a bit particular. They have their own
-    # statements of the form:
-    #
-    # regexp <name> <specification-string>
-    #
-    # where <specification-string> should contain at least one <group> defined
-    # with the directive (?P<group>...). This way, any column in the
-    # specification of a database can use the format <name>.<group> to refer to
-    # the value parsed in group <group> with regexp <name>
+    # regexps and snippets are particular cases. For a full description of them
+    # refer to the documentation of BotParser (and/or the comments provided
+    # there).
     #
     # Namespaces are populated with information with the following variable
-    # types:
+    # types (all listed below):
     #
     # namespace   variable type
     # ----------+-----------------
@@ -178,16 +130,11 @@ class BotTester (object):
     # user      | --
     # param     | param, dirvar
     # regexp    | regexp
+    # snippet   | snippet
     # ----------+-----------------
     #
-    # These associations are implemented in the poll method of the dbparser
+    # These associations are implemented in the evaluation of dbexpressions
     # -----------------------------------------------------------------------------
-    _namespace = namespace.Namespace ()         # sysvar, mainvar
-    _data      = namespace.Namespace ()         # datavar, filevar
-    _user      = namespace.Namespace ()         # user space
-    _param     = namespace.Namespace ()         # param, dirvar
-    _regexp    = namespace.Namespace ()         # regexp
-    _snippet   = namespace.Namespace ()         # snippets of python code
 
     # -----------------------------------------------------------------------------
     # check_flags
@@ -393,7 +340,7 @@ class BotTester (object):
         def _sub (string):
             """
             substitute in string the ocurrence of every keyword in the namespace
-            used in this instance of BotTester (BotTester._namespace) with
+            used in this instance of BotTester (BotParser._namespace) with
             its value if it appears preceded by '$' in string and it is a
             str. Similar to Template.substitute but it also allows the
             substitution of strings which do not follow the convention of python
@@ -408,11 +355,11 @@ class BotTester (object):
 
             # now, substitute every ocurrence of every single attribute in
             # namespace with its value only in case the value is a string
-            for ikey in [jkey for jkey in BotTester._namespace
-                         if not isinstance (BotTester._namespace [jkey], dict)]:
+            for ikey in [jkey for jkey in BotParser._namespace
+                         if not isinstance (BotParser._namespace [jkey], dict)]:
 
                 # perform the substitution enforcing the type of value to be str
-                result = re.sub ('\$' + ikey, str (BotTester._namespace [ikey]), result)
+                result = re.sub ('\$' + ikey, str (BotParser._namespace [ikey]), result)
 
             # and return the result now return result
             return result
@@ -425,9 +372,9 @@ class BotTester (object):
             # -------------------------------------------------------------------------
             # initialize the contents of the namespaces that hold variables
             # whose value depends upon the output of the current execution
-            BotTester._namespace.clear ()
-            BotTester._data.clear ()
-            BotTester._regexp.clear ()
+            BotParser._namespace.clear ()
+            BotParser._data.clear ()
+            BotParser._regexp.clear ()
 
             # - main (sys) namespace
             # -------------------------------------------------------------------------
@@ -438,7 +385,7 @@ class BotTester (object):
             # here to allow a uniform treatment
             if self._argnamespace:
                 for index, value in self._argnamespace.__dict__.items ():
-                    BotTester._namespace [index] = str (value)
+                    BotParser._namespace [index] = str (value)
 
             # and also with the following sys variables
             #
@@ -453,10 +400,10 @@ class BotTester (object):
             #
             # Note that other fields are added below to register the right
             # timings when every parsing started/ended
-            BotTester._namespace.index = itst.get_id ()
-            BotTester._namespace.name  = os.path.basename (solver)
-            BotTester._namespace.date  = datetime.datetime.now ().strftime ("%Y-%m-%d")
-            BotTester._namespace.time  = datetime.datetime.now ().strftime ("%H:%M:%S")
+            BotParser._namespace.index = itst.get_id ()
+            BotParser._namespace.name  = os.path.basename (solver)
+            BotParser._namespace.date  = datetime.datetime.now ().strftime ("%Y-%m-%d")
+            BotParser._namespace.time  = datetime.datetime.now ().strftime ("%H:%M:%S")
 
             # compute the right name of the output file using the information in
             # the current namespace
@@ -468,7 +415,7 @@ class BotTester (object):
             # the namespace param. These are automatically casted to string for
             # the convenience of other functions
             for idirective, ivalue in itst.get_values ().items ():
-                BotTester._param [idirective] = str (ivalue)
+                BotParser._param [idirective] = str (ivalue)
 
             # and also with the position of every argument (so that $1 can be
             # interpreted as the first parameter, $2 as the second, and so on)
@@ -476,7 +423,7 @@ class BotTester (object):
             # convenience of other functions
             counter = 0
             for iarg in itst.get_args ():
-                BotTester._param [str (counter)] = str (iarg)
+                BotParser._param [str (counter)] = str (iarg)
                 counter += 1
 
             # running
@@ -496,9 +443,9 @@ class BotTester (object):
                                          basedir=self._directory,
                                          resultsdir=resultsdir,
                                          compress=self._compress,
-                                         namespace=BotTester._namespace,
-                                         user=BotTester._user,
-                                         param=BotTester._param,
+                                         namespace=BotParser._namespace,
+                                         user=BotParser._user,
+                                         param=BotParser._param,
                                          stats=stats,
                                          startruntime=startruntime)
                 action (self._logger)
@@ -523,11 +470,11 @@ class BotTester (object):
                                          basedir=self._directory,
                                          resultsdir=resultsdir,
                                          compress=self._compress,
-                                         namespace=BotTester._namespace,
-                                         data=BotTester._data,
-                                         user=BotTester._user,
-                                         param=BotTester._param,
-                                         regexp=BotTester._regexp,
+                                         namespace=BotParser._namespace,
+                                         data=BotParser._data,
+                                         user=BotParser._user,
+                                         param=BotParser._param,
+                                         regexp=BotParser._regexp,
                                          stats=stats,
                                          startruntime=startruntime,
                                          endruntime=time.time ())
@@ -661,22 +608,22 @@ class BotTester (object):
                 num_threads = timeline.total_threads ()
 
                 # and store them in the corresponding namespace
-                BotTester._namespace.cputime = timeline.total_time ()
-                BotTester._namespace.wctime = real_time
-                BotTester._namespace.vsize = timeline.total_vsize ()
-                BotTester._namespace.numprocs = timeline.total_processes ()
-                BotTester._namespace.numthreads = timeline.total_threads ()
+                BotParser._namespace.cputime = timeline.total_time ()
+                BotParser._namespace.wctime = real_time
+                BotParser._namespace.vsize = timeline.total_vsize ()
+                BotParser._namespace.numprocs = timeline.total_processes ()
+                BotParser._namespace.numthreads = timeline.total_threads ()
 
                 # poll all sys tables
                 for itable in self._dbspec.get_db ():
                     if itable.sysp ():
                         stats [itable.get_name ()] += itable.poll (dbspec=self._dbspec,
-                                                                   namespace=BotTester._namespace,
-                                                                   data=BotTester._data,
-                                                                   param=BotTester._param,
-                                                                   regexp=BotTester._regexp,
-                                                                   snippet=BotTester._snippet,
-                                                                   user=BotTester._user,
+                                                                   namespace=BotParser._namespace,
+                                                                   data=BotParser._data,
+                                                                   param=BotParser._param,
+                                                                   regexp=BotParser._regexp,
+                                                                   snippet=BotParser._snippet,
+                                                                   user=BotParser._user,
                                                                    logger=self._logger,
                                                                    logfilter=self._logfilter)
 
@@ -687,8 +634,8 @@ class BotTester (object):
                 try_term = (total_time > self._timeout or
                             real_time >= 1.5 * self._timeout or
                             max_mem > self._memory)
-                try_kill = (total_time > self._timeout + self.kill_delay or
-                            real_time >= 1.5 * self._timeout + self.kill_delay or
+                try_kill = (total_time > self._timeout + BotTester.kill_delay or
+                            real_time >= 1.5 * self._timeout + BotTester.kill_delay or
                             max_mem > self._memory)
 
                 if try_term and not term_attempted:
@@ -787,11 +734,11 @@ class BotTester (object):
                 # data namespace - default regexp
                 # -------------------------------------------------------------
                 # check whether this line matches the default regexp
-                restat = re.match (BotTester.statregexp, iline)
+                restat = re.match (BotParser.statregexp, iline)
                 if (restat):
 
                     # add this variable to the data namespace
-                    BotTester._data [restat.group ('varname').rstrip (" ")] = \
+                    BotParser._data [restat.group ('varname').rstrip (" ")] = \
                       restat.group ('value')
 
                 # regexp namespace
@@ -809,7 +756,7 @@ class BotTester (object):
                         # to allow projections later on. The key names are the
                         # group names themselves
                         keys = tuple ([igroup for igroup in m.groupdict ()])
-                        BotTester._regexp.setkeynames (iregexp.get_name (), *keys)
+                        BotParser._regexp.setkeynames (iregexp.get_name (), *keys)
 
                         # now, compute the value of this multi-key attribute
                         # which is a tuple with the matches of the regexp. Note
@@ -823,11 +770,11 @@ class BotTester (object):
                         # the policy is to accumulate values so that read the
                         # current value of this multi-key attribute in case it
                         # exists
-                        if iregexp.get_name () in BotTester._regexp:
+                        if iregexp.get_name () in BotParser._regexp:
 
-                            currvalues = BotTester._regexp.getattr (iregexp.get_name (),
+                            currvalues = BotParser._regexp.getattr (iregexp.get_name (),
                                                                       key = dict (zip (keys, keys)))
-                            BotTester._regexp.setattr (iregexp.get_name (),
+                            BotParser._regexp.setattr (iregexp.get_name (),
                                                          key = dict (zip (keys, keys)),
                                                          value = currvalues + [tuple (values)])
 
@@ -835,7 +782,7 @@ class BotTester (object):
                         # attribute to a list which contains a single tuple with
                         # the values of this match
                         else:
-                            BotTester._regexp.setattr (iregexp.get_name (),
+                            BotParser._regexp.setattr (iregexp.get_name (),
                                                          key = dict (zip (keys, keys)),
                                                          value = [tuple (values)])
 
@@ -846,19 +793,19 @@ class BotTester (object):
         for itable in [jtable for jtable in self._dbspec.get_db () if jtable.datap ()]:
             for icolumn in [jcolumn for jcolumn in itable if jcolumn.get_vartype () == 'FILEVAR']:
                 with open (icolumn.get_variable (), 'r') as stream:
-                    BotTester._data [icolumn.get_variable ()] = stream.read ()
+                    BotParser._data [icolumn.get_variable ()] = stream.read ()
 
         # now, compute the next row to write in all the data tables, if any with
         # information from the namespace
         for itable in self._dbspec.get_db ():
             if itable.datap ():
                 stats [itable.get_name ()] += itable.poll (dbspec=self._dbspec,
-                                                           namespace=BotTester._namespace,
-                                                           data=BotTester._data,
-                                                           param=BotTester._param,
-                                                           regexp=BotTester._regexp,
-                                                           snippet=BotTester._snippet,
-                                                           user=BotTester._user,
+                                                           namespace=BotParser._namespace,
+                                                           data=BotParser._data,
+                                                           param=BotParser._param,
+                                                           regexp=BotParser._regexp,
+                                                           snippet=BotParser._snippet,
+                                                           user=BotParser._user,
                                                            logger=self._logger,
                                                            logfilter=self._logfilter)
 
@@ -1114,7 +1061,7 @@ class BotTester (object):
             self._logger = logging.getLogger(self.__class__.__module__ + '.' +
                                              self.__class__.__name__)
             handler = logging.StreamHandler ()
-            handler.setLevel (BotTester._loglevel)
+            handler.setLevel (BotParser._loglevel)
             handler.setFormatter (logging.Formatter (" %(levelname)-10s:   %(message)s"))
             self._logger.addHandler (handler)
 
@@ -1215,8 +1162,8 @@ class BotTester (object):
                                 basedir=self._directory,
                                 resultsdir=resultsdir,
                                 compress=self._compress,
-                                namespace=BotTester._namespace,
-                                user=BotTester._user,
+                                namespace=BotParser._namespace,
+                                user=BotParser._user,
                                 stats=istats)
                 action (self._logger)
 
@@ -1262,10 +1209,10 @@ class BotTester (object):
                                  basedir=self._directory,
                                  resultsdir=resultsdir,
                                  compress=self._compress,
-                                 namespace=BotTester._namespace,
-                                 data=BotTester._data,
-                                 user=BotTester._user,
-                                 regexp=BotTester._regexp,
+                                 namespace=BotParser._namespace,
+                                 data=BotParser._data,
+                                 user=BotParser._user,
+                                 regexp=BotParser._regexp,
                                  stats=istats)
                 action (self._logger)
 

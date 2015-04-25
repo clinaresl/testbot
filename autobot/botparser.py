@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <viernes, 24 abril 2015 23:10:44 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 25 abril 2015 02:29:01 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -96,6 +96,8 @@ class BotParser (object):
     # * data: It contains datavar and filevar
     # * user: this namespace is never used by autobot and it is created only for
     #         user specifics
+    # * param: it stores param and dirvar. It is not used by botparser but by
+    #          bottester
     # * regexp : it stores the results of processing the contents of a file with
     #            the regexps found in the database specification
     # * snippet: saves the values of variables computed with external Python
@@ -133,7 +135,7 @@ class BotParser (object):
     # processed.
     #
     # to make these relationships more apparent, the variables given in the
-    # database specification file can be preceded by a prefix that provide
+    # database specification file can be preceded by a prefix that provides
     # information about the namespace they are written to:
     #
     # type of variable   prefix
@@ -185,6 +187,7 @@ class BotParser (object):
     # -----------------------------------------------------------------------------
     _namespace = namespace.Namespace ()         # sysvar, mainvar
     _data      = namespace.Namespace ()         # datavar, filevar
+    _param     = namespace.Namespace ()         # param, dirvar (to be used in BotTester)
     _user      = namespace.Namespace ()         # user space
     _regexp    = namespace.Namespace ()         # regexp
     _snippet   = namespace.Namespace ()         # snippets of python code
