@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <sábado, 25 abril 2015 12:14:19 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 25 abril 2015 13:05:52 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -676,18 +676,18 @@ class BotParser (object):
             # and also with the following sys variables
             #
             #   index         - index of this file in the range [0, ...)
-            #   name          - name of this text file
+            #   filename      - name of this text file
             #   date          - current date
             #   time          - current time
-            #   startdatetime - when the whole parsing started in date/time
-            #                   format
-            #   startruntime - when the whole parsing started in secs from
-            #                  Epoch
+            #   startfullparsedatetime - when the whole parsing started in
+            #                            date/time format
+            #   startfullparsetime - when the whole parsing started in secs
+            #                        from Epoch
             #
             # Note that other fields are added below to register the right
             # timings when every parsing started/ended
             BotParser._namespace.index = idx
-            BotParser._namespace.name = os.path.basename(itxtfile)
+            BotParser._namespace.filename = os.path.basename(itxtfile)
             BotParser._namespace.date = datetime.datetime.now().strftime("%Y-%m-%d")
             BotParser._namespace.time = datetime.datetime.now().strftime("%H:%M:%S")
             BotParser._namespace.startfullparsedatetime = datetime.datetime.now()

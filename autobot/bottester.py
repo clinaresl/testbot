@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:03:37 2014 Carlos Linares Lopez>
-# Last update <sábado, 25 abril 2015 12:21:10 Carlos Linares Lopez (clinares)>
+# Last update <sábado, 25 abril 2015 13:08:48 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -368,6 +368,10 @@ class BotTester (BotParser):
         # now, for each test case
         for itst in self._tstspec:
 
+            # compute the right name of the output file using the information in
+            # the current namespace
+            outputprefix = _sub (self._output)
+
             # namespaces
             # -------------------------------------------------------------------------
             # initialize the contents of the namespaces that hold variables
@@ -376,35 +380,6 @@ class BotTester (BotParser):
             BotParser._data.clear ()
             BotParser._regexp.clear ()
             BotParser._snippet.clear()
-
-            # - main (sys) namespace
-            # -------------------------------------------------------------------------
-            # initialize the namespace with the parameters passed to the main
-            # script (ie., the testbot), mainvars. These are given in
-            # self._argnamespace. Since the argparser automatically casts type
-            # according to their type field, they are all converted into strings
-            # here to allow a uniform treatment
-            if self._argnamespace:
-                for index, value in self._argnamespace.__dict__.items ():
-                    BotParser._namespace [index] = str (value)
-
-            # and also with the following sys variables
-            #
-            #   index         - index of this file in the range [0, ...)
-            #   name          - name of this text file
-            #   date          - current date
-            #   time          - current time
-            #
-            # Note that other fields are added below to register the right
-            # timings when every parsing started/ended
-            BotParser._namespace.index = itst.get_id ()
-            BotParser._namespace.name  = os.path.basename (solver)
-            BotParser._namespace.date  = datetime.datetime.now ().strftime ("%Y-%m-%d")
-            BotParser._namespace.time  = datetime.datetime.now ().strftime ("%H:%M:%S")
-
-            # compute the right name of the output file using the information in
-            # the current namespace
-            outputprefix = _sub (self._output)
 
             # - param namespace
             # -------------------------------------------------------------------------
@@ -422,6 +397,37 @@ class BotTester (BotParser):
             for iarg in itst.get_args ():
                 BotParser._param [str (counter)] = str (iarg)
                 counter += 1
+
+            # - main (sys) namespace
+            # -------------------------------------------------------------------------
+            # initialize the namespace with the parameters passed to the main
+            # script (ie., the testbot), mainvars. These are given in
+            # self._argnamespace. Since the argparser automatically casts type
+            # according to their type field, they are all converted into strings
+            # here to allow a uniform treatment
+            if self._argnamespace:
+                for index, value in self._argnamespace.__dict__.items ():
+                    BotParser._namespace [index] = str (value)
+
+            # and also with the following sys variables
+            #
+            #   index         - index of this file in the range [0, ...)
+            #   execname          - name of this exec
+            #   date          - current date
+            #   time          - current time
+            #   startfullexecdatetime - when the whole execution started
+            #                           in date/time format
+            #   startfullexectime - when the whole execution started in
+            #                       time format
+            #
+            # Note that other fields are added below to register the right
+            # timings when every parsing started/ended
+            BotParser._namespace.index = itst.get_id ()
+            BotParser._namespace.execname  = os.path.basename (solver)
+            BotParser._namespace.date  = datetime.datetime.now ().strftime ("%Y-%m-%d")
+            BotParser._namespace.time  = datetime.datetime.now ().strftime ("%H:%M:%S")
+            BotParser._namespace.startfullexecdatetime = datetime.datetime.now()
+            BotParser._namespace.startfullexectime = time.time()
 
             # running
             # -------------------------------------------------------------------------
@@ -450,8 +456,14 @@ class BotTester (BotParser):
             # invoke the execution of this test case and record the start run
             # time and end run time
             self._logger.info ('\t%s' % itst)
+            BotParser._namespace.startexecdatetime = datetime.datetime.now()
+            BotParser._namespace.startexectime = time.time()
+
             self.run_single_case (os.path.abspath (solver),
                                   resultsdir, itst, outputprefix, stats)
+
+            BotParser._namespace.endexecdatetime = datetime.datetime.now()
+            BotParser._namespace.endexectime = time.time()
 
             # finally, if an epilogue was given, execute it now passing by also
             # the end run time
@@ -477,6 +489,13 @@ class BotTester (BotParser):
                                          endruntime=time.time ())
                 action (self._logger)
 
+            # and register the exact time when the whole execution ended
+            # including processing the epilogue both in seconds from Epoc
+            # (endruntime) and in date/time format (enddatetime)
+            BotParser._namespace.endfullexectime = time.time()
+            BotParser._namespace.endfullexecdatetime = datetime.datetime.now()
+
+                
 
     # -----------------------------------------------------------------------------
     # run_single_case
