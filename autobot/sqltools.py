@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <jueves, 20 noviembre 2014 14:05:01 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 26 abril 2015 01:24:18 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -110,7 +110,7 @@ class sqldb(object):
         self._cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 
         # and now return whether the specified table exists or not
-        return (table,) in self._cursor.fetchall ()
+        return (table,) in self._cursor.fetchall()
 
 
     def close (self):

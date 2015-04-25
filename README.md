@@ -114,6 +114,10 @@ prefix `data_`
 for giving third-party software the possibility to store private
 information. They have to be preceded by the prefix `user_`
 
+Additionally, `testbot.py` creates also *admin* tables with
+administrative information of the whole process. They are
+distinguished with the prefix `data_`.
+
 
 # Installation #
 

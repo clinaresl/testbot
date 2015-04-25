@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:03:37 2014 Carlos Linares Lopez>
-# Last update <sábado, 25 abril 2015 13:08:48 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 26 abril 2015 01:39:20 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -365,12 +365,11 @@ class BotTester (BotParser):
             return result
 
 
+        # initialization
+        first = True
+        
         # now, for each test case
         for itst in self._tstspec:
-
-            # compute the right name of the output file using the information in
-            # the current namespace
-            outputprefix = _sub (self._output)
 
             # namespaces
             # -------------------------------------------------------------------------
@@ -428,6 +427,11 @@ class BotTester (BotParser):
             BotParser._namespace.time  = datetime.datetime.now ().strftime ("%H:%M:%S")
             BotParser._namespace.startfullexecdatetime = datetime.datetime.now()
             BotParser._namespace.startfullexectime = time.time()
+
+            # once data has been written into the namespaces, compute the right
+            # name of the output file using the information in the current
+            # namespace
+            outputprefix = _sub (self._output)
 
             # running
             # -------------------------------------------------------------------------
@@ -495,7 +499,78 @@ class BotTester (BotParser):
             BotParser._namespace.endfullexectime = time.time()
             BotParser._namespace.endfullexecdatetime = datetime.datetime.now()
 
-                
+            # database
+            # -------------------------------------------------------------------------
+            # now, write data to the database. Note that we do this after
+            # invoking the epilogue so that the user gets a finer control on
+            # the data that is about to be inserted into the database
+            # finally, write down all the information to a sqlite3 db
+            dbname = os.path.join (self._directory,
+                                   os.path.basename (solver),
+                                   os.path.basename (solver) + '.db')
+
+            # create a new SQLITE3 database connection
+            dbhandler = sqltools.dbaccess(dbname)
+            
+            # in case this is the first test case, create all tables specified
+            # in the database specification file
+            if first:
+                for itable in self._dbspec.get_db():
+                    dbhandler.create_table(itable)
+            
+            self._logger.info (" Writing data into '%s'" % dbname)
+
+            # now, create the admin tables and populate all data tables
+            # self.create_admin_tables ()
+            for itable in self._dbspec.get_db ():
+
+                # if this is a system table, then populate it with data from
+                # the dictionary stats
+                if itable.sysp():
+                    self._logger.debug(" Populating '%s'" % itable.get_name())
+                    dbhandler.insert_data(itable,
+                                          stats[itable.get_name()])
+
+                # if this is a data table, then populate it directly with data
+                # from the namespaces
+                if itable.datap():
+                    self._logger.debug(" Populating '%s'" % itable.get_name())
+                    dbhandler.insert_data(itable,
+                                          itable.poll(dbspec=self._dbspec,
+                                                      namespace=BotParser._namespace,
+                                                      data=BotParser._data,
+                                                      param=BotParser._param,
+                                                      regexp=BotParser._regexp,
+                                                      snippet=BotParser._snippet,
+                                                      user=BotParser._user,
+                                                      logger=self._logger,
+                                                      logfilter=self._logfilter))
+
+            # the only two remaining cases are user tables and admin
+            # tables:
+            #
+            # admin tables - they are populated once the whole process for
+            #                this solver is over
+            # user tables - they should be untouched by autobot. Only the
+            #               user should have access to them
+
+            # and now, stats which do not contain admin data can be completely
+            # removed, hence saving memory -- this is a great modification of
+            # this release. In case of large experiments, memory is not
+            # harvested
+            newstats = defaultdict (list)
+            for idbname in stats:
+                if idbname[0:6]=="admin_":
+                    newstats [idbname] = stats [idbname]
+            stats = newstats
+            
+            # and close the database
+            dbhandler.close()
+
+            # and make first false to never create tables in this database
+            # again
+            first = False
+            
 
     # -----------------------------------------------------------------------------
     # run_single_case
@@ -630,7 +705,7 @@ class BotTester (BotParser):
                 BotParser._namespace.numprocs = timeline.total_processes ()
                 BotParser._namespace.numthreads = timeline.total_threads ()
 
-                # poll all sys tables
+                # gather information for sys tables
                 for itable in self._dbspec.get_db ():
                     if itable.sysp ():
                         stats [itable.get_name ()] += itable.poll (dbspec=self._dbspec,
@@ -666,6 +741,9 @@ class BotTester (BotParser):
 
 
             # Execution has been completed!
+            #
+            # The main tasks here are to collect data for the admin tables and
+            # also to process the stdout/stderr generated by this execution
             # -----------------------------------------------------------------
             # record the exit status of this process
             stats ['admin_status'].append ((itst.get_id (), status))
@@ -814,25 +892,28 @@ class BotTester (BotParser):
     # -----------------------------------------------------------------------------
     # insert_data
     #
-    # creates the table qualified by the instance of DBTable 'dbtable' in the given
-    # databasename and writes the specified 'data' into it
+    # creates the table qualified by the instance of DBTable 'dbtable' in the
+    # given databasename and writes the specified 'data' into it. In case the
+    # table does not exist, it automatically creates it
     # -----------------------------------------------------------------------------
     def insert_data (self, databasename, dbtable, data):
 
         """
         creates the table qualified by the instance of DBTable 'dbtable' in the
-        given databasename and writes the specified 'data' into it
+        given databasename and writes the specified 'data' into it. In case the
+        table does not exist, it automatically creates it
         """
 
         # compute the filename
-        dbfilename = databasename + '.db'
+        dbfilename = databasename
         self._logger.debug (" Populating '%s' in '%s'" % (dbtable.get_name (), dbfilename))
 
         # connect to the sql database
         db = sqltools.dbaccess (dbfilename)
 
-        # create the table
-        db.create_table (dbtable)
+        # create the table in case it does not exist
+        if not db.find(dbtable.get_name()):
+            db.create_table (dbtable)
 
         # and write data
         db.insert_data (dbtable, data)
@@ -840,7 +921,7 @@ class BotTester (BotParser):
         # close and exit
         db.close ()
 
-
+        
     # -----------------------------------------------------------------------------
     # go
     #
@@ -1078,13 +1159,13 @@ class BotTester (BotParser):
             # and wrapup
             self.wrapup (self._tstspec, self._dbspec, configdir)
 
-            # finally, write down all the information to a sqlite3 db
-            databasename = os.path.join (self._directory, solvername, solvername)
-            self._logger.info (" Writing data into '%s.db'" % databasename)
+            # finally, write down all data in the admin tables to a sqlite3 db
+            dbname = os.path.join (self._directory, solvername, solvername + '.db')
+            self._logger.info (" Writing admin data into '%s'" % dbname)
 
-            # admin tables are not populated using the poll method in every
-            # dbtable. Instead, their contents are inserted manually in either
-            # "run" or here
+            # admin tables are not populated using the poll method. Instead,
+            # their contents are inserted manually in either run_single_case or
+            # here
             istats ['admin_params'] = [(isolver, self._tstfile, self._dbfile, self._check, self._timeout, self._memory)]
             istats ['admin_tests'] = self._tstspec.get_defs ()
             istats ['admin_time'] = [(self._starttime, self._endtime,
@@ -1094,7 +1175,8 @@ class BotTester (BotParser):
             # now, create the admin tables and populate all data tables
             self.create_admin_tables ()
             for itable in self._dbspec.get_db ():
-                self.insert_data (databasename, itable, istats[itable.get_name ()])
+                if itable.adminp():
+                    self.insert_data (dbname, itable, istats[itable.get_name ()])
 
             # similarly to *enter*, in case a *windUp* action is given, execute
             # it now before moving to the next solver

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <sábado, 25 abril 2015 13:05:52 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 26 abril 2015 00:48:39 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -326,20 +326,49 @@ class BotParser (object):
         return (resultsdir, configdir)
 
     # -----------------------------------------------------------------------------
+    # bz2
+    #
+    # compress the contents of the given filename and writes the results to a
+    # file with the same name + '.bz2'. If remove is enabled, the original
+    # filename is removed
+    # -----------------------------------------------------------------------------
+    def _bz2(self, filename, remove=False):
+        """
+        compress the contents of the given filename and writes the results to a
+        file with the same name + '.bz2'. If remove is enabled, the
+        original filename is removed
+        """
+
+        # open the original file in read mode
+        with open(filename, 'r') as input:
+
+            # create a bz2file to write compressed data
+            with bz2.BZ2File(filename + '.bz2', 'w', compresslevel=9) as output:
+
+                # and just transfer data from one file to the other
+                shutil.copyfileobj(input, output)
+
+        # if remove is enabled, remove the original filename
+        if (remove):
+            os.remove(filename)
+
+            
+    # -----------------------------------------------------------------------------
     # copy_file
     #
-    # copy the contents of src to the directory given in target and give it the
-    # name specified in dst. If move is given, the file is moved to the target
-    # directory, otherwise, it is copied
+    # take the contents of src and put them into the directory given in target
+    # with the name specified in dst. If move is given, the file is moved,
+    # otherwise, it is copied
     #
-    # If compression was requested it compresses the
-    # copied file
+    # If compression was requested it compresses the file
     # -----------------------------------------------------------------------------
     def copy_file(self, src, target, dst, move=False):
         """
-        copy the contents of src to the directory given in target and give it
-        the name specified in dst. If compression was requested it compresses the
-        copied file
+        take the contents of src and put them into the directory given in target
+        with the name specified in dst. If move is given, the file is moved,
+        otherwise, it is copied
+        
+        If compression was requested it compresses the file
         """
 
         # take care of the compress flag. If bzip2 compression was requested
@@ -347,23 +376,24 @@ class BotParser (object):
         if (self._compress):
             self._logger.debug(" Compressing file '%s'" % src)
 
-            _bz2(src, remove=False)
+            # note that we remove the original files in case move is
+            # requested. If move is requested, the files to move are the
+            # compressed ones so that the original one can be deleted (unless
+            # move is False, of course!)
+            self._bz2(src, remove=move)
 
-            # and now, move it to its target location with the suffix 'bz2'
-            # taking care of the substitution provided with the output flag
-            shutil.move(src + '.bz2',
-                        os.path.join(target, dst + '.bz2'))
+            # and rename the src and dst files to take the suffix into account
+            src += '.bz2'
+            dst += '.bz2'
 
-        # otherwise, just perform a backup copy of the parsed file
+        # now, either move or copy the files according to the value passed to
+        # move. If move was requested, then just move this file
+        if move:
+            shutil.move(src, os.path.join(target,dst))
+
+        # otherwise, copy it
         else:
-
-            # if move was requested, then just move this file
-            if move:
-                shutil.move(src, target)
-
-            # otherwise, copy it
-            else:
-                shutil.copy(src, os.path.join(target,dst))
+            shutil.copy(src, os.path.join(target,dst))
 
             
     # -----------------------------------------------------------------------------
@@ -529,25 +559,6 @@ class BotParser (object):
                                       variable,
                                       self._logger,
                                       self._logfilter).eval_filevar(data=BotParser._data)
-
-        def _bz2(filename, remove=False):
-            """compress the contents of the given filename and writes the results to a
-            file with the same name + '.bz2'. If remove is enabled, the
-            original filename is removed
-            """
-
-            # open the original file in read mode
-            with open(filename, 'r') as input:
-
-                # create a bz2file to write compressed data
-                with bz2.BZ2File(filename+'.bz2', 'w', compresslevel=9) as output:
-
-                    # and just transfer data from one file to the other
-                    shutil.copyfileobj(input, output)
-
-            # if remove is enabled, remove the original filename
-            if (remove):
-                os.remove(filename)
 
         # default regexp
         # ---------------------------------------------------------------------
@@ -752,7 +763,7 @@ class BotParser (object):
             # invoking the epilogue so that the user gets a finer control on
             # the data that is about to be inserted into the database
 
-            # First. compute the name of the database
+            # First, compute the name of the database
             dbname = self._sub(self._dbname)
 
             # create a new SQLITE3 database connection

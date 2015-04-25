@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <jueves, 20 noviembre 2014 14:05:12 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 26 abril 2015 01:13:50 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -346,6 +346,16 @@ class DBTable:
         """
 
         return self._columns
+
+
+    def adminp (self):
+        """
+        returns True if this is an admin table, ie., those that contain admin
+        information that is computed after every execution and once the whole
+        process for a specific solver is over
+        """
+
+        return self._name[0:6] == 'admin_'
 
 
     def sysp (self):
