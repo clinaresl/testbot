@@ -8,6 +8,9 @@ any executable under any OS that provides a `/proc` filesystem (i.e.,
 Linux) and that parses the contents of any text file. Testbot is
 mainly intended to be used for scientific experimentation.
 
+The following paragraphs provide basic information that introduces the
+main concepts. For a full description refer to the manual.
+
 It consists of three main components:
 
 1. Package `autobot`: it provides the main services for programmers to
@@ -131,7 +134,47 @@ to overwrite the previous package.
 
 # How to use #
 
-The simplest usage of autobot is exemplified with the script
+The following subsections provide basic information to execute
+`testbot.py` or `parsebot.py`. For more details refer to the manual.
+
+## parsebot.py ##
+
+The simplest usage of `autobot` is exemplified with the script
+`parsebot`. It takes the following mandatory arguments:
+
+* *file*: regular expressions that identify all files to parse
+
+* *dbspec*: db specification file in the db language
+
+Other optional parameters are:
+
+* *dbname*: name of the sqlite3 database that will store all data
+   according to the database specification file given with `--dbspec`
+
+* *directory*: target directory where the results of parsing the given
+   files are stored
+
+* *output*: prefix used in the name of the files that are stored in
+   the given directory.
+
+* *bz2*: if given, the text files copied into the given directory are
+   compressed using `bzip2`.
+
+It also provides additional services for configuring the logging
+services or to test whether the db file is correctly parsed. In
+particular, to see the results of parsing the database specification
+file type:
+
+    $ testbot.py --parse-db
+
+All of this information can be accessed with:
+
+    $ parsebot.py --help
+
+
+## testbot.py ##
+
+The simplest usage of `autobot` is exemplified with the script
 `testbot`. It takes the following mandatory arguments:
 
 * *solver*: regular expression that identifies all executables to
@@ -162,7 +205,7 @@ Other optional parameters that affect the behaviour of testbot are:
   the standard output and standard error generated
 
 * *bz2*: in case the standard output/error might be huge, it is
-  feasible to compress it with bzip2.
+  feasible to compress it with `bzip2`.
 
 It also provides additional services for configuring the logging
 services or to test whether the db/tb files are correctly parsed. In
