@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <domingo, 26 abril 2015 00:48:39 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 26 abril 2015 17:33:46 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -377,8 +377,8 @@ class BotParser (object):
             self._logger.debug(" Compressing file '%s'" % src)
 
             # note that we remove the original files in case move is
-            # requested. If move is requested, the files to move are the
-            # compressed ones so that the original one can be deleted (unless
+            # requested. If compression is requested, the files to move are the
+            # compressed ones so that the original ones can be deleted (unless
             # move is False, of course!)
             self._bz2(src, remove=move)
 
@@ -397,103 +397,6 @@ class BotParser (object):
 
             
     # -----------------------------------------------------------------------------
-    # eval_regexp
-    #
-    # compute the value of the regexp defined in the specified struct with the
-    # contents specified in the second argument. Legal structs are either the
-    # column of a database table or the definition of an input statement in a
-    # snippet, ie., the only places where regexps can be used.  As a result, it
-    # writes in the regexp namespace its final value
-    # -----------------------------------------------------------------------------
-    def eval_regexp(self, struct, contents):
-        """compute the value of the regexp defined in the specified struct with the
-        contents specified in the second argument. Legal structs are either the
-        column of a database table or the definition of an input statement in a
-        snippet, ie., the only places where regexps can be used.  As a result,
-        it writes in the regexp namespace its final value
-
-        """
-
-        self._logger.critical(" Invoking eval_regexp!")
-
-        # create a dbexpression for this particular definition
-        expression = dbexpression.DBExpression (struct.get_vartype (),
-                                                struct.get_variable (),
-                                                self._logger,
-                                                self._logfilter)
-
-        # compute the regular expression to evaluate. If it has no contexts,
-        # then use it directly. Otherwise, consider only the first context and
-        # evaluate it only in case it is a regexp
-        if not expression.has_context ():
-
-            # then copy its definition from the database specification table
-            # which is always of the form <prefix>.<suffix>. 'index' is
-            # intentionally used to let Python raise an exception in case a dot
-            # is missing
-            prefix = struct.get_variable () [0:string.index (struct.get_variable (),
-                                                              '.')]
-
-        else:
-
-            # take the first context which is always of the form
-            # <prefix>.<suffix>. 'index' is intentionally used to let Python
-            # raise an exception in case a dot is missing
-            prefix = expression.get_context()[0][0:string.index (expression.get_context () [0],
-                                                                 '.')]
-
-        # in case this prefix exists as the name of a regular expression then go
-        # ahead with it.
-        #
-        # Strange, huh? the reason is that a prefix might result from the first
-        # part of a context and that's not necessarily a regexp!!
-        iregexp = self._dbspec.get_regexp (prefix)
-        if not iregexp:
-            return
-
-        # if this regexp has been already processed or if it is the default
-        # regexp (which has been already processed above), then skip it
-        if iregexp.get_name () == 'default' or iregexp.get_name () in self._regexp:
-            return
-
-        self._logger.info (" Processing %s" % iregexp)
-
-        # for all matches of this regexp in the current text file
-        for m in re.finditer (iregexp.get_specification (), contents):
-
-            # add this variable to the regexp namespace as a multi-key attribute
-            # with as many keys as groups there are in the regexp. The
-            # multi-attribute should be named to allow projections later on. The
-            # key names are the group names themselves
-            keys = tuple ([igroup for igroup in m.groupdict ()])
-            BotParser._regexp.setkeynames (iregexp.get_name (), *keys)
-
-            # now, compute the value of this multi-key attribute which is a
-            # tuple with the matches of the regexp. Note that blank spaces are
-            # stripped of at the right of the match. This makes it easier for
-            # users to define regexps that can include the blank space in
-            # between without worrying for the trailing blank spaces
-            values = [string.rstrip (m.group (igroup), ' ')
-                      for igroup in m.groupdict ()]
-
-            # the policy is to accumulate values so that read the current value
-            # of this multi-key attribute in case it exists
-            if iregexp.get_name () in BotParser._regexp:
-
-                currvalues = BotParser._regexp.getattr (iregexp.get_name (),
-                                                        key = dict (zip (keys, keys)))
-                BotParser._regexp.setattr (iregexp.get_name (),
-                                           key = dict (zip (keys, keys)),
-                                           value = currvalues + [tuple (values)])
-
-            # otherwise, initialize the contents of this multi-key attribute to
-            # a list which contains a single tuple with the values of this match
-            else:
-                BotParser._regexp.setattr (iregexp.get_name (),
-                                           key = dict (zip (keys, keys)),
-                                           value = [tuple (values)])
-
-    # -----------------------------------------------------------------------------
     # parse_single_file
     #
     # looks for all matches of all regular expressions defined in the database
@@ -503,7 +406,7 @@ class BotParser (object):
     #
     # Also, the textfile is backed up to the resultsdir
     # -----------------------------------------------------------------------------
-    def parse_single_file(self, txtfile, resultsdir):
+    def parse_single_file(self, txtfile):
         """looks for all matches of all regular expressions defined in the database
         specification in the given text file. The results of all matches are
         written to the regexp namespace. Also, the data namespace is populated
@@ -698,7 +601,7 @@ class BotParser (object):
             # Note that other fields are added below to register the right
             # timings when every parsing started/ended
             BotParser._namespace.index = idx
-            BotParser._namespace.filename = os.path.basename(itxtfile)
+            BotParser._namespace.name = os.path.basename(itxtfile)
             BotParser._namespace.date = datetime.datetime.now().strftime("%Y-%m-%d")
             BotParser._namespace.time = datetime.datetime.now().strftime("%H:%M:%S")
             BotParser._namespace.startfullparsedatetime = datetime.datetime.now()
@@ -727,7 +630,7 @@ class BotParser (object):
             BotParser._namespace.startparsedatetime = datetime.datetime.now()
             BotParser._namespace.startparsetime = time.time()
 
-            self.parse_single_file(itxtfile, resultsdir)
+            self.parse_single_file(itxtfile)
 
             BotParser._namespace.endparsedatetime = datetime.datetime.now()
             BotParser._namespace.endparsetime = time.time()
@@ -753,9 +656,15 @@ class BotParser (object):
 
             # results/
             # -------------------------------------------------------------------------
-            # once this file has been processed, copy it to the results directory
-            # after applying the substitution specified in the output directive.
-            self.copy_file(itxtfile, resultsdir, self._sub(self._output))
+            # once this file has been processed, copy it (as opposed to move
+            # it) to the results directory after applying the substitution
+            # specified in the output directive.
+            self.copy_file(itxtfile, resultsdir, self._sub(self._output), move=False)
+
+            # in case compression was requested, make sure to remove the
+            # compressed file which has been copied with copy_file
+            if self._compress:
+                os.remove(itxtfile + '.bz2')
 
             # database
             # -------------------------------------------------------------------------
