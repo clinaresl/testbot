@@ -181,8 +181,7 @@ All of this information can be accessed with:
 
 ## testbot.py ##
 
-The simplest usage of `autobot` is exemplified with the script
-`testbot`. It takes the following mandatory arguments:
+It takes the following mandatory arguments:
 
 * *solver*: regular expression that identifies all executables to
   monitor
