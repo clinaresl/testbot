@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:03:37 2014 Carlos Linares Lopez>
-# Last update <domingo, 26 abril 2015 01:39:20 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 26 abril 2015 18:02:00 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -151,7 +151,7 @@ class BotTester (BotParser):
         for isolver in solver:
 
             if (not os.access (isolver, os.F_OK) or
-                not os.access (os.path.dirname (isolver), os.X_OK)):
+                not os.access (os.path.normpath(os.path.dirname (isolver)), os.X_OK)):
                 self._logger.critical ("""
  The solver '%s' does not exist or it resides in an unreachable location
  Use '--help' for more information
@@ -162,7 +162,7 @@ class BotTester (BotParser):
         # as well
         if (tstfile and tstfile != BotTester.defaultname and
             (not os.access (tstfile, os.F_OK) or
-             not os.access (os.path.dirname (tstfile), os.R_OK))):
+             not os.access (os.path.normpath(os.path.dirname (tstfile)), os.R_OK))):
             self._logger.critical ("""
  The test cases specification file does not exist or it resides in an unreachable location
  Use '--help' for more information
@@ -172,7 +172,7 @@ class BotTester (BotParser):
         # and perform the same validation with regard to the db file
         if (dbfile and dbfile != BotTester.defaultname and
             (not os.access (dbfile, os.F_OK) or
-             not os.access (os.path.dirname (dbfile), os.R_OK))):
+             not os.access (os.path.normpath(os.path.dirname (dbfile)), os.R_OK))):
             self._logger.critical ("""
  The database specification file does not exist or it resides in an unreachable location
  Use '--help' for more information
@@ -773,8 +773,7 @@ class BotTester (BotParser):
                 stream.close()
 
                 # parse the contents of these files
-                self.parse_single_file(os.path.join(os.getcwd(), output + ilogfile),
-                                       resultsdir)
+                self.parse_single_file(os.path.join(os.getcwd(), output + ilogfile))
 
                 # and copy the files to their target directory
                 self.copy_file(os.path.join (os.getcwd (), output + ilogfile),
@@ -1117,10 +1116,11 @@ class BotTester (BotParser):
 
         for isolver in self._solver:
 
+            # first of all make sure to compute correctly the solver name
+            solvername = os.path.basename (isolver)
+            
             # create an empty dictionary of stats
             istats = defaultdict (list)
-
-            solvername = os.path.basename (isolver)
 
             self._logger.info (" Starting experiments with solver '%s'" % solvername)
 
