@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:03:37 2014 Carlos Linares Lopez>
-# Last update <domingo, 26 abril 2015 18:02:00 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 26 abril 2015 23:21:08 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -390,8 +390,10 @@ class BotTester (BotParser):
 
             # and also with the position of every argument (so that $1 can be
             # interpreted as the first parameter, $2 as the second, and so on)
-            # ---note that these numerical indices are casted to strings for the
-            # convenience of other functions
+            # ---note that these numerical indices are casted to strings for
+            # the convenience of other functions. Note that if the user
+            # explicitly requested to redirect the stdin (with '<' in the
+            # definition of the test case) it is also preserved here
             counter = 0
             for iarg in itst.get_args ():
                 BotParser._param [str (counter)] = str (iarg)
@@ -602,29 +604,17 @@ class BotTester (BotParser):
         with computational resources 'timeout' and 'memory'
         """
 
-        def _bz2 (filename, remove=False):
-            """
-            compress the contents of the given filename and writes the results to a
-            file with the same name + '.bz2'. If remove is enabled, the original
-            filename is removed
-            """
-
-            # open the original file in read mode
-            with open(filename, 'r') as input:
-
-                # create a bz2file to write compressed data
-                with bz2.BZ2File(filename+'.bz2', 'w', compresslevel=9) as output:
-
-                    # and just transfer data from one file to the other
-                    shutil.copyfileobj(input, output)
-
-            # if remove is enabled, remove the original filename
-            if (remove):
-                os.remove (filename)
-
-
         # Initialization
         total_vsize = 0
+
+        # verifiy whether this test case explicitly redirects the stdin or not
+        if '<' in itst.get_args():
+            streamin = os.path.join(os.path.dirname(solver),
+                                    itst.get_args()[1+itst.get_args().index('<')])
+            fdin = os.open(streamin, os.O_RDONLY)
+            self._logger.debug(" Redirecting the standard input from file '%s'" % streamin)
+        else:
+            fdin = None
 
         # create a timer
         runtimer = timetools.Timer ()
@@ -650,6 +640,7 @@ class BotTester (BotParser):
             # the same process group than invokeplanner
             try:
                 child = subprocess.Popen ([solver] + itst.get_args (),
+                                          stdin  = fdin,
                                           stdout = fdlog,
                                           stderr = fderr,
                                           cwd=os.path.dirname (solver),

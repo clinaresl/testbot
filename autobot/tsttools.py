@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <jueves, 20 noviembre 2014 14:04:53 Carlos Linares Lopez (clinares)>
+# Last update <domingo, 26 abril 2015 22:52:07 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -228,13 +228,22 @@ class TstCase(object):
     def get_directives (self):
         """
         returns a list with all the directives included in self._args
+
+        In case the args contain the stdin redirection operator ('<') it is
+        automatically discarded
         """
 
+        # discard the stding redirection operator if necessary
+        if '<' in self._args:
+            args = self._args[0:self._args.index('<')]
+        else:
+            args = self._args
+        
         # just look for all the (unique) occurrences of strings starting with an
         # arbitrary number of dashes and return a list with them but with dashes
         # removed
         return list (set (map (lambda x:x.lstrip ('-'),
-                               filter (lambda y:re.match ("\-+",y), self._args))))
+                               filter (lambda y:re.match ("\-+",y), args))))
 
 
     def get_value (self, directive):
@@ -243,21 +252,30 @@ class TstCase(object):
         account the case of command lines that contain the same directive
         several times or the case of directives that contain an arbitrary number
         of values
+
+        In case the args contain the stdin redirection operator ('<') it is
+        automatically discarded
         """
 
+        # discard the stding redirection operator if necessary
+        if '<' in self._args:
+            args = self._args[0:self._args.index('<')]
+        else:
+            args = self._args
+        
         # take all the occurrences of this directive in the list of arguments
         # along with their position
-        for iL in [jL for jL in zip (range(len(self._args)), self._args)
+        for iL in [jL for jL in zip (range(len(args)), args)
                    if re.match ("\-+"+directive+'$', jL[1])]:
 
             # while the next position is not a directive
             nextidx = iL[0]+1
-            while (nextidx < len (self._args) and
-                   not re.match ("^\-+", self._args [nextidx])):
+            while (nextidx < len (args) and
+                   not re.match ("^\-+", args [nextidx])):
 
                 # return it
                 try:
-                    yield (self._args[nextidx])
+                    yield (args[nextidx])
                 except EnvironmentError:
                     pass
 
@@ -270,21 +288,30 @@ class TstCase(object):
         returns a dictionary with the value of all directives that contain, at
         least, a value. If more than one is available, they are all grouped
         within the same string. If no value is found, the null string is
-        returned
+        returned.
+
+        In case the args contain the stdin redirection operator ('<') it is
+        automatically discarded
         """
 
+        # discard the stding redirection operator if necessary
+        if '<' in self._args:
+            args = self._args[0:self._args.index('<')]
+        else:
+            args = self._args
+        
         # create the dictionary to return
         d = defaultdict (str)
 
         # take all the occurrences of all directives in the list of arguments
         # along with their position
-        for iL in [jL for jL in zip (range(len(self._args)), self._args)
+        for iL in [jL for jL in zip (range(len(args)), args)
                    if re.match ("\-+", jL[1])]:
 
             # while the next position is not a directive
             nextidx = iL[0]+1
-            while (nextidx < len (self._args) and
-                   not re.match ("^\-+", self._args [nextidx])):
+            while (nextidx < len (args) and
+                   not re.match ("^\-+", args [nextidx])):
 
                 # add white spaces in between if required, i.e., if something
                 # was already writen
@@ -293,7 +320,7 @@ class TstCase(object):
 
                 # add it to the list of values of this directive (with the
                 # leading '-' removed)
-                d [iL[1].lstrip ('-')] += self._args [nextidx]
+                d [iL[1].lstrip ('-')] += args [nextidx]
 
                 # and move to the next one
                 nextidx += 1
@@ -332,12 +359,22 @@ class TstSpec(object):
         p = tbparser.VerbatimTBParser ()
         p.run (spec)
 
+        # verify whether the user has requested explicitly to redirect the
+        # stdin with the operator '<' in the arguments of any test case
+        cmds = list()
+        for itstcase in p.cmds:
+            m=re.match(".*<\S", itstcase)
+            if m:
+                cmds.append (re.sub("<", "< ", itstcase))
+            else:
+                cmds.append(itstcase)
+
         # and now, create a TstCase for every command line parsed and qualify
         # them with a string that consits of three digits
         self._tstdefs = zip (map (lambda x,y:x%y,
-                                  ["%03d"] * len (p.cmds),      # identifiers
-                                  range (0, len (p.cmds))),
-                             p.cmds)                            # command lines
+                                  ["%03d"] * len (cmds),      # identifiers
+                                  range (0, len (cmds))),
+                             cmds)                            # command lines
 
         # create a TstCase with the information stored in every tuple
         # ---implemented in a different line to avoid getting a very confusing
