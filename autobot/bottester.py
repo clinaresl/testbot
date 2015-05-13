@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:03:37 2014 Carlos Linares Lopez>
-# Last update <domingo, 26 abril 2015 23:21:08 Carlos Linares Lopez (clinares)>
+# Last update <miércoles, 13 mayo 2015 00:21:36 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -443,8 +443,8 @@ class BotTester (BotParser):
             if self._prologue:
                 action = self._prologue (solver=solver,
                                          tstspec=self._tstspec,
-                                         itest=itst,
                                          dbspec=self._dbspec,
+                                         itest=itst,
                                          timeout=self._timeout,
                                          memory=self._memory,
                                          output=outputprefix,
@@ -476,8 +476,8 @@ class BotTester (BotParser):
             if self._epilogue:
                 action = self._epilogue (solver=solver,
                                          tstspec=self._tstspec,
-                                         itest=itst,
                                          dbspec=self._dbspec,
+                                         itest=itst,
                                          timeout=self._timeout,
                                          memory=self._memory,
                                          output=outputprefix,
@@ -566,7 +566,7 @@ class BotTester (BotParser):
                     newstats [idbname] = stats [idbname]
             stats = newstats
             
-            # and close the database
+            # commit all changes and close the database
             dbhandler.close()
 
             # and make first false to never create tables in this database
