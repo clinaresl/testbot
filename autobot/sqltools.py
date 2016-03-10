@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Apr 17 10:13:28 2013 Carlos Linares Lopez>
-# Last update <lunes, 27 abril 2015 09:42:28 Carlos Linares Lopez (clinares)>
+# Last update <martes, 06 octubre 2015 15:52:00 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -41,8 +41,8 @@
 read/write access to sqlite3 databases
 """
 
-__version__  = '1.0'
-__revision__ = '$Revision$'
+__version__  = '1.0.0'
+__revision__ = "$Revision$"
 
 # imports
 # -----------------------------------------------------------------------------
