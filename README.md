@@ -137,7 +137,7 @@ The following subsections provide basic information to execute
 ## parsebot.py ##
 
 The simplest usage of `autobot` is exemplified with the script
-`parsebot`. It takes the following mandatory arguments:
+`parsebot.py`. It takes the following mandatory arguments:
 
 * *file*: regular expressions that identify all files to parse
 
@@ -145,11 +145,17 @@ The simplest usage of `autobot` is exemplified with the script
 
 Other optional parameters are:
 
-* *dbname*: name of the sqlite3 database that will store all data
-   according to the database specification file given with `--dbspec`
+* *dbname*: name of the sqlite3 database to be generated. Placeholders
+   can be used. To see a comprehensive list of the available
+   placeholders type: `$ parsebot.py --show-placeholders`
 
 * *directory*: target directory where the results of parsing the given
-   files are stored
+   files are stored ---by default, the current working directory.
+
+   Two directories are created under the specified directory with this
+   directive: `config/` and `results/`. While the first contains
+   configuration information used during the parsing process, the
+   latter contains a copy of the files that have been processed.
 
 * *output*: prefix used in the name of the files that are stored in
    the given directory.
@@ -162,7 +168,7 @@ services or to test whether the db file is correctly parsed. In
 particular, to see the results of parsing the database specification
 file type:
 
-    $ testbot.py --parse-db
+    $ parsebot.py --parse-db
 
 All of this information can be accessed with:
 
@@ -178,13 +184,13 @@ It takes the following mandatory arguments:
 
 * *test*: test specification file in the tb language.
 
-  It contains the description of the command line arguments to be
-  passed to the executable. Every command line consists of a single
-  execution of the executable. tb files are encoded in a specific
-  (very simple) language which adheres to the recommendations made by
-  the GNU coding standards for command-line interfaces, though others
-  are also recognized. In addition, it supports the stdin redirection
-  operator `<`.
+   It contains the description of the command line arguments to be
+   passed to the executable. Every command line consists of a single
+   execution of the executable. tb files are encoded in a specific
+   (very simple) language which adheres to the recommendations made by
+   the GNU coding standards for command-line interfaces, though others
+   are also recognized. In addition, it supports the stdin redirection
+   operator `<`.
 
 * *db*: db specification file in the db language. For a gentle
    introduction to the contents of the db language see the
