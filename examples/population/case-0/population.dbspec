@@ -1,0 +1,144 @@
+# Overall structure
+# -----------------------------------------------------------------------------
+
+# db specification files consist of three different blocks: regexps,
+# snippets and schemas
+
+# The regexps block is optional and can contain an arbitrary number of
+# regular expressions that can be used to match any string. They can
+# be used both in the declaration of snippets and schemas.
+
+# The snippets section is also optional and serves to define entry
+# points to Python modules whose results can be used in the schema.
+
+# The section schemas is used to define the contents of an arbitrary
+# number of database tables. Formally speking, it is also optional but
+# leaving it empty does not make much sense.
+
+# regular expressions
+# -----------------------------------------------------------------------------
+
+# regexp to process all figures in the same row. This regexp should
+# match only rows with data. Other rows (mostly decorative) are not
+# matched and hence they are ignored
+
+regexp figures
+   "(?P<country>[A-Za-z\-]+)\s+(?P<population>\d+\.\d+)\s+(?P<births>\d+)\s+(?P<deaths>\d+)\s+(?P<rate>-?\d+\.\d+)"
+
+# database tables
+# -----------------------------------------------------------------------------
+
+# admin tables including 'admin', 'tests', 'time', 'timeline', 'status'
+# and 'version' are created systematically
+#
+# there are three different types of tables:
+#
+#    sys tables: they should start with 'sys_'. They are polled after
+#                every cycle
+#
+#    data tables: they should start with 'data_'. They are polled after
+#                 every execution
+#
+#    user tables: they should start with 'user_'. They are out of reach
+#                 of autobot and they are polled instead by third-party 
+#                 software using the services of autobot
+
+# population data table - consists of tuples with two values: country
+# (type text) and population in millions (type real)
+# -----------------------------------------------------------------------------
+data_population {
+
+      # the fields that shall be written in this datatable should be
+      # always available. Hence the action requested in case data is
+      # not available is "Error"
+
+      # qualify every row with a country. This is done matching the
+      # contents of the file been parsed with the regular expression
+      # figures. The data actually written to the data table matches
+      # the group country
+      country text sys.stdout/figures.country Error;
+
+      # and now write the population of each country in
+      # millions. Again, match every line in the file been parsed with
+      # the regexp figures and take the value stored in the group
+      # population
+      population real sys.stdout/figures.population Error;
+}
+
+# the following tables are similar to the previous one but they record
+# all the other fields present in the text file to parse
+
+# -----------------------------------------------------------------------------
+data_births {
+
+      # the fields that shall be written in this datatable should be
+      # always available. Hence the action requested in case data is
+      # not available is "Error"
+
+      # qualify every row with a country. This is done matching the
+      # contents of the file been parsed with the regular expression
+      # figures. The data actually written to the data table matches
+      # the group country
+      country text sys.stdout/figures.country Error;
+
+      # and now extract the births per 1,000 population by matching
+      # the contents of the file been parsed with the regexp figures
+      # and writing down the value of the group births
+      births integer sys.stdout/figures.births Error;
+}
+
+
+# -----------------------------------------------------------------------------
+data_deaths {
+
+      # the fields that shall be written in this datatable should be
+      # always available. Hence the action requested in case data is
+      # not available is "Error"
+
+      # qualify every row with a country. This is done matching the
+      # contents of the file been parsed with the regular expression
+      # figures. The data actually written to the data table matches
+      # the group country
+      country text sys.stdout/figures.country Error;
+
+      # and now extract the deaths per 1,000 population by matching
+      # the contents of the file been parsed with the regexp figures
+      # and writing down the value of the group deaths
+      deaths integer sys.stdout/figures.deaths Error;
+}
+
+
+# -----------------------------------------------------------------------------
+data_rate {
+
+      # the fields that shall be written in this datatable should be
+      # always available. Hence the action requested in case data is
+      # not available is "Error"
+
+      # qualify every row with a country. This is done matching the
+      # contents of the file been parsed with the regular expression
+      # figures. The data actually written to the data table matches
+      # the group country
+      country text sys.stdout/figures.country Error;
+
+      # and now extract the rate of natural increase (in percentage)
+      # by matching the contents of the file been parsed with the
+      # regexp figures and writing down the value of the group rate
+      rate real sys.stdout/figures.rate Error;
+}
+
+# -----------------------------------------------------------------------------
+
+# of course, some people might prefer to have all this data together
+# in the same table. In the following, only the database specification
+# for a single database table is given. The explanation of all fields
+# is discussed above
+
+data_all {
+
+      country text sys.stdout/figures.country Error;
+      population real sys.stdout/figures.population Error;
+      births integer sys.stdout/figures.births Error;
+      deaths integer sys.stdout/figures.deaths Error;
+      rate real sys.stdout/figures.rate Error;
+}

@@ -176,6 +176,34 @@ All of this information can be accessed with:
 
     $ parsebot.py --help
 
+Configuration files are provided under `examples/`. For instance, try:
+
+```
+#!bash
+
+    $ parsebot.py --file examples/population/case-0/population.data
+                  --dbspec examples/population/case-0/population.dbspec
+		  --dbname population.db
+```
+
+and examine the contents of the sqlite3 database `population.db`. This
+example uses regular expressions (discussed above) to extract various
+data from a text file. Another more involved example is given as a
+separate case:
+
+```
+#!bash
+    $ cp examples/population/case-1/regions.py .
+    $ parsebot.py --file examples/population/case-1/population.data
+                  --dbspec examples/population/case-1/population.dbspec
+		  --dbname population.db
+```
+
+and examine the contents of the sqlite3 database `population.db`. This
+example shows how to retrieve data from a text file, to give it to a
+Python module (regions.py which should then be copied to the current
+working directory) and to store the resulting data in a database.
+
 
 ## testbot.py ##
 
@@ -236,17 +264,18 @@ All of this information can be accessed with:
 
     $ testbot.py --help
 
-Configuration files are provided under examples/ For instance, try:
+Configuration files are provided under `examples/`. For instance, try:
 
-    $ testbot.py --solver /usr/bin/find
-    --test examples/find/find.tb 
-    --db examples/find/find.db 
-    --timeout 5 --memory 2 --check 0
+```
+#!bash
 
-and examine the contents of the directory `find/` just created
+    $ testbot.py --solver /usr/bin/find --test examples/find/find.tb 
+                 --db examples/find/find.db --timeout 5 --memory 2 --check 0
+```
 
-Further information is offered at the User's Manual and the
-Programmer's Guide of testbot
+and examine the contents of the directory `find/` just created. In
+particular, examine the data generated in the sqlite3 database
+`find.db`.
 
 
 # Requirements #

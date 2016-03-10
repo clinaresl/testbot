@@ -1,0 +1,118 @@
+# Overall structure
+# -----------------------------------------------------------------------------
+
+# db specification files consist of three different blocks: regexps,
+# snippets and schemas
+
+# The regexps block is optional and can contain an arbitrary number of
+# regular expressions that can be used to match any string. They can
+# be used both in the declaration of snippets and schemas.
+
+# The snippets section is also optional and serves to define entry
+# points to Python modules whose results can be used in the schema.
+
+# The section schemas is used to define the contents of an arbitrary
+# number of database tables. Formally speking, it is also optional but
+# leaving it empty does not make much sense.
+
+# regular expressions
+# -----------------------------------------------------------------------------
+
+# regexp to process all figures in the same row. This regexp should
+# match only rows with data. Other rows (mostly decorative) are not
+# matched and hence they are ignored
+
+regexp figures
+   "(?P<country>[A-Za-z\-]+)\s+(?P<population>\d+\.\d+)\s+(?P<births>\d+)\s+(?P<deaths>\d+)\s+(?P<rate>-?\d+\.\d+)"
+
+# snippets
+# -----------------------------------------------------------------------------
+
+# the following snippet computes the population of different regions
+# and other statistics (min, max, median, and .25/.75 percentiles) and
+# returns various lists of floating-point numbers with these
+# statistics for northern, western, eastern and southern Europe
+
+snippet regions
+
+	# Input Variables
+	# ---------------------------------------------------------------------
+	# 'countries' and 'population' consist of two arrays with all
+        # countries and populations processed from the input
+        # file. 'autobot' guarantees that these lists are populated in
+        # the same order they are retrieved from the file and hence,
+        # the i-th item in 'population' refers to the population of
+        # the i-th country in 'countries'
+	text countries = sys.stdout/figures.country
+	real population = sys.stdout/figures.population
+
+	# Output Variables
+	# ---------------------------------------------------------------------
+	
+	# the snippet to be invoked in the following statement
+        # computes the various statistics in 'acc', 'minimum',
+        # 'maximum', 'median', 'p25' and 'p75' of every
+        # region. Likewise, 'names' contains the names of each
+        # region. All lists consist of 4 items
+
+	# note that the type of the items in every list is not
+	# declared here! This is done, however, in the specificaton of
+	# the datatable that uses these lists. In general any type can
+	# be enforced
+	return names
+	return acc
+	return minimum
+	return maximum
+	return median
+	return p25
+	return p75
+
+	# Evaluation statement
+	# ---------------------------------------------------------------------
+	# 'eval' forces the evaluation of the given file which is
+        # specified, as usual, with the format
+        # <variable-type>.<value>. In this case, we refer to a 'file'
+        # which resides in the current working directory (and this
+        # explains the two consecutive dots because the full form of
+        # the prefix includes a trailing dot)
+	eval file../regions.py
+
+
+# database tables
+# -----------------------------------------------------------------------------
+
+# admin tables including 'admin', 'tests', 'time', 'timeline', 'status'
+# and 'version' are created systematically
+#
+# there are three different types of tables:
+#
+#    sys tables: they should start with 'sys_'. They are polled after
+#                every cycle
+#
+#    data tables: they should start with 'data_'. They are polled after
+#                 every execution
+#
+#    user tables: they should start with 'user_'. They are out of reach
+#                 of autobot and they are polled instead by third-party 
+#                 software using the services of autobot
+
+# -----------------------------------------------------------------------------
+
+# the following table stores data produced by our snippet. It
+# registers the accumulated population of every region along with the
+# minimum/maximum population, median and .25/.75 percentiles
+data_region_population {
+
+      # this table shall contain the values computed by the snippet
+      # 'regions' which actually produces various lists. Because the
+      # type of the output variables was not declared in the snippet,
+      # it is done here
+      
+      region text regions.names Error;
+      population real regions.acc Error;
+      minimum real regions.minimum Error;
+      p25 real regions.p25 Error;
+      median real regions.median Error;
+      p75 real regions.p75 Error;
+      maximum real regions.maximum Error;
+}
