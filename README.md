@@ -149,16 +149,18 @@ Other optional parameters are:
    can be used. To see a comprehensive list of the available
    placeholders type: `$ parsebot.py --show-placeholders`
 
-* *directory*: target directory where the results of parsing the given
-   files are stored ---by default, the current working directory.
+* *directory*: target directory where various additional data are
+   recorded ---by default, the current working directory. Two
+   directories are created under the specified directory: `config/`
+   and `results/`. While the first contains configuration information
+   used during the parsing process (such as the database specification
+   file), the latter contains a copy of the files that have been
+   processed.
 
-   Two directories are created under the specified directory with this
-   directive: `config/` and `results/`. While the first contains
-   configuration information used during the parsing process, the
-   latter contains a copy of the files that have been processed.
-
-* *output*: prefix used in the name of the files that are stored in
-   the given directory.
+* *output*: prefix used for naming the files stored in the `results/`
+   directory. Placeholders can be used. To see a comprehensive list of
+   the available placeholders type: `$ parsebot.py
+   --show-placeholders`
 
 * *bz2*: if given, the text files copied into the given directory are
    compressed using `bzip2`.
@@ -182,15 +184,14 @@ It takes the following mandatory arguments:
 * *solver*: regular expression that identifies all executables to
   monitor
 
-* *test*: test specification file in the tb language.
-
-   It contains the description of the command line arguments to be
-   passed to the executable. Every command line consists of a single
-   execution of the executable. tb files are encoded in a specific
-   (very simple) language which adheres to the recommendations made by
-   the GNU coding standards for command-line interfaces, though others
-   are also recognized. In addition, it supports the stdin redirection
-   operator `<`.
+* *test*: test specification file in the tb language. It contains the
+  description of the command line arguments to be passed to the
+  executable. Every command line consists of a single execution of the
+  executable. tb files are encoded in a specific (very simple)
+  language which adheres to the recommendations made by the GNU coding
+  standards for command-line interfaces, though others are also
+  recognized. In addition, it supports the stdin redirection operator
+  `<`.
 
 * *db*: db specification file in the db language. For a gentle
    introduction to the contents of the db language see the
