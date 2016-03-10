@@ -182,8 +182,8 @@ Configuration files are provided under `examples/`. For instance, try:
 #!bash
 
     $ parsebot.py --file examples/population/case-0/population.data
-                  --dbspec examples/population/case-0/population.dbspec
-		  --dbname population.db
+                  --dbspec examples/population/case-0/population.dbspec 
+                  --dbname population.db
 ```
 
 and examine the contents of the sqlite3 database `population.db`. This
@@ -196,7 +196,7 @@ separate case:
     $ cp examples/population/case-1/regions.py .
     $ parsebot.py --file examples/population/case-1/population.data
                   --dbspec examples/population/case-1/population.dbspec
-		  --dbname population.db
+                  --dbname population.db
 ```
 
 and examine the contents of the sqlite3 database `population.db`. This
