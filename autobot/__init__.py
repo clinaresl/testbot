@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May 25 19:22:08 2013 Carlos Linares Lopez>
-# Last update <jueves, 20 noviembre 2014 14:05:09 Carlos Linares Lopez (clinares)>
+# Last update <viernes, 11 marzo 2016 00:00:29 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
 #
 # $Id::                                                                      $
@@ -52,6 +52,7 @@ __all__ = ["bots",
            "botparser",
            "bottester",
            "colors",
+           "dbexpression",
            "dbparser",
            "dbtools",
            "logutils",
