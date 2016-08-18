@@ -1,0 +1,122 @@
+This unit test cases do not test the case where data written into the
+namespace are either containers or user-defined objects
+
+# Initialization:
+
+test_single_init: tests that namespaces can receive arbitrary
+                  assignments of the form
+                  attribue=value. Verifications are performed with
+                  item selection, attribute naming and getattr
+
+test_multi_init: tests that namespaces can receive arbitrary
+                 assignments of the form attribute=dict. Verifications
+                 are performed with item selection and attribute
+                 naming (getattr is ommitted because the attributes
+                 are unnamed)
+
+# Reading and writing data:
+
+test_single_write_attribute_naming: verifies that data can be written
+                                    using attribute
+                                    naming. Verifications are
+                                    performed reading data from the
+                                    namespace using attribute naming,
+                                    item selection and getattr
+
+test_multi_write_attribute_naming: Idem
+
+test_single_write_item_selection: verifies that data can be written
+                                  using item selection. Verifications
+                                  are performed reading data from the
+                                  namespace using attribute naming,
+                                  item selection and getattr
+
+test_multi_write_item_selection: to enable writes with item selection
+                                 multi attributes have to be first
+                                 declared
+
+test_single_write_setattr: verifies that data can be written using
+                           setattr. Verifications are performed
+                           reading data from the namespace using
+                           attribute naming, item selection and
+                           getattr
+
+
+# Deletion:
+
+test_single_delete_attribute_naming: verifies that all attributes can
+                                     be deleted from the
+                                     namespace. Attributes are
+                                     specified using attribute naming
+                                     and the same test additionally
+                                     checks that the resulting number
+                                     of items is null
+
+test_multi_delete_attribute_naming: Idem
+
+test_single_delete_item_selection: verifies that all attributes can be
+                                   deleted from the
+                                   namespace. Attributes are specified
+                                   using item selection and the same
+                                   test additionally checks that the
+                                   resulting number of items is null
+
+test_multi_delete_item_selection: Idem
+
+
+# Membership and iterators:
+
+test_single_membership: tests that namespaces correctly recognized
+                        items within it (True/False answers are
+                        possible)
+
+test_multi_membership: Idem
+
+test_single_iter: checks that the iterable list returned by namespaces
+                  contain only the attributes defined within it. It
+                  performs additional checks by comparing the number
+                  of items in the iterable list with the length (len)
+                  of the namespace
+
+test_multi_iter: Idem
+
+test_single_len: verify that the number of attributes written in setUp
+                 equals the number of items returned by len
+
+test_multi_len: Idem
+
+
+# Other services:
+
+test_single_clear: it verifies that after clearing a namespace, its
+                   length is null and that no attribute is found now
+                   within the namespace (using the membership
+                   services)
+
+test_multi_clear: Idem
+
+test_single_update: verifies that the contents of one namespace can be
+                    updated with the contents of a second namespace
+
+test_multi_update: Idem
+
+
+# Special operations with multi attributes
+
+test_multi_setkeynames: it tests getkeynames just to check that multi
+                        attributes are unnamed by default. It then
+                        sets arbitrary keynames which are read back
+                        using getkeynames again
+
+## Random access
+
+test_multi_setattr: write random data using setattr and verify that it
+                    has been properly written using keys and getattr,
+                    using all of them, ie., no projection
+
+## Projections
+
+test_multi_keys: tests the projection of keys
+
+test_multi_values: tests that all values of multi attributes are
+                   correctly returned
