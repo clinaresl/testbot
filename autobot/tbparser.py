@@ -50,7 +50,6 @@ __revision__ = '$Revision$'
 import ply.lex as lex
 import ply.yacc as yacc
 
-
 # -----------------------------------------------------------------------------
 # TBParser
 #
@@ -267,7 +266,7 @@ class TBParser :
     def p_expr_cartprod(self, p):
         'expression : expression CARTPROD expression'
         if isinstance (p[1], tuple) and isinstance (p[3], tuple):
-            p[0] = tuple ([(i,j) for i in p[1] for j in p[3]])
+            p[0] = tuple ([i+j for i in p[1] for j in p[3]])
         else:
             p[0] = None
 
