@@ -114,10 +114,9 @@ distinguished with the prefix `admin_`.
 
 # Installation #
 
-Download the software cloning the Mercurial repository with the
-following command:
+Download the software cloning the git repository with the following command:
 
-    $ hg clone ssh://hg@bitbucket.org/clinares/testbot
+    $ git clone https://github.com/clinaresl/testbot.git
 
 a directory called `testbot` will be automatically created. Go to that
 directory and execute the script `setup.py` as indicated below:
