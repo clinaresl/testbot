@@ -54,11 +54,11 @@ __date__     = '$Date$'
 # -----------------------------------------------------------------------------
 import logging                          # loggers
 
-from autobot.bots import BotMain        # main service
-from autobot.bots import BotAction      # automated pre/post actions
-from autobot import BotParser           # automated parsing
-from autobot import logutils            # utilities to configure loggers
-from autobot import parsetools          # default argument parser
+from bots import BotMain                # main service
+from bots import BotAction              # automated pre/post actions
+from botparser import BotParser         # automated parsing
+import logutils                         # utilities to configure loggers
+import parsetools                       # default argument parser
 
 
 # -----------------------------------------------------------------------------

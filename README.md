@@ -1,5 +1,4 @@
-testbot Version 2.0
-
+CURRENTLY REFACTORING ALL CODE under branch `alpha`
 
 # Introduction #
 
