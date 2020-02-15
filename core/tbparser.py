@@ -42,8 +42,6 @@
 A parser of the testbot language used for specifying command lines
 """
 
-__version__  = '1.0'
-__revision__ = '$Revision$'
 
 # imports
 # -----------------------------------------------------------------------------

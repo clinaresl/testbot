@@ -24,17 +24,9 @@ DBExpression implements the main services for evaluating database expressions
 with data in different namespaces
 """
 
-# globals
-# -----------------------------------------------------------------------------
-__version__ = '1.0'
-__revision__ = '$Revision$'
-__date__ = '$Date$'
-
-
 # imports
 # -----------------------------------------------------------------------------
 import re                               # regular expressions (finditer)
-import string                           # split, find
 
 import dbparser                         # t_SLASH
 
@@ -76,9 +68,9 @@ class DBExpression:
             (exptype, expression, logfilter)
 
         # Do this expression contain a context? If so, process them in a list
-        if string.count(expression, dbparser.DBParser.t_SLASH) > 0:
+        if expression.count(dbparser.DBParser.t_SLASH) > 0:
             self._hascontext = True
-            self._contexts = string.split(expression, dbparser.DBParser.t_SLASH)
+            self._contexts = expression.split(dbparser.DBParser.t_SLASH)
         else:
             self._hascontext = False
             self._contexts = None
@@ -175,7 +167,7 @@ class DBExpression:
 
         # Get information about the snippet whose name is specified in the
         # expression under evaluation
-        (prefix, variable) = string.split(self._expression, '.')
+        (prefix, variable) = self._expression.split('.')
         isnippet = dbspec.get_snippet(prefix)
 
         # Step #1
@@ -300,9 +292,9 @@ class DBExpression:
             # if no type is given, use the default type of this
             # instance. Otherwise, copy the specified one
             if atype:
-                prefix = string.upper (atype)
+                prefix = atype.upper()
             else:
-                prefix = string.upper (self._type)
+                prefix = self._type.upper()
 
             if prefix   == dbparser.SYSNST     or prefix == dbparser.MAINNST: return sys
             elif prefix == dbparser.DATANST    or prefix == dbparser.FILENST: return data
@@ -352,7 +344,7 @@ class DBExpression:
 
                 # compute the prefix (either a regexp-name or a snippet-name)
                 # and variable name of this expression
-                (prefix, variable) = string.split (expression, '.')
+                (prefix, variable) = expression.split ('.')
 
                 # If this instance is a regexp, maybe this refers to the first
                 # context, which is not a regexp on its own. Thus, it is
@@ -445,7 +437,7 @@ class DBExpression:
             for icontext in self._contexts[1:]:
 
                 # compute the prefix and variable of this expression
-                (regexp, group) = string.split (icontext, '.')
+                (regexp, group) = icontext.split ('.')
                 sregexp = dbspec.get_regexp (regexp).get_specification ()
 
                 # Check whether the current value consists of a scalar or a list

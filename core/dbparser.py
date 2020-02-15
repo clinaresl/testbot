@@ -43,13 +43,10 @@ A parser of the testbot language used for specifying
 #              command lines
 """
 
-__version__  = '1.0'
-__revision__ = '$Revision$'
-
 
 # imports
 # -----------------------------------------------------------------------------
-import string                           # split
+import functools
 
 import ply.lex as lex
 import ply.yacc as yacc
@@ -324,8 +321,8 @@ class DBTable:
         """
 
         # first, print the columns
-        columns = reduce (lambda x,y:x+'\n'+y,
-                          [DBColumn.__str__ (icolumn) for icolumn in self._columns])
+        columns = functools.reduce (lambda x,y:x+'\n'+y,
+                                    [DBColumn.__str__ (icolumn) for icolumn in self._columns])
 
         return """ %s {
 %s
@@ -497,7 +494,7 @@ class DBTable:
             # on one hand, because it is a snippet on its own
             if expression.get_type () == SNIPPETNST:
 
-                snippetexp = dbspec.get_snippet (string.split (icolumn.get_variable (), '.') [0])
+                snippetexp = dbspec.get_snippet (str.split (icolumn.get_variable (), '.') [0])
                 if snippetexp.get_keyword () == 'volatile':
                     expression.eval_snippet (dbspec  = dbspec,
                                              sys     = namespace,
@@ -512,7 +509,7 @@ class DBTable:
 
                 # all regexps belong to a context, so access the first one
                 # freely
-                (prefix, var) = string.split (expression.get_context () [0], '.')
+                (prefix, var) = str.split (expression.get_context () [0], '.')
                 snippetexp = dbspec.get_snippet (prefix)
                 if snippetexp and snippetexp.get_keyword () == 'volatile':
 
@@ -855,7 +852,7 @@ class DBSnippet:
         # output variable is volatile the whole snippet is said to be volatile
         # as well
         if (self._outputvars and
-            filter (lambda x:string.upper (x.get_keyword ()) == 'VOLATILE',
+            filter (lambda x:str.upper (x.get_keyword ()) == 'VOLATILE',
                     self._outputvars)):
             self._keyword = 'volatile'
         else:
@@ -1292,7 +1289,7 @@ class DBParser :
                     | variable SLASH QUALIFIEDVAR'''
 
         # compute the prefix of the qualified var
-        prefix = string.split (p[len (p)-1], '.') [0]
+        prefix = str.split (p[len (p)-1], '.') [0]
 
         # check whether it refers to a regexp or a snippet
         if prefix in self._regexptable: vartype = REGEXPNST
@@ -1306,14 +1303,14 @@ class DBParser :
         else:
 
             # check whether the variable (p[1]) is the *first* context
-            if string.find (p[1][1], DBParser.t_SLASH) < 0:
+            if p[1][1].find(DBParser.t_SLASH) < 0:
 
                 # in case it is, keep track of the type of the first context if
                 # and only if it is neither a regexp nor a snippet. Otherwise,
                 # avoid writing down its type (since they are qualified by their
                 # name solely)
                 if p[1][0] != REGEXPNST and p[1][0] != SNIPPETNST:
-                    p[0] = (vartype, string.lower (p[1][0]) + '.' + p[1][1] + DBParser.t_SLASH + p[3])
+                    p[0] = (vartype, str.lower (p[1][0]) + '.' + p[1][1] + DBParser.t_SLASH + p[3])
                 else:
                     p[0] = (vartype, p[1][1] + DBParser.t_SLASH + p[3])
             else:

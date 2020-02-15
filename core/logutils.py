@@ -38,16 +38,9 @@
 #     Copyright Carlos Linares Lopez, 2014
 # -----------------------------------------------------------------------------
 
-"""
-Different logging utilities used to configure the behaviour of loggers in the
-scripts
-"""
+"""Different logging utilities used to configure the behaviour of loggers in the
+scripts"""
 
-# globals
-# -----------------------------------------------------------------------------
-__version__  = '1.0'
-__revision__ = '$Revision$'
-__date__     = '$Date$'
 
 # imports
 # -----------------------------------------------------------------------------
@@ -66,7 +59,7 @@ import colors
 # given. If not, it creates a basic logger. Messages above the given level are
 # issued.
 # -----------------------------------------------------------------------------
-def configure_logger (directory, logfile, level):
+def configure_logger(directory, logfile, level):
 
     """
     opens a file in write mode in the specified directory in case a logfile is
@@ -75,18 +68,18 @@ def configure_logger (directory, logfile, level):
     """
 
     # create the log file either as a file stream or a stream handler
-    if (logfile):
+    if logfile:
 
         # if a filename is specified, append the current date and time
-        logfilename = logfile + '.' + datetime.datetime.now ().strftime ("%y-%m-%d.%H:%M:%S")
-        logging.basicConfig (filename=os.path.abspath (os.path.join (directory, logfilename)),
-                             filemode = 'w', level=level,
-                             format="[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s\n")
+        logfilename = logfile + '.' + datetime.datetime.now().strftime("%y-%m-%d.%H:%M:%S")
+        logging.basicConfig(filename=os.path.abspath(os.path.join(directory, logfilename)),
+                            filemode='w', level=level,
+                            format="[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s\n")
 
     else:
         logfilename = ''
-        logging.basicConfig (level=level,
-                             format="%(color)s[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s\n")
+        logging.basicConfig(level=level,
+                            format="%(color)s[%(asctime)s] [%(user)10s@%(node)s] [%(name)s] %(levelname)s\n%(message)s\n")
 
 
 # -----------------------------------------------------------------------------
@@ -106,8 +99,8 @@ class ContextFilter(logging.Filter):
         in the logger configuration
         """
 
-        record.node = socket.gethostname ()
-        record.user = getpass.getuser ()
+        record.node = socket.gethostname()
+        record.user = getpass.getuser()
 
         if record.levelname == 'DEBUG':
             record.color = colors.darkwhite

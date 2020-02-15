@@ -41,10 +41,6 @@
 General framework for starting services from the testbot
 """
 
-__version__  = '2.0'
-__revision__ = '$Revision$'
-__date__     = '$Date:$'
-
 
 # imports
 # -----------------------------------------------------------------------------
@@ -191,18 +187,15 @@ class BotMain:
         are sorted in ascending order of the lexicographical order
         """
 
-        def _cmp (methodA, methodB):
-            """
-            Returns -1, 0 or +1 if depending on whether the first argument is
-            smaller, equal or larger than the second argument. 'methodA' and
-            'methodB' are method implementations so that their names are accessed
-            through __name__
+        def _cmp (method):
+            """Returns a key to be used for making comparisons when sorting an iterable with
+               instances of methods. By default, methods are sorted in
+               increasing order of their name and hence this default function
+               returns the attribute __name__
+
             """
 
-            if methodA.__name__ < methodB.__name__: return -1
-            elif methodA.__name__ > methodB.__name__:   return +1
-            return 0
-
+            return method.__name__
 
         # retrieve the module to process
         self._module = importlib.import_module (module)
@@ -227,9 +220,9 @@ class BotMain:
             # sort the methods in ascending order according to cmp. If no
             # comparison function is given then sort them lexicographically in
             # ascending order
-            if (not cmp):
+            if not cmp:
                 cmp = _cmp
-            methodList = sorted (methodList, cmp=lambda x,y: cmp (x, y))
+            methodList = sorted (methodList, key=lambda x: cmp (x))
 
             # now execute all methods in this class
             for method in methodList:

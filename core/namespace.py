@@ -24,10 +24,6 @@ Generic definition of namespaces that map origin sets of any cardinality onto
 images of an arbitrary cardinality
 """
 
-__version__  = '1.0'
-__revision__ = '$Revision$'
-__date__     = '$Date$'
-
 
 # imports
 # -----------------------------------------------------------------------------

@@ -24,14 +24,12 @@ Base class of all testbots
 
 # imports
 # -----------------------------------------------------------------------------
-import bz2                      # bzip2 compression service
 import datetime                 # date/time
 import logging                  # loggers
 import os                       # os services
 import re                       # regular expressions
 import shutil                   # shell utitilies such as copying files
 import subprocess               # subprocess management
-import string                   # rstrip
 import time                     # time management
 
 from collections import defaultdict
@@ -39,19 +37,12 @@ from collections import defaultdict
 from botparser import BotParser # services for automated parsing of text files
 import dbparser                 # parsing of database specification files
 import dbtools                  # database specification files
-import namespace                # single and multi key attributes
 import sqltools                 # sqlite3 database access
 import systools                 # process management
 import timetools                # timing management
 import tsttools                 # test specification files
 
-
-# globals
-# -----------------------------------------------------------------------------
-__version__  = '1.0'
-__revision__ = '$Revision$'
-__date__     = '$Date$'
-
+import version
 
 # -----------------------------------------------------------------------------
 # BotTester
@@ -208,7 +199,7 @@ class BotTester (BotParser):
         solvernames = map (lambda x:os.path.basename (x), solver)
 
         self._logger.info ("""
-  %s %s %s
+  version %s
  -----------------------------------------------------------------------------
   * Solver               : %s
   * Tests                : %s
@@ -220,7 +211,7 @@ class BotTester (BotParser):
   * Compression          : %s
   * Time limit           : %i seconds
   * Memory bound         : %i bytes
- -----------------------------------------------------------------------------""" % (__revision__[1:-1], __date__[1:-2], __version__, solvernames, tstfile, dbfile, check, directory, {False: 'disabled', True: 'enabled'}[compress], timeout, memory))
+ -----------------------------------------------------------------------------""" % (version.__version__, solvernames, tstfile, dbfile, check, directory, {False: 'disabled', True: 'enabled'}[compress], timeout, memory))
 
 
     # -----------------------------------------------------------------------------
@@ -1161,7 +1152,7 @@ class BotTester (BotParser):
             istats ['admin_tests'] = self._tstspec.get_defs ()
             istats ['admin_time'] = [(self._starttime, self._endtime,
                                       (self._endtime - self._starttime).total_seconds ())]
-            istats ['admin_version'] = [('autobot', __version__, __revision__[1:-1], __date__ [1:-1])]
+            istats ['admin_version'] = [('autobot', version.__version__, version.__revision__, version.__date__)]
 
             # now, create the admin tables and populate all data tables
             self.create_admin_tables ()

@@ -43,12 +43,6 @@ automatically parses any collection of text files and records various
 data using the services provided by autobot
 """
 
-# globals
-# -----------------------------------------------------------------------------
-__version__  = '1.0'
-__revision__ = '$Revision$'
-__date__     = '$Date$'
-
 
 # imports
 # -----------------------------------------------------------------------------

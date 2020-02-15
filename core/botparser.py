@@ -22,12 +22,6 @@
 Base class of all parsebots
 """
 
-# globals
-# -----------------------------------------------------------------------------
-__version__  = '1.0'
-__revision__ = '$Revision$'
-__date__     = '$Date$'
-
 
 # imports
 # -----------------------------------------------------------------------------
@@ -37,7 +31,6 @@ import logging                  # loggers
 import os                       # os services
 import re                       # regular expressions
 import shutil                   # shell utitilies such as copying files
-import string                   # rstrip
 import time                     # time management
 
 import dbparser                 # database parser
@@ -46,6 +39,7 @@ import dbtools                  # database specification files
 import namespace                # single and multi key attributes
 import sqltools                 # sqlite3 database access
 
+import version
 
 # -----------------------------------------------------------------------------
 # BotParser
@@ -272,13 +266,13 @@ class BotParser (object):
         """
 
         self._logger.info ("""
-  %s %s %s
+  version %s
  -----------------------------------------------------------------------------
   * Files                : %s
   * Database             : %s
 
   * Directory            : %s
- -----------------------------------------------------------------------------""" % (__revision__[1:-1], __date__[1:-1], __version__, txtfile, dbfile, directory))
+ -----------------------------------------------------------------------------""" % (version.__version__, txtfile, dbfile, directory))
 
 
     # -----------------------------------------------------------------------------
@@ -426,7 +420,7 @@ class BotParser (object):
             # output variables has been declared as volatile) then it is not
             # evaluated here. Instead, it should be evaluated when the system
             # is ready for downloading data to the database
-            snippetname = string.split(variable, '.')[0]
+            snippetname = variable.split('.')[0]
             snippet = self._dbspec.get_snippet(snippetname)
             if snippet.get_keyword() == 'volatile':
                 return
@@ -518,7 +512,7 @@ class BotParser (object):
                 head = expression.get_context()[0]
 
                 # and retrieve its prefix and variable name
-                (prefix, variable) = string.split(head, '.')
+                (prefix, variable) = head.split('.')
 
                 # verify whether this is a snippet ...
                 if self._dbspec.get_snippet(prefix):
@@ -526,7 +520,7 @@ class BotParser (object):
                     _eval_snippet(head)
 
                 # ... or a file variable
-                elif string.upper(prefix) == dbparser.FILENST:
+                elif prefix.upper() == dbparser.FILENST:
 
                     _eval_filevar(variable)
 

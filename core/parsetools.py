@@ -41,10 +41,6 @@
 default argument parser and attached actions of the autobot
 """
 
-__version__  = '1.0'
-__revision__ = '$Revision$'
-__date__     = '$Date:$'
-
 
 # imports
 # -----------------------------------------------------------------------------
@@ -53,7 +49,8 @@ import os                       # os services
 import sys                      # system accessing
 
 import dbtools
-import tsttools
+
+import version
 
 
 # -----------------------------------------------------------------------------
@@ -248,7 +245,7 @@ class BotTestArgParser (object):
                                  help="suppress headers")
         self._misc.add_argument ('-V', '--version',
                                  action='version',
-                                 version=" %s %s %s %s" % (sys.argv [0], __version__, __revision__[1:-1], __date__[1:-1]),
+                                 version=" {0} version {1}".format(sys.argv[0], version.__version__),
                                  help="output version information and exit")
 
     # -----------------------------------------------------------------------------
@@ -374,7 +371,7 @@ class BotParseArgParser ():
         create a parser and store its contents in this instance
         """
 
-        self._parser = argparse.ArgumentParser (description="Automatically parses the contents of the given files and records various data. Arguments are processed in the same order they are provided")
+        self._parser = argparse.ArgumentParser(description="Automatically parses the contents of the given files and records various data. Arguments are processed in the same order they are provided")
 
         # now, add the arguments
 
@@ -429,7 +426,7 @@ class BotParseArgParser ():
                                  help="suppress headers")
         self._misc.add_argument ('-V', '--version',
                                  action='version',
-                                 version=" %s %s %s %s" % (sys.argv [0], __version__, __revision__[1:-1], __date__[1:-1]),
+                                 version=" {0} version {1}".format(sys.argv[0], version.__version__),
                                  help="output version information and exit")
 
     # -----------------------------------------------------------------------------

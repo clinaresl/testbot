@@ -41,13 +41,9 @@
 read/write access to sqlite3 databases
 """
 
-__version__  = '1.0.0'
-__revision__ = "$Revision$"
 
 # imports
 # -----------------------------------------------------------------------------
-import datetime         # date/time management
-import re               # regexp
 import sqlite3          # sql lite dbs
 
 

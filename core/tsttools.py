@@ -41,16 +41,15 @@
 test tools
 """
 
-__version__  = '1.0'
-__revision__ = '$Revision$'
 
 # imports
 # -----------------------------------------------------------------------------
+import functools                # reduce
 import re                       # regexp
 
-import tbparser                 # testbot parser utilities (lex and yacc)
-
 from collections import defaultdict
+
+import tbparser                 # testbot parser utilities (lex and yacc)
 
 
 # functions
@@ -68,9 +67,9 @@ def partition (string, sep="""\"[^\"]+\"|'[^']+'"""):
         splitting all the items in l
         """
 
-        return reduce (lambda x,y:x+y,                  # operation: join
-                       map (lambda x:x.split (),        # operation: split
-                            l))
+        return functools.reduce(lambda x,y:x+y,              # operation: join
+                                map (lambda x:x.split (),    # operation: split
+                                     l))
 
     def _partition_aux_ (string, groups, rest):
         """
@@ -202,8 +201,8 @@ class TstCase(object):
 
         # in case there are any args, process them
         if self._args:
-            return self._index + ' ' + reduce (lambda x,y:x + ' ' + y,
-                                               self._args)
+            return self._index + ' ' + functools.reduce(lambda x, y: x + ' ' + y,
+                                                        self._args)
 
         # otherwise, return just the empty string
         return ''
@@ -410,8 +409,8 @@ class TstSpec(object):
 
             # just insert a newline char between two successive string
             # representations
-            return reduce (lambda x,y:x+'\n'+y,
-                           [TstCase.__str__ (z) for z in self._tstdefs])
+            return functools.reduce(lambda x, y: x+'\n'+y,
+                                    [TstCase.__str__ (z) for z in self._tstdefs])
 
         # otherwise, return the null str
         return ''
@@ -423,7 +422,7 @@ class TstSpec(object):
         for every test case
         """
 
-        return [(icase.get_id (), reduce (lambda x,y:x+' '+y, icase.get_args ()))
+        return [(icase.get_id(), functools.reduce(lambda x, y: x+' '+y, icase.get_args()))
                 for icase in self._tstdefs]
 
 

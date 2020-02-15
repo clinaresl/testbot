@@ -47,8 +47,6 @@
 
 from __future__ import with_statement
 
-__version__  = '1.2'
-__revision__ = '$Revision: 306 $'
 
 # imports
 # -----------------------------------------------------------------------------

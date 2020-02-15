@@ -42,12 +42,11 @@
 .. moduleauthor:: Malte Helmert <Malte.Helmert@unibas.ch>, Carlos Linares Lopez <carlos.linares@uc3m.es>
 """
 
-__version__  = '1.2'
-__revision__ = '$Revision: 306 $'
 
 # imports
 # -----------------------------------------------------------------------------
 import datetime         # date/time
+import functools        # reduce
 import os               # process handling
 import signal           # os signals
 import time             # time management
@@ -107,7 +106,7 @@ def read_processes (pgrp):
             if ((iprocess.pgrp not in pgrps or
                  iprocess.pid not in pgrps[iprocess.pgrp]) and
                 (iprocess.pgrp in pgrps or
-                 iprocess.ppid in reduce (lambda x,y:x.union (y), pgrps.values ()))):
+                 iprocess.ppid in functools.reduce (lambda x,y:x.union (y), pgrps.values ()))):
 
                 sentinel = True
                 pgrps[iprocess.pgrp].add (iprocess.pid)

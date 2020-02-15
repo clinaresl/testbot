@@ -41,14 +41,10 @@
 database access
 """
 
-__version__  = '1.0'
-__revision__ = '$Revision$'
-
 
 # imports
 # -----------------------------------------------------------------------------
 import re               # compile, groups
-import string           # split
 
 import dbparser         # testbot parser utilities (lex and yacc)
 
@@ -342,7 +338,7 @@ class DBSpec(object):
                     # split the constituents of the variable field of this
                     # column into two different parts: the regexp name and the
                     # group
-                    (name, group) = string.split (icolumn.get_variable (), '.')
+                    (name, group) = icolumn.get_variable().split('.')
 
                     # first, is there a regexp named after 'name'?
                     regexp = _seek_regexp (name)
