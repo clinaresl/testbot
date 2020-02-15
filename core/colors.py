@@ -6,16 +6,9 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sun Aug 10 00:58:44 2014 Carlos Linares Lopez>
-# Last update <sábado, 22 noviembre 2014 00:56:02 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
-#
-# $Id::                                                                      $
-# $Date::                                                                    $
-# $Revision::                                                                $
-# -----------------------------------------------------------------------------
-#
 # Made by Carlos Linares Lopez
-# Login   <clinares@atlas>
+# Login   <carlos.linares@uc3m.es>
 #
 
 """

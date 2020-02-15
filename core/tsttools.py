@@ -6,16 +6,9 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat May  4 01:37:54 2013 Carlos Linares Lopez>
-# Last update <domingo, 26 abril 2015 22:52:07 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
-#
-# $Id::                                                                      $
-# $Date::                                                                    $
-# $Revision::                                                                $
-# -----------------------------------------------------------------------------
-#
 # Made by Carlos Linares Lopez
-# Login   <clinares@psyche>
+# Login   <carlos.linares@uc3m.es>
 #
 
 # -----------------------------------------------------------------------------
@@ -112,60 +105,6 @@ def partition (string, sep="""\"[^\"]+\"|'[^']+'"""):
 
     # now, add items from one list and the other in the same order
     return _partition_aux_ (string, groups, rest)
-
-
-# -----------------------------------------------------------------------------
-# TstIter
-#
-# returns an iterator of all the cases found in the given TstSpec, even if it is
-# empty
-# -----------------------------------------------------------------------------
-class TstIter(object):
-
-    """
-    returns an iterator of all the cases found in the given TstSpec, even if it
-    is empty
-    """
-
-    def __init__ (self, tstspec):
-        """
-        initialization
-        """
-
-        # initialize the position of the first test case to return
-        self._current = 0
-
-        # copy the test specification
-        self._tstspec = tstspec
-
-
-    def __iter__ (self):
-        """
-        (To be included in iterators)
-        """
-
-        return self
-
-
-    def next (self):
-        """
-        returns the current test case
-        """
-
-        if len (self._tstspec._tstdefs):
-
-            if self._current >= len (self._tstspec._tstdefs):
-                raise StopIteration
-            else:
-                self._current += 1
-                return self._tstspec._tstdefs [self._current - 1]
-
-        # a particularly interesting case is whether this test case is
-        # empty. Since solvers can be also invoked without any parameters this
-        # should be allowed
-        else:
-
-            return []
 
 
 # -----------------------------------------------------------------------------
@@ -339,7 +278,7 @@ class TstCase(object):
 # this class provides services for accessing and interpreting the
 # contents of test specifications
 # -----------------------------------------------------------------------------
-class TstSpec(object):
+class TstSpec:
 
     """
     this class provides services for accessing and interpreting the contents of
@@ -353,6 +292,9 @@ class TstSpec(object):
 
         # copy the data
         self.data = spec
+
+        # initialize the position of the first test case to return
+        self._current = 0
 
         # parse the given string
         p = tbparser.VerbatimTBParser ()
@@ -384,11 +326,33 @@ class TstSpec(object):
 
 
     def __iter__ (self):
-        """
-        return an iterator over the test cases defined in this specification
+        """return an iterator over the test cases defined in this specification
+
         """
 
-        return TstIter (self)
+        return self
+
+
+    def next (self):
+        """returns the current test case
+
+        """
+
+        if len (self._tstdefs):
+
+            if self._current >= len (self._tstdefs):
+                self._current = 0
+                raise StopIteration
+
+            self._current += 1
+            return self._tstspec._tstdefs [self._current - 1]
+
+        # a particularly interesting case is whether this test case is
+        # empty. Since solvers can be also invoked without any parameters this
+        # should be allowed
+        else:
+
+            return []
 
 
     def __len__ (self):

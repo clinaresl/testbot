@@ -6,16 +6,10 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Fri Sep 26 00:39:36 2014 Carlos Linares Lopez>
-# Last update <domingo, 26 abril 2015 17:33:46 Carlos Linares Lopez (clinares)>
-# -----------------------------------------------------------------------------
-#
-# $Id::                                                                      $
-# $Date::                                                                    $
-# $Revision::                                                                $
 # -----------------------------------------------------------------------------
 #
 # Made by Carlos Linares Lopez
-# Login   <clinares@atlas>
+# Login   <carlos.linares@uc3m.es>
 #
 
 """
@@ -389,7 +383,7 @@ class BotParser (object):
         else:
             shutil.copy(src, os.path.join(target,dst))
 
-            
+
     # -----------------------------------------------------------------------------
     # parse_single_file
     #
@@ -524,7 +518,7 @@ class BotParser (object):
 
                     _eval_filevar(variable)
 
-                    
+
     # -----------------------------------------------------------------------------
     # parse_all_files
     #

@@ -7,16 +7,9 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Sat Aug 10 19:13:07 2013 Carlos Linares Lopez>
-# Last update <domingo, 26 abril 2015 01:13:50 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
-#
-# $Id::                                                                      $
-# $Date::                                                                    $
-# $Revision::                                                                $
-# -----------------------------------------------------------------------------
-#
 # Made by Carlos Linares Lopez
-# Login   <clinares@psyche>
+# Login   <carlos.linares@uc3m.es>
 #
 
 # -----------------------------------------------------------------------------
@@ -226,49 +219,6 @@ class DBColumn:
 
 
 # -----------------------------------------------------------------------------
-# DBTableIter
-#
-# returns an iterator over all columns of the given table
-# -----------------------------------------------------------------------------
-class DBTableIter(object):
-
-    """
-    returns an iterator over all columns of the given table
-    """
-
-    def __init__ (self, dbtable):
-        """
-        initialization
-        """
-
-        # initialize the position of the first test case to return
-        self._current = 0
-
-        # copy the table
-        self._dbtable = dbtable
-
-
-    def __iter__ (self):
-        """
-        (To be included in iterators)
-        """
-
-        return self
-
-
-    def next (self):
-        """
-        returns the current column
-        """
-
-        if self._current >= len (self._dbtable._columns):
-            raise StopIteration
-        else:
-            self._current += 1
-            return self._dbtable._columns [self._current - 1]
-
-
-# -----------------------------------------------------------------------------
 # The db specification language acknowledges the following types of objets:
 #
 #       1. Regular expressions
@@ -298,13 +248,29 @@ class DBTable:
 
         (self._name, self._columns) = (name, columns)
 
+        # initialize the position of the first column to return
+        self._current = 0
+
 
     def __iter__ (self):
         """
         return an iterator over the columns defined in this database
         """
 
-        return DBTableIter (self)
+        return self
+
+
+    def __next__ (self):
+        """
+        returns the current column
+        """
+
+        if self._current >= len (self._columns):
+            self._current = 0
+            raise StopIteration
+
+        self._current += 1
+        return self._columns [self._current - 1]
 
 
     def __len__ (self):

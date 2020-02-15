@@ -7,16 +7,9 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Wed Feb 19 18:17:04 2014 Carlos Linares Lopez>
-# Last update <jueves, 20 noviembre 2014 14:05:05 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
-#
-# $Id::                                                                      $
-# $Date::                                                                    $
-# $Revision::                                                                $
-# -----------------------------------------------------------------------------
-#
 # Made by Carlos Linares Lopez
-# Login   <clinares@atlas>
+# Login   <carlos.linares@uc3m.es>
 #
 
 """
@@ -30,7 +23,7 @@ images of an arbitrary cardinality
 import copy                             # for shallow copies
 
 from collections import defaultdict
-from collections import MutableMapping
+from collections.abc import MutableMapping
 
 # -----------------------------------------------------------------------------
 # Namespace

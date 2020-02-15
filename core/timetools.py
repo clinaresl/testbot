@@ -6,16 +6,9 @@
 # -----------------------------------------------------------------------------
 #
 # Started on  <Tue Mar  8 11:54:22 2011 Carlos Linares Lopez>
-# Last update <jueves, 20 noviembre 2014 14:05:22 Carlos Linares Lopez (clinares)>
 # -----------------------------------------------------------------------------
-#
-# $Id:: timetools.py 306 2011-11-11 22:25:37Z clinares                       $
-# $Date:: 2011-11-11 23:25:37 +0100 (Fri, 11 Nov 2011)                       $
-# $Revision:: 306                                                            $
-# -----------------------------------------------------------------------------
-#
 # Made by Carlos Linares Lopez
-# Login   <clinares@korf.plg.inf.uc3m.es>
+# Login   <carlos.linares@uc3m.es>
 #
 
 # -----------------------------------------------------------------------------
